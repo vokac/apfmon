@@ -1612,7 +1612,7 @@ def search(request):
 
 def query(request, q):
     """
-    Search for a string in pandaqueue, sites, labels.
+    Search for a string in pandaq
     """
     if q:
         qset = (
