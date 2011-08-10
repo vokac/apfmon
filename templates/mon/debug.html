@@ -1,0 +1,148 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<pre>
+LAST HOUR ONLY, all factories
+
+DONE COUNT: {{ done|length }}
+HAVEJOB COUNT: {{ havejob|length }}
+FAULT COUNT: {{ fault|length }}
+FLAGGED COUNT: {{ flagged|length }}
+ANCIENT COUNT: {{ ancient|length }}
+</pre>
+
+{% if flagged %}
+<table border=1>
+{% for j in flagged %}
+<pre>
+{{ j.cid }} {{ j.fid.url }} {{ j.created|date:"Y-m-d" }} {{ j.label }} {{ j.cid }} .out
+</pre>
+{% endfor %}
+</table>
+{% endif %}
+{% comment %}
+<pre>
+ANCIENT COUNT: {{ ancient|length }}
+</pre>
+{% if ancient %}
+<table border=1>
+{% for j in ancient %}
+<tr>
+<td>
+<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+</td>
+<td>
+{{ j.fid }}
+</td>
+<td>
+{{ j.pandaq }}
+</td>
+<td>
+{{ j.msg }}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+No jobs with result=0.
+{% endif %}
+
+
+<pre>
+HAVEJOB COUNT: {{ havejob|length }}
+</pre>
+{% if havejob %}
+<table border=1>
+{% for j in havejob %}
+<tr>
+<td>
+<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+</td>
+<td>
+{{ j.fid }}
+</td>
+<td>
+{{ j.pandaq }}
+</td>
+<td>
+{{ j.msg }}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+No jobs with result=0.
+{% endif %}
+
+
+<pre>
+FAULT COUNT: {{ fault|length }}
+</pre>
+{% if fault %}
+<table border=1>
+{% for j in fault %}
+<tr>
+<td>
+<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+</td>
+<td>
+{{ j.fid }}
+</td>
+<td>
+{{ j.pandaq }}
+</td>
+<td>
+{{ j.msg }}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+No jobs in FAULT state.
+{% endif %}
+
+
+<pre>
+FLAGGED COUNT: {{ flagged|length }}
+</pre>
+{% if flagged %}
+<table border=1>
+{% for j in flagged %}
+<tr>
+<td>
+<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+</td>
+<td>
+{{ j.pandaq }}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+No flagged jobs.
+{% endif %}
+
+<pre>
+DONE COUNT: {{ done|length }}
+</pre>
+{% if done %}
+<table border=1>
+{% for j in done %}
+<tr>
+<td>
+<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+</td>
+<td>
+{{ j.pandaq }}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+No jobs in DONE state.
+{% endif %}
+
+{% endcomment %}
+
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<p>
+<table class="left noborder">
+<tr><td>FACTORY</td><td><a href="{% url atl.mon.views.factory fid %}">{{ factoryname }}</a></td></tr>
+<tr><td>PANDAQ</td><td><a href="{% url atl.mon.views.pandaq pandaq.id %}">{{ pandaq }}</a></td></tr>
+<tr><td>STATE</td><td> {{ statename }}</td></tr>
+<tr><td>COUNT</td><td> {{ pages.count }}</td></tr>
+</table>
+</p>
+
+<p>
+<table class=job>
+<tr>
+  <th>Job
+  <th>State
+  <th>Result
+  <th>Created
+  <th>Last modified
+</tr>
+{% if page.object_list %}
+
+{% for j in page.object_list %}
+<tr class="{% cycle odd,even %}">
+  <td><a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+  <td class={{ j.state.name|lower }}>{{ j.state }}
+  <td>{{ j.result }}
+  <td>{{ j.created|timesince}}
+  <td>{{ j.last_modified|timesince}} ago
+</tr>
+{% endfor %}
+<tr>
+  <td colspan=5 class=right>
+    {% if page.has_previous %}
+      <a href="{% url atl.mon.views.jobs label.id statename page.previous_page_number %}">&lt; Newer</a>
+    {% endif %}
+    {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
+    {% if page.has_next %}
+      <a href="{% url atl.mon.views.jobs label.id statename page.next_page_number %}">&gt; Older</a>
+    {% endif %}
+  </td>
+</tr>
+
+{% else %}
+<tr>
+  <td class=fail colspan=6>No jobs found</td>
+</tr>
+{% endif %}
+</table>
+</p>
+
+{% endblock %}

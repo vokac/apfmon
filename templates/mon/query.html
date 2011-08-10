@@ -1,0 +1,50 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>Search results: "{{ query }}"</h2>
+
+<p>
+<form action="{% url atl.mon.views.search %}" method="GET" name="search">
+  <label for="q"></label>
+  <input type="text" name="q" value="{{ query|escape }}">
+  <input type="submit" value="Site search">
+</form>
+</p>
+
+{% comment %}
+  <td nowrap class=left><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row }}</a>
+{% endcomment %}
+
+<p>
+{% if labels %}
+<table>
+<th class=left title="Name of factory">Factory
+<th class=left title="Name of Panda queue">PandaQueue
+<th class=left title="Label used in factory config">Label
+<th class=right title="age of last modification">When
+</tr>
+{% for label in labels %}
+<tr class="{% cycle odd,even %}">
+  <td class=left>{{ label.fid }}
+  <td class=left nowrap><a href="{% url atl.mon.views.pandaq label.pandaq.id %}">{{ label.pandaq }}</a>
+  <td class=left nowrap>{{ label }}</a>
+  <td class=right>{{ label.last_modified|timesince }} ago
+</tr>
+<tr class=even>
+  <td></td>
+  <td colspan=1 class=right>{{ label.pandaq.msg }}
+</tr>
+{% comment %}
+{% endcomment %}
+{% endfor %}
+
+</table>
+
+{% else %}
+<p>
+No match. Try strings from panda queues rather than CE hostnames.
+</p>
+{% endif %}
+</p>
+{% endblock %}

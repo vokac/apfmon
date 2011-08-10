@@ -1,0 +1,39 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>News</h2>
+<ul>
+<li>New production server online via <a href=http://apfmon.lancs.ac.uk/>http://apfmon.lancs.ac.uk/</a>
+<li>updated setting: <pre>monitorURL = http://apfmon.lancs.ac.uk/mon/</pre>
+<li>Front page simplified and search box added
+</ul>
+
+
+<h2>Help and information</h2>
+<ul>
+<li>For help, email atlas-project-adc-operations-pilot-factory@cern.ch
+<li>panda-autopyfactory 1.2.0 (The_Captain) released, rpm <a href="http://svr017.gla.scotgrid.ac.uk/factory/release/apf/1.2.0-the-captain/">here</a>
+</ul>
+</p>
+{% comment %}
+{% endcomment %}
+
+<h2>States</h2>
+<ul>
+<li><dfn>CREATED: condor_submit executed, condor_id returned
+<li><dfn>RUNNING: pilot wrapper has started on Worker Node
+<li><dfn>EXITING: pilot wrapper is finishing up on Worker Node
+<li><dfn>DONE: condor jobstate is Completed (or Removed)
+<li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
+</ul>
+
+
+<h2>Backend monitoring</h2>
+<ul>
+<li>Webservice apache <a href="/usage/">usage</a>
+<li>Ganglia <a href="http://fal-pygrid-17.lancs.ac.uk:8123/ganglia/?r=day&sg=&c=Rogue&h=py-prod.lancs.ac.uk">graphs</a>
+</ul>
+
+
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+{% comment %}
+{% endcomment %}
+<h2>Panda Queue view - <a href="http://panda.cern.ch:25980/server/pandamon/query?tp=queue&id={{ pandaq }}">{{ pandaq }}</a></h2>
+
+<p>
+<img src="http://py-dev.lancs.ac.uk/media/states-6h-{{ factory.id }}-{{ pandaq.id }}.png" alt="States {{ factory.id }}-{{ pandaq.id }}" />
+</p>
+
+{% for row in rows %}
+<table >
+<tr>
+<th>Panda queue
+<th>created
+<th>running
+<th>exiting
+<th>done (last hour)
+<th>fault (last hour)
+<th>Latest action (detail)
+</tr>
+<tr>
+  <td nowrap>{{ row.label }}
+  <td>{{ row.jobcount.created }}
+  <td>{{ row.jobcount.running }}
+  <td>{{ row.jobcount.exiting }}
+  <td>{{ row.jobcount.done }}
+  <td>{{ row.jobcount.fault }}
+  <td>{{ row.label.last_modified|timesince }} ago
+</tr>
+{% comment %}
+<tr>
+  <td></td>
+  <td colspan=6><pre>{{ row.label.msg|truncatewords:5 }}</pre>
+</tr>
+<tr>
+<td align=center colspan=7>
+<img src="http://py-dev.lancs.ac.uk/media/states-6h-{{ factory.id }}-{{ pandaq.id }}.png" alt="States {{ factory.id }}-{{ pandaq.id }}" />
+</td>
+</tr>
+{% endcomment %}
+
+</table>
+{% endfor %}
+
+<p>
+<table class=job>
+<tr>
+  <th>Job
+  <th>Factory
+  <th>State
+  <th>Age
+</tr>
+</table>
+</p>
+
+{% endblock %}

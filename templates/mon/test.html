@@ -1,0 +1,29 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>Test page - nothing to see here</h2>
+
+<form id="viewTypes">
+  <b>View mode: </b>
+    <label for="viewTypeTimeline"><input type="radio" name="viewType" id="viewTypeTimeline" value="timelineView" checked>Timeline</label>
+    <label for="viewTypeOutline"><input type="radio" name="viewType" id="viewTypeOutline" value="outlineView" >Outline</label>
+    <noscript><input type="submit" value="Go!"></noscript>
+</form>
+
+<ul>
+{% for job in jobs %}
+  <li>{{ job }}
+{% endfor %}
+</ul>
+
+<div class=hidden>
+<p>
+Click to see <a href="{% url atl.mon.views.queues %}">complete list of panda queues</a>
+</div>
+
+<script>
+$('div').removeClass('hiddn')
+</script>
+
+{% endblock %}

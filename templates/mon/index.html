@@ -1,0 +1,44 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>Global view - all factories</h2>
+
+<p>
+This is a development instance, please use <a href=http://apfmon.lancs.ac.uk/>http://apfmon.lancs.ac.uk/</a>
+</p>
+<p>Factory owners should use updated setting: 
+<br><pre>monitorURL = http://apfmon.lancs.ac.uk/mon/</pre>
+
+</p>
+
+
+<p>
+<form action="{% url atl.mon.views.search %}" method="GET" name="search">
+  <label for="q"></label>
+  <input type="text" name="q" value="{{ query|escape }}">
+  <input type="submit" value="Site search">
+</form>
+</p>
+
+<p>
+<table>
+<tr>
+<th class=left title="factoryId">Factory
+<th class=right title="jobs created in last cycle">Activity
+<th class=right title="age of last modification">When
+<th class=right title="factory version">Version
+</tr>
+{% for row in rows %}
+<tr class="{% cycle odd,even %}">
+  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
+  <td>{{ row.factory.last_ncreated }}
+  <td class={{ row.active }}>{{ row.factory.last_modified|timesince }} ago
+  <td>{{ row.factory.version }}
+</tr>
+{% endfor %}
+
+</table>
+</p>
+
+{% endblock %}

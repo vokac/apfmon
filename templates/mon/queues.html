@@ -1,0 +1,41 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>Global view: all queues, all factories</h2>
+
+{% comment %}
+{% endcomment %}
+<hr>
+{% ifequal plot "on" %}
+  <a href="/mon/history/"><img src="/media/states-6h-0-0.png" alt="Pilot states 6h" /></a>
+{% endifequal %}
+
+<ul class=top>
+<li style=font-weight:bold>Factories(active):</li>
+{% for f in factories %}
+  <li><a href="{% url atl.mon.views.factory f.id %}">{{ f.name }}</a>({{ f.nactive }})</li>
+{% endfor %}
+</ul>
+
+<table border=1>
+<tr nowrap>
+<th>Panda queue
+<th>active
+<th>done <span style=white-space:nowrap;>(last hour)</span>
+<th>fault <span style=white-space:nowrap;>(last hour)</span>
+</tr>
+{% for row in rows %}
+<tr class="{% cycle odd,even %}">
+  <td nowrap class=left><a href="{% url atl.mon.views.pandaq row.pandaq.id %}">{{ row.pandaq }}</a>
+  <td class={{ row.statactive }}>{{ row.nactive }}
+  <td class={{ row.statdone }}>{{ row.ndone }}
+  <td class={{ row.statfault }}>{{ row.nfault }}
+{% comment %}
+  <td class={{ row.statactive }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'ACTIVE' %}">{{ row.nactive }}</a>
+  <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'DONE' %}">{{ row.ndone }}</a>
+  <td class={{ row.statfault }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'FAULT' %}">{{ row.nfault }}</a>
+{% endcomment %}
+{% endfor %}
+</table>
+{% endblock %}

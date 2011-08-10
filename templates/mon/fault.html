@@ -1,0 +1,29 @@
+{% extends "pyf/base.html" %}
+
+{% block title %}UK pilot factory monitor{% endblock %}
+
+{% block content %}
+
+<pre>
+FAULT JOB COUNT: {{ jobs|length }}
+</pre>
+
+{% if jobs %}
+<table border=1>
+{% for j in jobs %}
+<tr>
+<td>
+<a href={% url gut.pyf.views.job j.cid %}>{{j.cid }}</a>
+</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+No jobs.
+{% endif %}
+
+
+{% comment %}
+{% endcomment %}
+
+{% endblock %}

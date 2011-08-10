@@ -1,0 +1,36 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>Global view - all factories</h2>
+
+{% ifequal plot "on" %}
+  <img src="/media/states-6h-0-0.png" alt="Pilot states 6h" />
+{% endifequal %}
+
+<table>
+<tr>
+<th>Factory
+<th>created
+<th>running
+<th>exiting
+<th>done (last hour)
+<th>fault (last hour)
+</tr>
+{% for row in rows %}
+<tr class="{% cycle odd,even %}">
+  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
+  <td>{{ row.ncreated }}
+  <td>{{ row.nrunning }}
+  <td>{{ row.nexiting }}
+  <td>{{ row.ndone }}
+  <td>{{ row.nfault }}
+</tr>
+{% endfor %}
+
+</table>
+
+<p>
+Click to see <a href="{% url atl.mon.views.queues %}">complete list of panda queues</a>
+
+{% endblock %}

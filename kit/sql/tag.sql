@@ -1,0 +1,9 @@
+INSERT INTO kit_tag (name) VALUES ('atlas');
+INSERT INTO kit_tag (name) VALUES ('tier1');
+INSERT INTO kit_tag (name) VALUES ('tier2');
+INSERT INTO kit_tag (name) VALUES ('londont2');
+INSERT INTO kit_tag (name) VALUES ('northgrid');
+INSERT INTO kit_tag (name) VALUES ('scotgrid');
+INSERT INTO kit_tag (name) VALUES ('southgrid');
+INSERT INTO kit_tag (name) VALUES ('production');
+INSERT INTO kit_tag (name) VALUES ('analysis');
