@@ -20,6 +20,7 @@ urlpatterns = patterns('atl.kit.views',
 #    (r'^awol/$', 'awol'),
 #    (r'^flag/$', 'flag'),
     (r'^q/$', 'pandaqueues'),
+    (r'^update/$', 'update'),
 #    (r'^s/$', 'pandasites'),
 #    (r'^r/$', 'rrd'),
 
