@@ -8,8 +8,6 @@ from atl.mon.models import Pandaid
 from atl.kit.models import Tag
 from atl.kit.models import Site
 from atl.kit.models import PandaQueue
-from atl.kit.models import Queue
-from atl.kit.models import Comment
 
 import csv
 import logging
@@ -29,7 +27,6 @@ from django.core.urlresolvers import reverse
 try:
     import json as json
 except ImportError, err:
-    # Not critical (yet) - try simplejson
     import simplejson as json
 
 # Flows

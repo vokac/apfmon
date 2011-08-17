@@ -1,0 +1,114 @@
+{% load humanize %}
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+
+<head>
+<!--<script src="http://code.jquery.com/jquery-1.4.4.min.js" type="text/javascript"></script>
+-->
+<title>Autopyfactory Monitoring</title>
+<style type="text/css">
+tr.em {background:#DDDDDD}
+tr.online {background:#FFFFFF}
+tr.offline {background:#CCCCCC}
+tr.even {background:none}
+tr.odd {background:#e0eeee}
+td.pass {background:none}
+td.cold {background:#c8d9f9}
+td.hot {background:#ae3c51}
+td.hot {background:#ffc0cb}
+td.note {color:#cc3118}
+a.fail {color:#cc3118}
+a:visited {color: blue}
+td.fail {color:#cc3118}
+td.fault {color:#ea644a}
+tr.collapse {visibility:collapse;}
+div.hidden {visibility:collapse;}
+.noborder {
+  border-style:none;
+}
+table {
+  font-family:monospace;
+  border-style:none;
+  border-collapse:collapse;
+  border-width:1px;
+}
+th {
+  background:none;
+  padding:0.1em 1em;
+  border-style:none;
+  border-width:1px;
+  padding:0.5em 1em;
+}
+td {
+  text-align:right;
+  border-style:none;
+  padding:0em 1em;
+  white-space: nowrap;
+}
+table.right td {
+  text-align:right;
+  padding:0 1em;
+}
+td.right {
+  text-align:right;
+}
+td.left {
+  text-align:left;
+}
+th.right {
+  text-align:right;
+}
+th.left {
+  text-align:left;
+}
+table.left td {
+  text-align:left;
+  padding:0 1em;
+}
+table.log {
+  border-style:none;
+  border-right:1px solid #000000;
+  border-left:1px solid #000000;
+}
+table.log td {
+  padding:0 1em;
+  text-align:left;
+}
+ul.top {
+  font-family:monospace;
+  padding:0 1em;
+}
+ul.top li {
+  display: inline;
+  list-style-type: none;
+  padding-right: 0.2em;
+}
+
+{% comment %}
+{% endcomment %}
+</style>
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-9606485-4']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+
+</head>
+
+<body>
+    <p><a href="{% url atl.mon.views.index %}">Home</a> | <a href="/admin">Admin</a> | <a href="{% url atl.mon.views.info %}">News &amp; Info</a> | <a href="/mon/history">Graphs</a></p>
+    {% block content %}{% endblock %}
+    {% block footer %}
+    {% endblock %}
+
+</body>
+</html>

@@ -1,0 +1,37 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>ATLAS distributed computing resources - <a href="http://adc-ssb.cern.ch/SITE_EXCLUSION/panda_queues.json">data</a> from <a href="http://dashb-atlas-ssb.cern.ch/dashboard/request.py/siteviewhome">SSB</a></h3>
+
+{% comment %}
+<p>
+<form action="{% url atl.mon.views.search %}" method="GET" name="search">
+  <label for="q"></label>
+  <input type="text" name="q" value="{{ query|escape }}">
+  <input type="submit" value="Site search">
+</form>
+</p>
+
+{% endcomment %}
+
+
+<p>
+<table>
+<tr>
+<th class=left title="AGIS site name">Site name
+<th class=right title="Panda site name">Panda site name
+<th class=right title="age of last modification">When
+</tr>
+{% for pandaq in pandaqs %}
+<tr class="{% cycle odd,even %}">
+  <td class=left>{{ pandaq.site.name }}
+  <td>{{ pandaq.site.name }}
+  <td {{ pandaq.last_update|timesince }} ago
+</tr>
+{% endfor %}
+
+</table>
+</p>
+
+{% endblock %}
