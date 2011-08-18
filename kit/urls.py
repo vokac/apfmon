@@ -7,8 +7,6 @@ from django.contrib import admin
 admin.autodiscover()
 
 urlpatterns = patterns('atl.kit.views',
-# rendered views
-    (r'^$', 'index'),
 
 # non-rendered views
 #    (r'^n/(?P<state>[A-Z]*)/?(?P<qid>\d*)$', 'count'),
