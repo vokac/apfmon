@@ -18,32 +18,6 @@ try:
 except ImportError, err:
     import simplejson as json
 
-# map SSB json key -> models.py
-#keymap = {
-#          'queue_comment' : 'comment',
-#          'timestamp' : 'timestamp',
-#          'queue_status' : 'state',
-#          'queue_type' : 'type',
-#          'queue_status_control' : 'control',
-#        }
-
-def index(request):
-    """
-    Rendered view of front mon page
-    """
-
-    sites = Site.objects.all()
-    pqs = PandaQueue.objects.all()
-#    analytag = Tag.objects.get(name='analysis')
-#    prodtag = Tag.objects.get(name='production')
-    
-    context = {
-            'pandaqs' : pqs,
-            'sites' : sites,
-            }
-
-    return render_to_response('kit/index.html', context)
-
 def pandaqueues(request):
     """
     Return list of panda queues

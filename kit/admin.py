@@ -7,14 +7,21 @@ from atl.kit.models import PandaQueue
 from atl.kit.models import PandaSite
 
 class PandaQueueAdmin(admin.ModelAdmin):
-    list_display = ('name',
+    list_display = (
+                    'name',
                     'pandasite',
                     'state',
                     'comment',
                    )
 
+class PandaSiteAdmin(admin.ModelAdmin):
+    list_display = (
+                    'name',
+                    'site',
+                    'tier',
+                    )
 admin.site.register(Tag)
 admin.site.register(Site)
 admin.site.register(Cloud)
 admin.site.register(PandaQueue, PandaQueueAdmin)
-admin.site.register(PandaSite)
+admin.site.register(PandaSite, PandaSiteAdmin)
