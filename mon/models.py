@@ -33,6 +33,9 @@ from atl.kit.models import PandaQueue
 #  6   Submission_err  E
 #  
 
+
+#idea: how about a flat schema for jobs? Containing all related info without joins
+
 JOBSTATES = (
             ('s', 'Submitted'),
             ('0', 'Unexpanded'),
