@@ -1,0 +1,31 @@
+{% extends "mon/base.html" %}
+
+{% block content %}
+
+<h2>Global view - all factories</h2>
+
+<p>
+<table>
+<tr>
+<th class=left title="Site name">Site
+<th class=right title="jobs created in last cycle">Activity
+<th class=right title="age of last modification">When
+</tr>
+{% for row in rows %}
+<tr class="">
+  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.site }}</a>
+  <td>{{ row.factory.last_ncreated }}
+</tr>
+  {% for pandaq in row.pandaqs %}
+    <tr class="{% cycle odd,even %}">
+      <td style=background:white>
+      <td class="left {{ pandaq.type }}">{{ pandaq }}
+      <td>{{ pandaq.last_modified|timesince }} ago
+    </tr>
+  {% endfor %}
+{% endfor %}
+
+</table>
+</p>
+
+{% endblock %}
