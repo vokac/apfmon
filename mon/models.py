@@ -87,7 +87,7 @@ class Label(models.Model):
     """
     name = models.CharField(max_length=64, blank=True)
     fid = models.ForeignKey(Factory)
-    pandaq = models.ForeignKey(PandaQueue)
+    pandaq = models.ForeignKey(PandaQueue, db_index=True)
     msg = models.CharField(max_length=140, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
     def __unicode__(self):
