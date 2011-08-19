@@ -8,11 +8,11 @@ Model to represent the ATLAS topology of Sites and resources
 #        ('UK', 'UK'),
 #        )
 
-#QTYPE = (
-#        ('ANALYSIS_QUEUE', 'ANALYSIS_QUEUE'),
-#        ('PRODUCTION_QUEUE', 'PRODUCTION_QUEUE'),
-#        ('SPECIAL_QUEUE', 'SPECIAL_QUEUE'),
-#        )
+QTYPE = (
+        ('ANALYSIS_QUEUE', 'ANALYSIS_QUEUE'),
+        ('PRODUCTION_QUEUE', 'PRODUCTION_QUEUE'),
+        ('SPECIAL_QUEUE', 'SPECIAL_QUEUE'),
+        )
 
 
 class Cloud(models.Model):
@@ -53,7 +53,7 @@ class PandaSite(models.Model):
     """
     Represents a Panda Site (siteid), first column on 'clouds' page
     """
-    name = models.CharField(max_length=64, unique=True)
+    name = models.CharField(max_length=64)
     site = models.ForeignKey(Site, blank=True, null=True)
     tier = models.CharField(max_length=8, blank=True, null=True)
     def __unicode__(self):
@@ -70,7 +70,7 @@ class PandaQueue(models.Model):
     state = models.CharField(max_length=16, blank=True, default='unknown')
     tags = models.ManyToManyField(Tag, blank=True)
     comment = models.CharField(max_length=140, blank=True, default='')
-    type = models.CharField(max_length=32, blank=True, null=True)
+    type = models.CharField(max_length=32, choices=QTYPE, blank=True, null=True)
     control = models.CharField(max_length=32, blank=True, null=True)
     # this should be upstream timestamp. ie. from SSB json data
     timestamp = models.DateTimeField(editable=False, null=True)
