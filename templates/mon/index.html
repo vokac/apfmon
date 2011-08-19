@@ -15,17 +15,23 @@
 <p>
 <table>
 <tr>
-<th class=left title="factoryId">Factory
-<th class=right title="jobs created in last cycle">Activity
-<th class=right title="age of last modification">When
-<th class=right title="factory version">Version
+<th class=left title="Cloud name">Cloud
+<th class=right title="Active/Total number of factories serving this cloud">Active factories
+<th class=right title="Number of queues configured">nQueues
 </tr>
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
-  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
-  <td>{{ row.factory.last_ncreated }}
-  <td class={{ row.active }}>{{ row.factory.last_modified|timesince }} ago
-  <td>{{ row.factory.version }}
+{% comment %}
+  <td class=left><a href="{% url atl.mon.views.cloud row.cloud.id %}">{{ row.cloud }}</a>
+{% endcomment %}
+  <td class=left>{{ row.cloud }}
+  {% if row.factories %}
+    <td>{{ row.factive|length }}/{{ row.factories|length }}
+  {% else %}
+    <td>-
+  {% endif %}
+  <td>{{ row.labels|length }}
+  <td class={{ row.active }}>{{ row.nactive }}
 </tr>
 {% endfor %}
 
@@ -33,3 +39,12 @@
 </p>
 
 {% endblock %}
+
+
+        row = {
+            'cloud' : cloud,
+            'pandaqs' : pandaqs,
+            'cloudlabs' : cloudlabs,
+            'active' : active,
+            'nactive' : nactive,
+            }
