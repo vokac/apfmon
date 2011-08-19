@@ -5,9 +5,11 @@ from atl.mon.models import Label
 from atl.mon.models import Message
 from atl.mon.models import Pandaid
 
+from atl.kit.models import Cloud
 from atl.kit.models import Tag
 from atl.kit.models import Site
 from atl.kit.models import PandaQueue
+from atl.kit.models import PandaSite
 
 import csv
 import logging
@@ -764,10 +766,7 @@ def cr(request):
         content = "Bad request"
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
-    pq, created = PandaQueue.objects.get_or_create(name=nick)
-    if created:
-        msg = "PandaQueue auto-created: %s" % nick
-        logging.warn(msg)
+    pq = get_object_or_404(PandaQueue, name=nick)
 
     f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
     if created:
@@ -887,10 +886,7 @@ def action(request):
 
     txt = txt[:140]
 
-    pq, created = PandaQueue.objects.get_or_create(name=nick)
-    if created:
-        msg = "PandaQueue auto-created: %s" % nick
-        logging.warn(msg)
+    pq = get_object_or_404(PandaQueue, name=nick)
 
     f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
     if created:
@@ -1277,46 +1273,85 @@ def test(request):
 
 def index(request):
     """
-    Rendered view of front page
+    Rendered view of front page which shows a table of activity
+    for each cloud with counts of number of active factories
     """
 
-    factories = Factory.objects.all().order_by('name')
-   
-    dtfail = datetime.now() - timedelta(hours=1)
-    dtwarn = datetime.now() - timedelta(minutes=10)
+    clouds = Cloud.objects.all().order_by('name')
     jobs = Job.objects.all()
 
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
+    dtfail = datetime.now() - timedelta(hours=1)
+    dtwarn = datetime.now() - timedelta(minutes=20)
 
     rows = []
-    for f in factories:
+    for cloud in clouds:
 
-#        ncreated = jobs.filter(fid=f, state=cstate).count()
-        ncreated = 0
+        nactive = 0
+        factive = []
+        labels = Label.objects.filter(pandaq__pandasite__site__cloud=cloud)
 
-        active = 'fail'
-        if f.last_modified > dtfail:
-            active = 'warn'
-        if f.last_modified > dtwarn:
-            active = 'pass'
+        factories = []
+        for label in labels:
+            if label.fid not in factories:
+                factories.append(label.fid)
+                if label.fid.last_modified > dtwarn:
+                    factive.append(label.fid)
+
+        print cloud, 'labels', labels.count()
+        print 'factory list', factories
+
+#        active = 'hot'
+#        if qactive <= 2000:
+#            active = 'pass'
+#        if qactive <= 5:
+#            active = 'cold'
+
         row = {
-            'factory' : f,
-            'active' : active,
-            'ncreated' : ncreated,
+            'cloud' : cloud,
+            'labels' : labels,
+            'factories' : factories,
+            'factive' : factive,
+            'nactive' : nactive,
             }
 
         rows.append(row)
 
     context = {
             'rows' : rows,
-            'plot' : 'on',
             }
 
     return render_to_response('mon/index.html', context)
+
+def cloud(request, name):
+    """
+    Rendered view of Cloud page showing table of Sites in this cloud.
+    """
+    c = get_object_or_404(Cloud, name=name)
+
+    sites = Site.objects.filter(cloud=c)
+    rows = []
+
+    for site in sites:
+
+        psites = PandaSite.objects.filter(site=site)
+        pandaqs = PandaQueue.objects.filter(pandasite__site=site)
+        print psites
+
+        row = {
+                'site' : site,
+                'psites' : psites,
+                'pandaqs' : pandaqs
+                }
+        rows.append(row)
+
+    context = {
+            'cloud' : c,
+            'sites' : sites,
+            'rows' : rows,
+            }
+
+
+    return render_to_response('mon/cloud.html', context)
 
 def testtimeline(request):
 
@@ -1449,10 +1484,7 @@ def cr2(request):
             fid = d[2]
             label = d[3]
     
-            pq, created = PandaQueue.objects.get_or_create(name=nick)
-            if created:
-                msg = "PandaQueue auto-created: %s" % nick
-                logging.warn(msg)
+            pq = get_object_or_404(PandaQueue, name=nick)
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
@@ -1559,10 +1591,8 @@ def msg(request):
 
             txt = text[:140]
         
-            pq, created = PandaQueue.objects.get_or_create(name=nick)
-            if created:
-                msg = "PandaQueue auto-created: %s" % nick
-                logging.warn(msg)
+            pq = get_object_or_404(PandaQueue, name=nick)
+            print pq
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
@@ -1577,6 +1607,7 @@ def msg(request):
             if created:
                 msg = "Label auto-created: %s" % label
                 logging.warn(msg)
+#            l = get_object_or_404(Label, name=label, fid=f, pandaq=pq)
         
             try:
                 l.msg = txt
