@@ -12,6 +12,7 @@ class PandaQueueAdmin(admin.ModelAdmin):
                     'pandasite',
                     'state',
                     'comment',
+                    'timestamp',
                    )
 
 class PandaSiteAdmin(admin.ModelAdmin):
