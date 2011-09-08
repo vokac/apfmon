@@ -1187,54 +1187,54 @@ def pandasites(request):
     return response
 
 
-import rrdtool
-import StringIO
-import shutil
-import tempfile
-def img(request, t, fid, qid):
-    db = '/var/tmp/rrd/job-state-%s-%s.rrd' % (fid, qid)
-    t = str(t)
-    db = str(db)
-
-    # serialize to HTTP response
-    response = HttpResponse(mimetype="image/png")
-    f = tempfile.NamedTemporaryFile(dir='/dev/shm')
-
-    output = rrdtool.graph(f.name,
-            '--title', 'Hello',
-            '--watermark', 'x',
-            '--start', 'end-%s' % t,
-            '--lower-limit', '0',
-            '--vertical-label', "number of jobs" 
-#            'DEF:cr=%s:created:AVERAGE' % db,
-            'DEF:cr=/var/tmp/rrd/job-state-1-1.rrd:created:AVERAGE',
-            'DEF:rn=%s:running:AVERAGE' % db,
-            'DEF:ex=%s:exiting:AVERAGE' % db,
-            'DEF:ft=%s:fault:AVERAGE' % db,
-            'DEF:dn=%s:done:AVERAGE' % db,
-#            'CDEF:st1=cr,1,*',
-            'CDEF:st2=rn,1,*',
-            'CDEF:st3=ex,1,*',
-            'CDEF:st4=ft,1,*',
-            'CDEF:st5=dn,1,*',
-            'CDEF:ln1=cr,cr,UNKN,IF',
-            'CDEF:ln2=rn,cr,rn,+,UNKN,IF',
-            'CDEF:ln3=ex,rn,cr,ex,+,+,UNKN,IF',
-            'CDEF:ln4=ft',
-            'CDEF:ln5=dn',
-            'AREA:st1#ECD748:CREATED',
-            'STACK:st2#48C4EC:RUNNING',
-            'STACK:st3#EC9D48:EXITING',
-            'LINE1:ln1#C9B215',
-            'LINE1:ln2#1598C3',
-            'LINE1:ln3#CC7016',
-            'LINE3:ln4#cc3118:FAULT',
-            'LINE3:ln5#23bc14:DONE',
-            )
-
-    shutil.copyfileobj(f, response)
-    f.close()
-    return response
+#import rrdtool
+#import StringIO
+#import shutil
+#import tempfile
+#def img(request, t, fid, qid):
+#    db = '/var/tmp/rrd/job-state-%s-%s.rrd' % (fid, qid)
+#    t = str(t)
+#    db = str(db)
+#
+#    # serialize to HTTP response
+#    response = HttpResponse(mimetype="image/png")
+#    f = tempfile.NamedTemporaryFile(dir='/dev/shm')
+#
+#    output = rrdtool.graph(f.name,
+#            '--title', 'Hello',
+#            '--watermark', 'x',
+#            '--start', 'end-%s' % t,
+#            '--lower-limit', '0',
+#            '--vertical-label', "number of jobs" 
+##            'DEF:cr=%s:created:AVERAGE' % db,
+#            'DEF:cr=/var/tmp/rrd/job-state-1-1.rrd:created:AVERAGE',
+#            'DEF:rn=%s:running:AVERAGE' % db,
+#            'DEF:ex=%s:exiting:AVERAGE' % db,
+#            'DEF:ft=%s:fault:AVERAGE' % db,
+#            'DEF:dn=%s:done:AVERAGE' % db,
+##            'CDEF:st1=cr,1,*',
+#            'CDEF:st2=rn,1,*',
+#            'CDEF:st3=ex,1,*',
+#            'CDEF:st4=ft,1,*',
+#            'CDEF:st5=dn,1,*',
+#            'CDEF:ln1=cr,cr,UNKN,IF',
+#            'CDEF:ln2=rn,cr,rn,+,UNKN,IF',
+#            'CDEF:ln3=ex,rn,cr,ex,+,+,UNKN,IF',
+#            'CDEF:ln4=ft',
+#            'CDEF:ln5=dn',
+#            'AREA:st1#ECD748:CREATED',
+#            'STACK:st2#48C4EC:RUNNING',
+#            'STACK:st3#EC9D48:EXITING',
+#            'LINE1:ln1#C9B215',
+#            'LINE1:ln2#1598C3',
+#            'LINE1:ln3#CC7016',
+#            'LINE3:ln4#cc3118:FAULT',
+#            'LINE3:ln5#23bc14:DONE',
+#            )
+#
+#    shutil.copyfileobj(f, response)
+#    f.close()
+#    return response
 
 
 def test(request):
@@ -1279,27 +1279,29 @@ def index(request):
 
     clouds = Cloud.objects.all().order_by('name')
     jobs = Job.objects.all()
+    cstate = State.objects.get(name='CREATED')
 
+    dt = datetime.now() - timedelta(minutes=10)
     dtfail = datetime.now() - timedelta(hours=1)
     dtwarn = datetime.now() - timedelta(minutes=20)
 
     rows = []
     for cloud in clouds:
 
-        nactive = 0
         factive = []
         labels = Label.objects.filter(pandaq__pandasite__site__cloud=cloud)
 
         factories = []
+        ncreated = 0
         for label in labels:
             if label.fid not in factories:
                 factories.append(label.fid)
                 if label.fid.last_modified > dtwarn:
                     factive.append(label.fid)
 
-        print cloud, 'labels', labels.count()
-        print 'factory list', factories
-
+            jcount = jobs.filter(label=label, created__gt=dt).count()
+            ncreated += jcount
+        
 #        active = 'hot'
 #        if qactive <= 2000:
 #            active = 'pass'
@@ -1311,7 +1313,7 @@ def index(request):
             'labels' : labels,
             'factories' : factories,
             'factive' : factive,
-            'nactive' : nactive,
+            'ncreated' : ncreated,
             }
 
         rows.append(row)
@@ -1329,22 +1331,38 @@ def cloud(request, name):
     c = get_object_or_404(Cloud, name=name)
 
     sites = Site.objects.filter(cloud=c)
+
+    labels = Label.objects.filter(pandaq__pandasite__site__cloud=c)
+    dtwarn = datetime.now() - timedelta(minutes=20)
+
+    factive = []
+    finactive = []
+    for label in labels:
+        if label.fid not in factive + finactive:
+            if label.fid.last_modified > dtwarn:
+                factive.append(label.fid)
+            else:
+                finactive.append(label.fid)
+
     rows = []
 
     for site in sites:
 
-        psites = PandaSite.objects.filter(site=site)
+#        psites = PandaSite.objects.filter(site=site)
         pandaqs = PandaQueue.objects.filter(pandasite__site=site)
-        print psites
+        for pandaq in pandaqs:
+            
 
-        row = {
-                'site' : site,
-                'psites' : psites,
-                'pandaqs' : pandaqs
-                }
-        rows.append(row)
+            row = {
+                    'site' : site,
+    #                'psites' : psites,
+                    'pandaq' : pandaq
+                    }
+            rows.append(row)
 
     context = {
+            'factive' : factive,
+            'finactive' : finactive,
             'cloud' : c,
             'sites' : sites,
             'rows' : rows,
@@ -1619,10 +1637,10 @@ def msg(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
-def info(request):
+def help(request):
 
     context = {}
-    return render_to_response('mon/info.html', context)
+    return render_to_response('mon/help.html', context)
 
 
 def search(request):
@@ -1656,3 +1674,27 @@ def query(request, q):
         'query'  : q,
     }
     return render_to_response('mon/query.html', context)
+
+def site(request, sid):
+    """
+    Rendered view of Site page showing table of Pandaqs for this Site
+    Note: this is a Site not a PandaSite
+    """
+    s = get_object_or_404(Site, id=int(sid))
+
+    pandaqs = PandaQueue.objects.filter(pandasite__site=s)
+    rows = []
+
+    for pandaq in pandaqs:
+        row = {
+                'pandaq' : pandaq
+                }
+        rows.append(row)
+
+    context = {
+            'site' : site,
+            'rows' : rows,
+            }
+
+
+    return render_to_response('mon/site.html', context)
