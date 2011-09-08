@@ -1,0 +1,35 @@
+{% extends "mon/base.html" %}
+{% load timesince_human %}
+
+{% block content %}
+
+<h2>Site view - {{ site }}</h2>
+
+<p>
+<table>
+<tr>
+<th class=left title="Site name">Panda site
+<th class=left title="Panda queue, nickname">Panda queue
+<th class=right title="age of last modification">When
+</tr>
+{% for row in rows %}
+<tr class="">
+  <td class=left><a href="{% url atl.mon.views.site row.site.id %}">{{ row.site }}</a>
+  <td>{{ row.factory.last_ncreated }}
+</tr>
+  {% for pandaq in row.pandaqs %}
+{% endfor %}
+
+{% comment %}
+    <tr>
+      <td style=background:white>
+      <td class="left {{ pandaq.type }}">{{ pandaq }}
+      <td class="{{ pandaq.type }}">{{ pandaq.last_modified|timesince_human }}
+    </tr>
+  {% endfor %}
+{% endcomment %}
+
+</table>
+</p>
+
+{% endblock %}
