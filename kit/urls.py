@@ -2,10 +2,6 @@ from django.conf.urls.defaults import *
 #from django.views.generic import list_detail
 #from django.views.generic.date_based import archive_index
 
-# Uncomment the next two lines to enable the admin:
-from django.contrib import admin
-admin.autodiscover()
-
 urlpatterns = patterns('atl.kit.views',
 
 # non-rendered views
@@ -21,8 +17,5 @@ urlpatterns = patterns('atl.kit.views',
     (r'^update/$', 'update'),
 #    (r'^s/$', 'pandasites'),
 #    (r'^r/$', 'rrd'),
-
-# admin interface
-    (r'^admin/(.*)', admin.site.root),
 
 )
