@@ -2,10 +2,6 @@ from django.conf.urls.defaults import *
 #from django.views.generic import list_detail
 #from django.views.generic.date_based import archive_index
 
-# Uncomment the next two lines to enable the admin:
-from django.contrib import admin
-admin.autodiscover()
-
 urlpatterns = patterns('atl.mon.views',
 # rendered views
 #    (r'^$', 'offline'),
@@ -14,8 +10,9 @@ urlpatterns = patterns('atl.mon.views',
     (r'^factory/(?P<fid>\S*)/?$', 'factory'),
 #    (r'^t/?$', 'total'),
     (r'^queues/?$', 'queues'),
+    (r'^site/(?P<sid>\d*)$', 'site'),
     (r'^history/(?P<qid>\d*)/?$', 'history'),
-    (r'^info/?$', 'info'),
+    (r'^help/?$', 'help'),
     (r'^q/(?P<qid>\d*)/page/(?P<p>\d*)$', 'pandaq'),
     (r'^q/(?P<qid>\d*)/+$', 'pandaq'),
     (r'^job/(?P<fid>\S*)/(?P<cid>\S*)/?$', 'job'),
@@ -30,7 +27,7 @@ urlpatterns = patterns('atl.mon.views',
     (r'^c/$', 'cr2'),
     (r'^f/$', 'fids'),
     (r'^h/$', 'helo'),
-    (r'^i/(?P<fid>\S*)/(?P<cid>\S*)/$', 'info'),
+#    (r'^i/(?P<fid>\S*)/(?P<cid>\S*)/$', 'info'),
     (r'^m/$', 'msg'),
     (r'^n/(?P<fid>\d*)/(?P<state>[A-Z]*)/?(?P<qid>\d*)$', 'count'),
     (r'^r/$', 'rrd'),
@@ -47,9 +44,6 @@ urlpatterns = patterns('atl.mon.views',
     (r'^query/(?P<q>.+)/$', 'query'),
 #    (r'^q/$', 'pandaqueues'),
 #    (r'^s/$', 'pandasites'),
-
-# admin interface
-    (r'^admin/(.*)', admin.site.root),
 
 )
 

@@ -16,22 +16,20 @@
 <table>
 <tr>
 <th class=left title="Cloud name">Cloud
-<th class=right title="Active/Total number of factories serving this cloud">Active factories
+<th class=right title="Active/Total number of factories serving this cloud">Factories
 <th class=right title="Number of queues configured">nQueues
+<th class=right title="Number of jobs created, last 10 mins">nCreated
 </tr>
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
-{% comment %}
-  <td class=left><a href="{% url atl.mon.views.cloud row.cloud.id %}">{{ row.cloud }}</a>
-{% endcomment %}
-  <td class=left>{{ row.cloud }}
+  <td class=left><a href="{% url atl.mon.views.cloud row.cloud.name %}">{{ row.cloud }}</a>
   {% if row.factories %}
     <td>{{ row.factive|length }}/{{ row.factories|length }}
   {% else %}
     <td>-
   {% endif %}
   <td>{{ row.labels|length }}
-  <td class={{ row.active }}>{{ row.nactive }}
+  <td>{{ row.ncreated }}
 </tr>
 {% endfor %}
 
@@ -39,12 +37,3 @@
 </p>
 
 {% endblock %}
-
-
-        row = {
-            'cloud' : cloud,
-            'pandaqs' : pandaqs,
-            'cloudlabs' : cloudlabs,
-            'active' : active,
-            'nactive' : nactive,
-            }

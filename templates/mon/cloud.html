@@ -1,31 +1,66 @@
 {% extends "mon/base.html" %}
+{% load timesince_human %}
 
 {% block content %}
 
-<h2>Global view - all factories</h2>
+<h2>Cloud view - {{ cloud }}</h2>
+
+<p>
+<ul class=top>
+<li>Active factories serving this cloud:
+{% for f in factive %}
+  <li><a href="{% url atl.mon.views.factory f.id %}">{{ f }}</a>
+{% endfor %}
+</ul>
+
+{% if finactive %}
+<ul style=list-style-type:square>
+<li>Active factories serving this cloud:
+{% for f in finactive %}
+  <li>{{ f }}
+{% endfor %}
+</ul>
+{% endif %}
+
+</p>
+
+
+
 
 <p>
 <table>
 <tr>
 <th class=left title="Site name">Site
-<th class=right title="jobs created in last cycle">Activity
-<th class=right title="age of last modification">When
+<th class=left title="Panda queue, links to schedconfig">Panda queue
+<th class=left title="Panda queue status">State
+<th class=left title="Schedconfig comment">Comment
 </tr>
+{% for site in sites %}
+  <tr class="">
+    <td class=left><a href="{% url atl.mon.views.site site.id %}">{{ site }}</a>
+  </tr>
+
 {% for row in rows %}
-<tr class="">
-  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.site }}</a>
-  <td>{{ row.factory.last_ncreated }}
+{% if row.site.name == site.name %}
+<tr>
+  <td style=background:white>
+  <td class="left {{ row.pandaq.type }}"><a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">{{ row.pandaq }}</a>
+  <td class="{{ row.pandaq.state }} {{ row.pandaq.type }}">{{ row.pandaq.state }}
+  <td class="left note {{ row.pandaq.type }}" title={{ row.pandaq.last_modified|timesince_human }}>{{ row.pandaq.comment }}
+{% comment %}
+  {% if pandaq.type not in 'ANALYSIS_QUEUE PRODUCTION_QUEUE' %}
+    <td class=note>test queue, has no analysis or production tag
+  {% endif %}
+{% endcomment %}
 </tr>
-  {% for pandaq in row.pandaqs %}
-    <tr class="{% cycle odd,even %}">
-      <td style=background:white>
-      <td class="left {{ pandaq.type }}">{{ pandaq }}
-      <td>{{ pandaq.last_modified|timesince }} ago
-    </tr>
-  {% endfor %}
+{% endif %}
+
+{% endfor %}
 {% endfor %}
 
 </table>
 </p>
 
 {% endblock %}
+{% comment %}
+{% endcomment %}
