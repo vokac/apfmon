@@ -13,6 +13,7 @@ from atl.kit.models import PandaSite
 
 import csv
 import logging
+import re
 import string
 import sys
 from operator import itemgetter
@@ -30,6 +31,14 @@ try:
     import json as json
 except ImportError, err:
     import simplejson as json
+
+ELOGREGEX = re.compile('(.*elog[^0-9]*)([0-9]+)', re.IGNORECASE)
+SAVANNAHREGEX = re.compile('(.*savannah[^0-9]*)([0-9]+)', re.IGNORECASE)
+GGUSREGEX = re.compile('(.*ggus[^0-9]*)([0-9]+)', re.IGNORECASE)
+ELOGURL = 'https://atlas-logbook.cern.ch/elog/ATLAS+Computer+Operations+Logbook/%s'
+GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
+SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
+
 
 # Flows
 # 1. CREATED <- condor_id (Entry)
@@ -1279,13 +1288,18 @@ def index(request):
 
     clouds = Cloud.objects.all().order_by('name')
     jobs = Job.objects.all()
-    cstate = State.objects.get(name='CREATED')
-
     dt = datetime.now() - timedelta(minutes=10)
     dtfail = datetime.now() - timedelta(hours=1)
     dtwarn = datetime.now() - timedelta(minutes=20)
 
-    rows = []
+
+    cstate = State.objects.get(name='CREATED')
+    rstate = State.objects.get(name='RUNNING')
+    estate = State.objects.get(name='EXITING')
+    dstate = State.objects.get(name='DONE')
+    fstate = State.objects.get(name='FAULT')
+
+    crows = []
     for cloud in clouds:
 
         factive = []
@@ -1299,9 +1313,9 @@ def index(request):
                 if label.fid.last_modified > dtwarn:
                     factive.append(label.fid)
 
-            jcount = jobs.filter(label=label, created__gt=dt).count()
-            ncreated += jcount
-        
+#            jcount = jobs.filter(label=label, created__gt=dt).count()
+#            ncreated += jcount
+       
 #        active = 'hot'
 #        if qactive <= 2000:
 #            active = 'pass'
@@ -1316,10 +1330,31 @@ def index(request):
             'ncreated' : ncreated,
             }
 
-        rows.append(row)
+        crows.append(row)
+
+    factories = Factory.objects.all().order_by('name')
+    frows = []
+    for f in factories:
+
+#        ncreated = jobs.filter(fid=f, state=cstate).count()
+        ncreated = 4444
+
+        active = 'fail'
+        if f.last_modified > dtfail:
+            active = 'warn'
+        if f.last_modified > dtwarn:
+            active = 'pass'
+        row = {
+            'factory' : f,
+            'active' : active,
+            'ncreated' : ncreated,
+            }
+
+        frows.append(row)
 
     context = {
-            'rows' : rows,
+            'crows' : crows,
+            'frows' : frows,
             }
 
     return render_to_response('mon/index.html', context)
@@ -1348,14 +1383,31 @@ def cloud(request, name):
 
     for site in sites:
 
-#        psites = PandaSite.objects.filter(site=site)
         pandaqs = PandaQueue.objects.filter(pandasite__site=site)
         for pandaq in pandaqs:
-            
+
+            elogmatch = ELOGREGEX.match(pandaq.comment)
+            ggusmatch = GGUSREGEX.match(pandaq.comment)
+            savmatch = SAVANNAHREGEX.match(pandaq.comment)
+            url = prefix = suffix = None
+            if elogmatch:
+                prefix = elogmatch.group(1)
+                suffix = elogmatch.group(2)
+                url = ELOGURL % suffix
+            elif ggusmatch:
+                prefix = ggusmatch.group(1)
+                suffix = ggusmatch.group(2)
+                url = GGUSURL % suffix 
+            elif savmatch:
+                prefix = savmatch.group(1)
+                suffix = savmatch.group(2)
+                url = SAVANNAHURL % suffix
 
             row = {
                     'site' : site,
-    #                'psites' : psites,
+                    'url' : url,
+                    'prefix' : prefix,
+                    'suffix' : suffix,
                     'pandaq' : pandaq
                     }
             rows.append(row)
@@ -1472,7 +1524,7 @@ def shout(request):
 
 
     
-    return HttpResponse("OK-shout", mimetype="text/plain")
+    return HttpResponse("OK", mimetype="text/plain")
 
 def cr2(request):
     """
@@ -1610,7 +1662,6 @@ def msg(request):
             txt = text[:140]
         
             pq = get_object_or_404(PandaQueue, name=nick)
-            print pq
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
@@ -1662,7 +1713,9 @@ def query(request, q):
     """
     if q:
         qset = (
-            Q(pandaq__name__icontains=q)
+            Q(pandaq__name__icontains=q) |
+            Q(pandaq__pandasite__name__icontains=q) |
+            Q(pandaq__pandasite__site__name__icontains=q)
             # can add other search params here, eg. SITE name
         )
         labels = Label.objects.filter(qset).order_by('fid', 'name')
@@ -1675,26 +1728,60 @@ def query(request, q):
     }
     return render_to_response('mon/query.html', context)
 
+
 def site(request, sid):
     """
     Rendered view of Site page showing table of Pandaqs for this Site
+    including stats from all factories
     Note: this is a Site not a PandaSite
     """
     s = get_object_or_404(Site, id=int(sid))
+    cstate = State.objects.get(name='CREATED')
+    rstate = State.objects.get(name='RUNNING')
+    estate = State.objects.get(name='EXITING')
+    dstate = State.objects.get(name='DONE')
+    fstate = State.objects.get(name='FAULT')
+    dt = datetime.now() - timedelta(hours=1)
 
-    pandaqs = PandaQueue.objects.filter(pandasite__site=s)
+    # all labels serving this site
+    labels = Label.objects.filter(pandaq__pandasite__site=s)
+
     rows = []
-
-    for pandaq in pandaqs:
-        row = {
-                'pandaq' : pandaq
+    for label in labels:
+        row = {}
+        ncreated = 0
+        nsubmitted = 0
+        nrunning = 0
+        nexiting = 0
+        ndone = 0
+        nfault = 0
+        jobs = Job.objects.filter(label=label)
+        ncreated = jobs.filter(state=cstate).count()
+        nrunning = jobs.filter(state=rstate).count()
+        nexiting = jobs.filter(state=estate).count()
+        ndone = jobs.filter(state=dstate, last_modified__gt=dt).count()
+        nfault = jobs.filter(state=fstate, last_modified__gt=dt).count()
+        nmiss = jobs.filter(state=dstate, last_modified__gt=dt, result=20).count()
+    
+        row['jobcount'] = {
+                'created' : ncreated,
+                'running' : nrunning,
+                'exiting' : nexiting,
+                'done' : ndone,
+                'fault' : nfault,
+                'miss' : nmiss,
                 }
+
+        row['label'] = label
+        pandaqs = PandaQueue.objects.filter(label=label)
         rows.append(row)
 
     context = {
-            'site' : site,
+            'site' : s,
             'rows' : rows,
             }
 
 
     return render_to_response('mon/site.html', context)
+
+
