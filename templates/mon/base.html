@@ -19,11 +19,16 @@ td.cold {background:#c8d9f9}
 td.hot {background:#ae3c51}
 td.hot {background:#ffc0cb}
 td.ANALYSIS_QUEUE {background:#f0f0f6}
+td.ANALYSIS_QUEUE {background:none}
 td.PRODUCTION_QUEUE {background:#e4ebf3}
+td.PRODUCTION_QUEUE {background:none}
 td.SPECIAL_QUEUE{text-decoration:line-through}
 td.note {color:#777777}
 a.fail {color:#cc3118}
-a:visited {color: blue}
+a:link {text-decoration: none}
+a:visited {text-decoration: none}
+a:active {text-decoration: none}
+a:hover {text-decoration: underline}
 td.fail {color:#cc3118}
 td.fault {color:#ea644a}
 tr.collapse {visibility:collapse;}
@@ -35,23 +40,30 @@ table {
   font-family:monospace;
   border-style:none;
   border-collapse:collapse;
-  border-width:1px;
 }
 th {
+  text-align:right;
   background:none;
-  padding:0.1em 1em;
-  border-style:none;
-  border-width:1px;
-  padding:0.5em 1em;
+  padding:3px;
+  padding-bottom:6px;
 }
 td {
   text-align:right;
   border-style:none;
-  padding:0em 1em;
-  white-space: nowrap;
+  padding:1px;
+  margin:3em;
 }
-table.right td {
-  text-align:right;
+table.numeric {
+}
+table.numeric th {
+  padding-left:1em;
+}
+table.numeric td {
+  padding-right:0.5em;
+  padding-left:1em;
+}
+table.metadata td {
+  text-align:left;
   padding:0 1em;
 }
 td.right {
@@ -66,10 +78,6 @@ th.right {
 th.left {
   text-align:left;
 }
-table.left td {
-  text-align:left;
-  padding:0 1em;
-}
 table.log {
   border-style:none;
   border-right:1px solid #000000;
@@ -79,9 +87,13 @@ table.log td {
   padding:0 1em;
   text-align:left;
 }
-ul.top {
+ul {
   font-family:monospace;
   padding:0 1em;
+}
+ul.top li {
+  display: inline;
+  list-style-type: none;
 }
 ul.top li {
   display: inline;
