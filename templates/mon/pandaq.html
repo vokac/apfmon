@@ -9,37 +9,35 @@
 {% endifequal %}
 
 
-<table>
+<table class="numeric">
 <tr>
-<th>Label
-<th>Factory
-<th>created
-<th>running 
-<th>exiting
-<th>done (last hour)
-<th>fault (last hour)
+<th class=left>Label (hover for msg)
+<th title="">Factory
+<th title="">created
+<th title="">running 
+<th title="">exiting
+<th title="last hr">done
+<th title="pilots missing payload, last hr">miss
+<th title="last hr">fault
 <th>Latest action
 </tr>
 {% for row in rows %}
 
-<tr class=odd>
-  <td class=left nowrap><a href="/admin/mon/label/{{ row.label.id }}">{{ row.label }}</a>
+<tr class={% cycle odd,even %}>
+  <td class=left nowrap title="{{ row.label.msg }}"><a href="/admin/mon/label/{{ row.label.id }}">{{ row.label }}</a>
   <td nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
-    {{ row.jobcount.created }} </a></td>
+    {{ row.jobcount.created }} </a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">
-    {{ row.jobcount.running }} </a></td>
+    {{ row.jobcount.running }} </a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">
-    {{ row.jobcount.exiting }} </a></td>
+    {{ row.jobcount.exiting }} </a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">
-    {{ row.jobcount.done }}</a> ({{ row.jobcount.miss }})</td>
+    {{ row.jobcount.done }}</a>
+  <td>{{ row.jobcount.miss }}
   <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">
-    {{ row.jobcount.fault }} </a></td>
+    {{ row.jobcount.fault }} </a>
   <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
-</tr>
-<tr class=even>
-  <td></td>
-  <td colspan=7 class=right>{{ row.label.msg }}
 </tr>
 {% comment %}
 {% endcomment %}

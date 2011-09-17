@@ -20,6 +20,8 @@
 {% if labels %}
 <table>
 <th class=left title="Name of factory">Factory
+<th class=left title="Name of Panda queue">Site
+<th class=left title="Name of Panda queue">PandaSite
 <th class=left title="Name of Panda queue">PandaQueue
 <th class=left title="Label used in factory config">Label
 <th class=right title="age of last modification">When
@@ -27,6 +29,8 @@
 {% for label in labels %}
 <tr class="{% cycle odd,even %}">
   <td class=left>{{ label.fid }}
+  <td class=left>{{ label.pandaq.pandasite.site }}
+  <td class=left nowrap>{{ label.pandaq.pandasite }}
   <td class=left nowrap><a href="{% url atl.mon.views.pandaq label.pandaq.id %}">{{ label.pandaq }}</a>
   <td class=left nowrap>{{ label }}</a>
   <td class=right>{{ label.last_modified|timesince }} ago
