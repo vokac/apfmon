@@ -1,35 +1,49 @@
 {% extends "mon/base.html" %}
-{% load timesince_human %}
 
 {% block content %}
 
-<h2>Site view - {{ site }}</h2>
+<h2>Site view - <a href="http://panda.cern.ch/server/pandamon/query?mode=site&site={{ site }}">{{ site }}</a></h2>
 
-<p>
+{% ifequal plot "on" %}
+  <img src="/media/states-6h-0-{{ pandaq.id }}.png"/>
+{% endifequal %}
+
+
 <table>
 <tr>
-<th class=left title="Site name">Panda site
-<th class=left title="Panda queue, nickname">Panda queue
-<th class=right title="age of last modification">When
+<th>Label
+<th>Factory
+<th>created
+<th>running 
+<th>exiting
+<th>done (last hour)
+<th>fault (last hour)
+<th>When
 </tr>
 {% for row in rows %}
-<tr class="">
-  <td class=left><a href="{% url atl.mon.views.site row.site.id %}">{{ row.site }}</a>
-  <td>{{ row.factory.last_ncreated }}
+
+<tr class=odd>
+  <td class=left nowrap>{{ row.label }}
+  <td nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
+    {{ row.jobcount.created }} </a></td>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">
+    {{ row.jobcount.running }} </a></td>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">
+    {{ row.jobcount.exiting }} </a></td>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">
+    {{ row.jobcount.done }}</a> ({{ row.jobcount.miss }})</td>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">
+    {{ row.jobcount.fault }} </a></td>
+  <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
 </tr>
-  {% for pandaq in row.pandaqs %}
+<tr class=even>
+  <td></td>
+  <td colspan=7 class=right>{{ row.label.msg }}
+</tr>
+{% comment %}
+{% endcomment %}
 {% endfor %}
 
-{% comment %}
-    <tr>
-      <td style=background:white>
-      <td class="left {{ pandaq.type }}">{{ pandaq }}
-      <td class="{{ pandaq.type }}">{{ pandaq.last_modified|timesince_human }}
-    </tr>
-  {% endfor %}
-{% endcomment %}
-
 </table>
-</p>
-
 {% endblock %}

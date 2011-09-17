@@ -1,4 +1,5 @@
 {% extends "mon/base.html" %}
+{% load timesince_human %}
 
 {% block content %}
 
@@ -8,14 +9,14 @@
 {% endcomment %}
 
 <p>
-<table class="left noborder">
-<tr><td>FACTORY</td><td>{{ factory.name }}</td></tr>
-<tr><td>VERSION</td><td> {{ factory.version }}</td></tr>
-<tr><td>LAST STARTUP</td><td> {{ factory.last_startup|timesince }} ago</td></tr>
-<tr><td>LAST CYCLE</td><td> {{ factory.last_modified|timesince }} ago</td></tr>
-<tr><td>EMAIL</td><td> {{ factory.email }}</td></tr>
-<tr><td>IP</td><td> {{ factory.ip }}</td></tr>
-<tr><td>LOGS</td><td><a href={{ factory.url }}>{{ factory.url }}</a></td></tr>
+<table class="metadata">
+<tr><td>FACTORY</td><td>{{ factory.name }}
+<tr><td>VERSION</td><td> {{ factory.version }}
+<tr><td>LAST STARTUP</td><td> {{ factory.last_startup|timesince_human }}
+<tr><td>LAST CYCLE</td><td> {{ factory.last_modified|timesince_human }} 
+<tr><td>EMAIL</td><td> {{ factory.email }}
+<tr><td>IP</td><td> {{ factory.ip }}
+<tr><td>LOGS</td><td><a href={{ factory.url }}>{{ factory.url }}</a>
 </table>
 </p>
 
@@ -25,32 +26,27 @@
 {% endifequal %}
 </p>
 
-<p>
-<table>
-<tr nowrap>
-<th>Factory queue label
-<th>created
-<th>running
-<th>exiting
-<th>done (1 hr)
-<th>fault (1 hr)
+<table class="numeric">
+<tr>
+<th title="" class=left>Factory queue label
+<th title="">created
+<th title="">running
+<th title="">exiting
+<th title="last hr">done
+<th title="last hr">fault
 <th>last msg
 </tr>
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
-  <td nowrap class=left><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
+  <td nowrap style="padding-right:2em" class=left>
+    <a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
   <td class={{ row.statcr }}><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">{{ row.nrunning }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">{{ row.nexiting }}</a>
   <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">{{ row.ndone }}</a>
   <td class={{ row.statfault }}><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.nfault }}</a>
-  <td class={{ row.activity }}><span title="{{ row.label.msg }}">{{ row.label.last_modified|timesince }} ago</span>
-</tr>
-<tr class=collapse>
-  <td></td>
-  <td colspan=6 class=right>{{ row.label.msg }}</td> 
+  <td class="{{ row.activity }}"><span title="{{ row.label.msg }}">{{ row.label.last_modified|timesince }} ago</span>
 </tr>
 {% endfor %}
 </table>
-</p>
 {% endblock %}

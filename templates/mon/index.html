@@ -1,4 +1,5 @@
 {% extends "mon/base.html" %}
+{% load timesince_human %}
 
 {% block content %}
 
@@ -17,19 +18,44 @@
 <tr>
 <th class=left title="Cloud name">Cloud
 <th class=right title="Active/Total number of factories serving this cloud">Factories
-<th class=right title="Number of queues configured">nQueues
+<th class=right title="Number of queues configured">Queue count
+{% comment %}
 <th class=right title="Number of jobs created, last 10 mins">nCreated
+{% endcomment %}
 </tr>
-{% for row in rows %}
+{% for row in crows %}
 <tr class="{% cycle odd,even %}">
   <td class=left><a href="{% url atl.mon.views.cloud row.cloud.name %}">{{ row.cloud }}</a>
   {% if row.factories %}
-    <td>{{ row.factive|length }}/{{ row.factories|length }}
+    <td>{{ row.factive|length }} of {{ row.factories|length }} active
   {% else %}
     <td>-
   {% endif %}
   <td>{{ row.labels|length }}
+{% comment %}
   <td>{{ row.ncreated }}
+{% endcomment %}
+</tr>
+{% endfor %}
+
+</table>
+</p>
+
+
+<p>
+<table>
+<tr>
+<th class=left title="factoryId">Factory
+<th class=right title="jobs created in last cycle">Activity
+<th class=right title="age of last modification">When
+<th class=right title="factory version">Version
+</tr>
+{% for row in frows %}
+<tr class="{% cycle odd,even %}">
+  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
+  <td>{{ row.factory.last_ncreated }}
+  <td class={{ row.active }}>{{ row.factory.last_modified|timesince_human }}
+  <td>{{ row.factory.version }}
 </tr>
 {% endfor %}
 
@@ -37,3 +63,5 @@
 </p>
 
 {% endblock %}
+{% comment %}
+{% endcomment %}

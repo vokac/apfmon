@@ -6,7 +6,7 @@
 <h2>Cloud view - {{ cloud }}</h2>
 
 <p>
-<ul class=top>
+<ul style=list-style-type:none>
 <li>Active factories serving this cloud:
 {% for f in factive %}
   <li><a href="{% url atl.mon.views.factory f.id %}">{{ f }}</a>
@@ -14,10 +14,10 @@
 </ul>
 
 {% if finactive %}
-<ul style=list-style-type:square>
-<li>Active factories serving this cloud:
+<ul style=list-style-type:none>
+<li>Inactive factories serving this cloud:
 {% for f in finactive %}
-  <li>{{ f }}
+  <li><a href="{% url atl.mon.views.factory f.id %}">{{ f }}</a>
 {% endfor %}
 </ul>
 {% endif %}
@@ -42,11 +42,24 @@
 
 {% for row in rows %}
 {% if row.site.name == site.name %}
-<tr>
+<tr class="{% cycle odd,even %}">
   <td style=background:white>
-  <td class="left {{ row.pandaq.type }}"><a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">{{ row.pandaq }}</a>
+  <td class="left {{ row.pandaq.type }}" title="{{ row.pandaq.type }}">
+    <a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">{{ row.pandaq }}</a>
   <td class="{{ row.pandaq.state }} {{ row.pandaq.type }}">{{ row.pandaq.state }}
-  <td class="left note {{ row.pandaq.type }}" title={{ row.pandaq.last_modified|timesince_human }}>{{ row.pandaq.comment }}
+  {% if row.url %}
+    <td class="left note {{ row.pandaq.type }}"
+        title="{{ row.pandaq.last_modified|timesince_human }}">
+       {{ row.prefix }}<a href="{{ row.url }}">{{ row.suffix }}</a>
+  {% else %}
+    {% if row.pandaq.comment == 'empty.comment' %}
+      <td class="left note {{ row.pandaq.type }}" 
+    {% else %}
+      <td class="left note {{ row.pandaq.type }}" 
+        title="{{ row.pandaq.last_modified|timesince_human }}">
+        {{ row.pandaq.comment }}
+    {% endif %}
+  {% endif %}
 {% comment %}
   {% if pandaq.type not in 'ANALYSIS_QUEUE PRODUCTION_QUEUE' %}
     <td class=note>test queue, has no analysis or production tag
