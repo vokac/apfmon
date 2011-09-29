@@ -3,18 +3,26 @@
 {% block content %}
 
 <p>
-<table class="left noborder">
-<tr><td>FACTORY</td><td><a href="{% url atl.mon.views.factory fid %}">{{ factoryname }}</a></td></tr>
-<tr><td>PANDAQ</td><td><a href="{% url atl.mon.views.pandaq pandaq.id %}">{{ pandaq }}</a></td></tr>
-<tr><td>STATE</td><td> {{ statename }}</td></tr>
-<tr><td>COUNT</td><td> {{ pages.count }}</td></tr>
+<table class="metadata">
+<tr>
+  <td>FACTORY
+  <td><a href="{% url atl.mon.views.factory fid %}">{{ factoryname }}</a>
+<tr>
+  <td>PANDAQ
+  <td><a href="{% url atl.mon.views.pandaq pandaq.id %}">{{ pandaq }}</a>
+<tr>
+  <td>STATE
+  <td> {{ statename }}
+<tr>
+  <td>COUNT
+  <td> {{ pages.count }}
 </table>
 </p>
 
 <p>
 <table class=job>
 <tr>
-  <th>Job
+  <th class=colhdr>Job
   <th>State
   <th>Result
   <th>Created
@@ -24,7 +32,7 @@
 
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td><a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+  <td class=colhdr><a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   <td>{{ j.result }}
   <td>{{ j.created|timesince}}
