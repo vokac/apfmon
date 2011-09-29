@@ -6,6 +6,10 @@
 <h2>ATLAS pilot factory monitor</h2>
 
 <p>
+<img src="/media/states-1d-0-0.png" />
+</p>
+
+<p>
 <form action="{% url atl.mon.views.search %}" method="GET" name="search">
   <label for="q"></label>
   <input type="text" name="q" value="{{ query|escape }}">
@@ -16,18 +20,18 @@
 <p>
 <table>
 <tr>
-<th class=left title="Cloud name">Cloud
-<th class=right title="Active/Total number of factories serving this cloud">Factories
-<th class=right title="Number of queues configured">Queue count
+<th class="colhdr" title="Cloud name">Cloud
+<th title="Active/Total number of factories serving this cloud">Factories
+<th title="Number of queues configured">Queue count
 {% comment %}
 <th class=right title="Number of jobs created, last 10 mins">nCreated
 {% endcomment %}
 </tr>
 {% for row in crows %}
 <tr class="{% cycle odd,even %}">
-  <td class=left><a href="{% url atl.mon.views.cloud row.cloud.name %}">{{ row.cloud }}</a>
+  <td class="colhdr"><a href="{% url atl.mon.views.cloud row.cloud.name %}">{{ row.cloud }}</a>
   {% if row.factories %}
-    <td>{{ row.factive|length }} of {{ row.factories|length }} active
+    <td>{{ row.factive|length }} of {{ row.factories|length }}
   {% else %}
     <td>-
   {% endif %}
@@ -45,14 +49,14 @@
 <p>
 <table>
 <tr>
-<th class=left title="factoryId">Factory
-<th class=right title="jobs created in last cycle">Activity
-<th class=right title="age of last modification">When
-<th class=right title="factory version">Version
+<th class=colhdr title="factoryId">Factory
+<th title="jobs created in last cycle">Activity
+<th title="age of last modification">When
+<th title="factory version">Version
 </tr>
 {% for row in frows %}
 <tr class="{% cycle odd,even %}">
-  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
+  <td class="colhdr"><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
   <td>{{ row.factory.last_ncreated }}
   <td class={{ row.active }}>{{ row.factory.last_modified|timesince_human }}
   <td>{{ row.factory.version }}
