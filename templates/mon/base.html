@@ -23,7 +23,6 @@ td.ANALYSIS_QUEUE {background:none}
 td.PRODUCTION_QUEUE {background:#e4ebf3}
 td.PRODUCTION_QUEUE {background:none}
 td.SPECIAL_QUEUE{text-decoration:line-through}
-td.note {color:#777777}
 a.fail {color:#cc3118}
 a:link {text-decoration: none}
 a:visited {text-decoration: none}
@@ -44,16 +43,28 @@ table {
 th {
   text-align:right;
   background:none;
-  padding:3px;
+  padding-left:1em;
   padding-bottom:6px;
+}
+th.colhdr {
+  text-align:left;
+  border-style:none;
+  padding-left:0.5em;
 }
 td {
   text-align:right;
   border-style:none;
-  padding:1px;
+  padding-left:2em;
   margin:3em;
 }
-table.numeric {
+td.colhdr {
+  text-align:left;
+  border-style:none;
+  padding-left:0.5em;
+}
+td.note {
+  color:#777777;
+  max-width:40em;
 }
 table.numeric th {
   padding-left:1em;
