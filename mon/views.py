@@ -94,59 +94,6 @@ def jobs(request, lid, state, p=1):
 
     return render_to_response('mon/jobs.html', context)
 
-def jobsold(request, fid, qid, state, p=1):
-    """
-    Rendered view of a set of Jobs for particular Factory, PandaQueue,
-    and optional State
-    """
-
-    try:
-        f = Factory.objects.get(id=int(fid))
-    except Factory.DoesNotExist:
-        f = None
-        
-    q = get_object_or_404(PandaQueue, id=int(qid))
-    if state == 'ACTIVE':
-        s = None
-        states = ['CREATED','RUNNING','EXITING']
-    else:
-        s = get_object_or_404(State, name=state)
-        states = [s.name]
-
-    dt = datetime.now() - timedelta(hours=1)
-    if f:
-        jobs = Job.objects.filter(pandaq=q, fid=f).order_by('-last_modified')
-        factoryname = f.name
-    else:
-        jobs = Job.objects.filter(pandaq=q).order_by('-last_modified')
-        factoryname = 'All'
-        
-
-    if s:
-        if s.name in ['DONE', 'FAULT']:
-            jobs = jobs.filter(state=s, last_modified__gt=dt)
-        else:
-            jobs = jobs.filter(state=s)
-    else:
-        jobs = jobs.filter(state__name__in=['CREATED','RUNNING','EXITING'])
-
-    
-    pages = Paginator(jobs, 25)
-
-    context = {
-                'factoryname' : factoryname,
-                'fid' : fid,
-                'pandaq' : q,
-                'name' : q.name,
-                'statename' : state,
-                'states' : states,
-                'jobs' : jobs,
-                'pages' : pages,
-                'page' : pages.page(p),
-                'dt' : dt,
-                }
-
-    return render_to_response('mon/jobs.html', context)
 
 def job(request, fid, cid):
     """
@@ -379,8 +326,8 @@ def pandaq(request, qid, p=1):
 
         rows.append(row)
 
-    pages = Paginator(Job.objects.filter(pandaq=qid).order_by('-last_modified'), 50)
-    jobs = Job.objects.filter(pandaq=qid).order_by('-last_modified')[:50]
+    pages = Paginator(Job.objects.filter(pandaq=qid).order_by('-last_modified'), 30)
+    jobs = Job.objects.filter(pandaq=qid).order_by('-last_modified')[:30]
 
     context = {
             'pandaq' : q,
@@ -388,7 +335,6 @@ def pandaq(request, qid, p=1):
             'jobs' : jobs,
             'pages' : pages,
             'page' : pages.page(p),
-            'plot' : 'off',
             }
 
     return render_to_response('mon/pandaq.html', context)
@@ -1755,13 +1701,14 @@ def site(request, sid):
         nexiting = 0
         ndone = 0
         nfault = 0
+        nmiss = 0
         jobs = Job.objects.filter(label=label)
-        ncreated = jobs.filter(state=cstate).count()
-        nrunning = jobs.filter(state=rstate).count()
-        nexiting = jobs.filter(state=estate).count()
-        ndone = jobs.filter(state=dstate, last_modified__gt=dt).count()
-        nfault = jobs.filter(state=fstate, last_modified__gt=dt).count()
-        nmiss = jobs.filter(state=dstate, last_modified__gt=dt, result=20).count()
+#        ncreated = jobs.filter(state=cstate).count()
+#        nrunning = jobs.filter(state=rstate).count()
+#        nexiting = jobs.filter(state=estate).count()
+#        ndone = jobs.filter(state=dstate, last_modified__gt=dt).count()
+#        nfault = jobs.filter(state=fstate, last_modified__gt=dt).count()
+#        nmiss = jobs.filter(state=dstate, last_modified__gt=dt, result=20).count()
     
         row['jobcount'] = {
                 'created' : ncreated,
