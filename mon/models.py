@@ -58,7 +58,7 @@ STATES = (
 # this provides the base URL pointing to pilot logs
 # todo: set this automatically by sending factory config
 # to webservice when factory starts up
-DEFAULTURL = 'https://py-dev.lancs.ac.uk/mon/admin/'
+DEFAULTURL = ''
 
 class State(models.Model):
     """

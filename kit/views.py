@@ -143,6 +143,12 @@ def update(request):
 
         # update key values
         try:
+
+
+            if pandaq.pandasite_id == None:
+                pandaq.pandasite = pandasite
+                pandaq.save()
+
 #            print pandaq.comment,d['queue_comment']
             if pandaq.comment != d['queue_comment']:
                 pandaq.comment = d['queue_comment'] 

@@ -4,9 +4,19 @@ from django.db import models
 Model to represent the ATLAS topology of Sites and resources
 """
 
-#CLOUDS = (
-#        ('UK', 'UK'),
-#        )
+CLOUDS = (
+        ('CA', 'CA'),
+        ('CERN', 'CERN'),
+        ('DE', 'DE'),
+        ('ES', 'ES'),
+        ('FR', 'FR'),
+        ('IT', 'IT'),
+        ('ND', 'ND'),
+        ('NL', 'NL'),
+        ('TW', 'TW'),
+        ('UK', 'UK'),
+        ('US', 'US'),
+        )
 
 QTYPE = (
         ('ANALYSIS_QUEUE', 'ANALYSIS_QUEUE'),
@@ -19,7 +29,7 @@ class Cloud(models.Model):
     """
     Represents an ATLAS cloud
     """
-    name = models.CharField(max_length=8, blank=True, unique=True)
+    name = models.CharField(max_length=8, choices=CLOUDS, blank=True, unique=True)
     def __unicode__(self):
         return self.name
     class Meta:
