@@ -17,15 +17,13 @@
 </form>
 </p>
 
+{% comment %}
 <p>
 <table>
 <tr>
 <th class="colhdr" title="Cloud name">Cloud
 <th title="Active/Total number of factories serving this cloud">Factories
 <th title="Number of queues configured">Queue count
-{% comment %}
-<th class=right title="Number of jobs created, last 10 mins">nCreated
-{% endcomment %}
 </tr>
 {% for row in crows %}
 <tr class="{% cycle odd,even %}">
@@ -36,14 +34,12 @@
     <td>-
   {% endif %}
   <td>{{ row.labels|length }}
-{% comment %}
-  <td>{{ row.ncreated }}
-{% endcomment %}
 </tr>
 {% endfor %}
 
 </table>
 </p>
+{% endcomment %}
 
 
 <p>

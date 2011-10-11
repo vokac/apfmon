@@ -10,20 +10,24 @@
 
 <p>
 <table class="metadata">
-<tr><td>FACTORY</td><td>{{ factory.name }}
-<tr><td>VERSION</td><td> {{ factory.version }}
-<tr><td>LAST STARTUP</td><td> {{ factory.last_startup|timesince_human }}
-<tr><td>LAST CYCLE</td><td> {{ factory.last_modified|timesince_human }} 
-<tr><td>EMAIL</td><td> {{ factory.email }}
-<tr><td>IP</td><td> {{ factory.ip }}
-<tr><td>LOGS</td><td><a href={{ factory.url }}>{{ factory.url }}</a>
+<tr><td>FACTORY<td>{{ factory.name }}
+<tr><td>VERSION <td>{{ factory.version }}
+<tr>
+  <td>LAST STARTUP
+  {% if factory.last_startup %}
+    <td>{{ factory.last_startup|timesince_human }}
+  {% else %}
+    <td>-
+  {% endif %}
+<tr><td>LAST CYCLE <td>{{ factory.last_modified|timesince_human }} 
+<tr><td>EMAIL <td>{{ factory.email }}
+<tr><td>IP <td>{{ factory.ip }}
+<tr><td>LOGS <td><a href={{ factory.url }}>{{ factory.url }}</a>
 </table>
 </p>
 
 <p>
-{% ifequal plot "on" %}
-  <img src="/media/states-1d-{{ factory.id }}-0.png" />
-{% endifequal %}
+<img src="/media/states-1d-{{ factory.id }}-0.png" />
 </p>
 
 <table class="numeric">
