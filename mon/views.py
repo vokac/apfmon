@@ -1253,12 +1253,14 @@ def index(request):
 
         factories = []
         ncreated = 0
-        for label in labels:
-            if label.fid not in factories:
-                factories.append(label.fid)
-                if label.fid.last_modified > dtwarn:
-                    factive.append(label.fid)
+# undo comment once deployed on prod
+#        for label in labels:
+#            if label.fid not in factories:
+#                factories.append(label.fid)
+#                if label.fid.last_modified > dtwarn:
+#                    factive.append(label.fid)
 
+# leave commented
 #            jcount = jobs.filter(label=label, created__gt=dt).count()
 #            ncreated += jcount
        
