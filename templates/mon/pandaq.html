@@ -10,20 +10,20 @@
 
 <table class="numeric">
 <tr>
-<th class=left>Label (hover for msg)
-<th title="">Factory
-<th title="">created
-<th title="">running 
-<th title="">exiting
-<th title="last hr">done
-<th title="pilots missing payload, last hr">miss
+<th class=left title="hover for message">Label
+<th class=left title="Factory name">Factory
+<th title="Count of jobs in CREATED state">created
+<th title="Count of jobs in RUNNING state">running 
+<th title="Count of jobs in EXITING state">exiting
+<th title="Count of jobs DONE, last hr">done
+<th title="Count of idle pilots (no payload), last hr">miss
 <th title="last hr">fault
 <th>Latest action
 </tr>
 {% for row in rows %}
 
 <tr class={% cycle odd,even %}>
-  <td class=left nowrap title="{{ row.label.msg }}"><a href="/admin/mon/label/{{ row.label.id }}">{{ row.label }}</a>
+  <td class=left nowrap title="{{ row.label.msg }}">{{ row.label }}
   <td nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
     {{ row.jobcount.created }} </a>
