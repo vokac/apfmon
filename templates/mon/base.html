@@ -42,21 +42,20 @@ table {
 }
 th {
   text-align:right;
-  background:none;
-  padding-left:1em;
-  padding-bottom:6px;
-}
-th.colhdr {
-  text-align:left;
-  border-style:none;
   padding-left:0.5em;
+  padding-right:2em;
+  padding-bottom:6px;
 }
 td {
   text-align:right;
   border-style:none;
-  padding-left:2em;
-  margin:3em;
-  nowrap;
+  padding-right:2em;
+  padding-left:0.5em;
+  white-space:nowrap;
+}
+th.colhdr {
+  text-align:left;
+  padding-left:0.5em;
 }
 td.colhdr {
   text-align:left;
@@ -65,14 +64,43 @@ td.colhdr {
 }
 td.note {
   color:#777777;
-  max-width:40em;
+  width:40em;
+}
+#note {
+    width: inherit;
+    overflow: auto;
+}
+
+table.text th {
+  text-align:left;
+}
+table.text td {
+  text-align:left;
+  padding-left:0.5em;
+  padding-right:2em;
+}
+table.numeric {
+  font-family:monospace;
+  border-style:none;
+  border-collapse:collapse;
+}
+table.numeric th.colhdr {
+  text-align:left;
+  padding-left:0.5em;
+}
+table.numeric td.colhdr {
+  text-align:left;
+  padding-left:0.5em;
 }
 table.numeric th {
+  text-align:right;
   padding-left:1em;
+  padding-right:0.5em;
 }
 table.numeric td {
-  padding-right:0.5em;
+  text-align:right;
   padding-left:1em;
+  padding-right:0.5em;
 }
 table.metadata td {
   text-align:left;
@@ -82,6 +110,12 @@ td.right {
   text-align:right;
 }
 td.left {
+  text-align:left;
+}
+table.numeric th.left {
+  text-align:left;
+}
+table.numeric td.left {
   text-align:left;
 }
 th.right {
@@ -134,7 +168,7 @@ ul.top li {
 </head>
 
 <body>
-    <p><a href="{% url atl.mon.views.index %}">Home</a> | <a href="{% url atl.mon.views.help %}">Help</a> </p>
+    <p><a href="{% url atl.mon.views.index %}">Home</a> | <a href="{% url atl.mon.views.help %}">Help</a></p>
     {% block content %}{% endblock %}
     {% block footer %}
     {% endblock %}
