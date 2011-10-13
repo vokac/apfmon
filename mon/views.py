@@ -1246,6 +1246,7 @@ def index(request):
     fstate = State.objects.get(name='FAULT')
 
     crows = []
+    #    labels = Label.objects.all()
     for cloud in clouds:
 
         factive = []
@@ -1609,7 +1610,12 @@ def msg(request):
 
             txt = text[:140]
         
-            pq = get_object_or_404(PandaQueue, name=nick)
+            try:
+                pq = PandaQueue.objects.get(name=nick)
+            except:
+                msg = 'PandaQueue not found, skipping: %s' % nick
+                logging.warn(msg)
+                continue
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
