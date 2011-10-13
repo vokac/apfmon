@@ -10,10 +10,10 @@
 {% endifequal %}
 
 
-<table>
+<table class=text>
 <tr>
 <th class=colhdr>Factory
-<th>PandaQ
+<th>PandaQueue
 {% comment %}
 <th>created
 <th>running 
@@ -28,7 +28,7 @@
 
 <tr class="{% cycle odd,even %}">
   <td class=colhdr nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
-  <td nowrap><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
+  <td><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
 {% comment %}
   <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
     {{ row.jobcount.created }} </a></td>
@@ -41,8 +41,8 @@
   <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">
     {{ row.jobcount.fault }} </a></td>
 {% endcomment %}
-  <td class=note>{{ row.label.msg }}
-  <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
+  <td class=note><div id="note" title="{{ row.label.msg }}">{{ row.label.msg }}</div>
+  <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
 </tr>
 {% comment %}
 {% endcomment %}
