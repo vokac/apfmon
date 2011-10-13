@@ -5,9 +5,11 @@
 
 <h2>ATLAS pilot factory monitor</h2>
 
+{% comment %}
 <p>
 <img src="/media/states-1d-0-0.png" />
 </p>
+{% endcomment %}
 
 <p>
 <form action="{% url atl.mon.views.search %}" method="GET" name="search">
@@ -43,7 +45,7 @@
 
 
 <p>
-<table>
+<table > 
 <tr>
 <th class=colhdr title="factoryId">Factory
 <th title="jobs created in last cycle">Activity
@@ -53,9 +55,13 @@
 {% for row in frows %}
 <tr class="{% cycle odd,even %}">
   <td class="colhdr"><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
-  <td>{{ row.factory.last_ncreated }}
-  <td class={{ row.active }}>{{ row.factory.last_modified|timesince_human }}
-  <td>{{ row.factory.version }}
+  <td class="{{ row.activity }}">{{ row.factory.last_ncreated }}
+  <td class="{{ row.active }}">{{ row.factory.last_modified|timesince_human }}
+  {% if row.factory.version %}
+    <td>{{ row.factory.version }}
+  {% else %}
+    <td>-
+  {% endif %}
 </tr>
 {% endfor %}
 
