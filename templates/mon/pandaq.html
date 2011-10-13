@@ -1,30 +1,34 @@
 {% extends "mon/base.html" %}
+{% load timesince_human %}
 
 {% block content %}
 
 <h2>Panda Queue view - <a href="http://panda.cern.ch:25980/server/pandamon/query?tp=queue&id={{ pandaq }}">{{ pandaq }}</a></h2>
 
 <p>
-  <img src="/media/states-6h-0-{{ pandaq.id }}.png"/>
+  <img src="/media/states-1d-0-{{ pandaq.id }}.png"/>
 <p>
+{% comment %}
+{% endcomment %}
 
-<table class="numeric">
+<table class=numeric>
 <tr>
-<th class=left title="hover for message">Label
-<th class=left title="Factory name">Factory
+<th class=colhdr title="hover for message">Label
+<th title="Factory name">factory
 <th title="Count of jobs in CREATED state">created
 <th title="Count of jobs in RUNNING state">running 
 <th title="Count of jobs in EXITING state">exiting
 <th title="Count of jobs DONE, last hr">done
 <th title="Count of idle pilots (no payload), last hr">miss
 <th title="last hr">fault
-<th>Latest action
+<th>when
+<th class=left>Message
 </tr>
 {% for row in rows %}
 
 <tr class={% cycle odd,even %}>
-  <td class=left nowrap title="{{ row.label.msg }}">{{ row.label }}
-  <td nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
+  <td class=colhdr title="{{ row.label.msg }}">{{ row.label }}
+  <td><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
     {{ row.jobcount.created }} </a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">
@@ -36,9 +40,14 @@
   <td>{{ row.jobcount.miss }}
   <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">
     {{ row.jobcount.fault }} </a>
-  <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
+  <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
+  <td class="left note">{{ row.label.msg }}
 </tr>
 {% comment %}
+<tr class={% cycle odd,even %}>
+  <td >
+  <td colspan=8>{{ row.label.msg }}
+</tr>
 {% endcomment %}
 {% endfor %}
 
@@ -47,7 +56,7 @@
 <p>
 <table class=job>
 <tr>
-  <th>Factory
+  <th class=colhdr>Factory
   <th>Job
   <th>State
   <th>Result
@@ -56,12 +65,12 @@
 </tr>
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td class=left>{{ j.fid }}
+  <td class=colhdr>{{ j.fid }}
   <td><a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   <td>{{ j.result }}
-  <td>{{ j.created|timesince}}
-  <td>{{ j.last_modified|timesince}} ago
+  <td>{{ j.created|timesince_human}}
+  <td>{{ j.last_modified|timesince_human}}
 </tr>
 {% endfor %}
 <tr>
