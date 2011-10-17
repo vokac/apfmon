@@ -27,9 +27,10 @@
 <table>
 <tr>
 <th class=colhdr title="Site name">Site
-<th title="Panda queue, links to schedconfig">Panda queue
-<th title="Panda queue status">State
-<th title="Schedconfig comment">Comment
+<th title="Panda queue, links to schedconfig">panda queue
+<th title="Panda queue status">state
+<th title="nJobs running, all factories">running
+<th title="Schedconfig comment">comment
 </tr>
 {% for site in sites %}
   <tr>
@@ -56,11 +57,7 @@
         {{ row.pandaq.comment }}
     {% endif %}
   {% endif %}
-{% comment %}
-  {% if pandaq.type not in 'ANALYSIS_QUEUE PRODUCTION_QUEUE' %}
-    <td class=note>test queue, has no analysis or production tag
-  {% endif %}
-{% endcomment %}
+  <td>{{ row.running }}
 </tr>
 {% endif %}
 
