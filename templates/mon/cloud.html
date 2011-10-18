@@ -21,50 +21,47 @@
 {% endfor %}
 </ul>
 {% endif %}
-
 </p>
 
-<table>
+<table class=text>
 <tr>
 <th class=colhdr title="Site name">Site
-<th title="Panda queue, links to schedconfig">Panda queue
-<th title="Panda queue status">State
-<th title="Schedconfig comment">Comment
-</tr>
+<th title="Panda queue, links to schedconfig">panda queue
+<th title="Panda queue status">state
+<th class=numeric title="nJobs running, all factories">running
+<th title="Schedconfig comment">comment</tr>
 {% for site in sites %}
   <tr>
     <td class=colhdr><a href="{% url atl.mon.views.site site.id %}">{{ site }}</a>
   </tr>
 
-{% for row in rows %}
-{% if row.site.name == site.name %}
-<tr class="{% cycle odd,even %}">
-  <td style=background:white>
-  <td class="{{ row.pandaq.type }}" title="{{ row.pandaq.type }}">
-    <a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">{{ row.pandaq }}</a>
-  <td class="{{ row.pandaq.state }} {{ row.pandaq.type }}">{{ row.pandaq.state }}
-  {% if row.url %}
-    <td class="note {{ row.pandaq.type }}"
-        title="{{ row.pandaq.last_modified|timesince_human }}">
-       {{ row.prefix }}<a href="{{ row.url }}">{{ row.suffix }}</a>
-  {% else %}
-    {% if row.pandaq.comment == 'empty.comment' %}
-      <td class="note {{ row.pandaq.type }}" 
+  {% for row in rows %}
+  {% ifequal row.site.name site.name %}
+  <tr class="{% cycle odd,even %}">
+    <td style=background:white>
+    <td class="{{ row.pandaq.type }}" title="{{ row.pandaq.type }}">
+      <a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">{{ row.pandaq }}</a>
+    <td class="{{ row.pandaq.state }} {{ row.pandaq.type }}">{{ row.pandaq.state }}
+    <td class="numeric -text">{{ row.running }}
+    {% if row.url %}
+      <td class="note {{ row.pandaq.type }}"
+          title="{{ row.pandaq.last_modified|timesince_human }}">
+         {{ row.prefix }}<a href="{{ row.url }}">{{ row.suffix }}</a>
     {% else %}
-      <td class="note {{ row.pandaq.type }}" 
-        title="{{ row.pandaq.last_modified|timesince_human }}">
-        {{ row.pandaq.comment }}
+      {% ifequal row.pandaq.comment 'empty.comment' %}
+        <td class="note {{ row.pandaq.type }}" 
+      {% else %}
+        <td class="note {{ row.pandaq.type }}" 
+          title="{{ row.pandaq.last_modified|timesince_human }}">
+          {{ row.pandaq.comment }}
+      {% endifequal %}
     {% endif %}
-  {% endif %}
-{% comment %}
-  {% if pandaq.type not in 'ANALYSIS_QUEUE PRODUCTION_QUEUE' %}
-    <td class=note>test queue, has no analysis or production tag
-  {% endif %}
-{% endcomment %}
-</tr>
-{% endif %}
-
-{% endfor %}
+  </tr>
+  {% endifequal %}
+  {% comment %}
+  {% endcomment %}
+  
+  {% endfor %}
 {% endfor %}
 
 </table>

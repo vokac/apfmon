@@ -14,37 +14,19 @@
 <tr>
 <th class=colhdr>Factory
 <th>PandaQueue
-{% comment %}
-<th>created
-<th>running 
-<th>exiting
-<th>done (last hour)
-<th>fault (last hour)
-{% endcomment %}
-<th>Message
 <th>When
+<th>Message
 </tr>
 {% for row in rows %}
 
 <tr class="{% cycle odd,even %}">
   <td class=colhdr nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
   <td><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
-{% comment %}
-  <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
-    {{ row.jobcount.created }} </a></td>
-  <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">
-    {{ row.jobcount.running }} </a></td>
-  <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">
-    {{ row.jobcount.exiting }} </a></td>
-  <td><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">
-    {{ row.jobcount.done }}</a> ({{ row.jobcount.miss }})</td>
-  <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">
-    {{ row.jobcount.fault }} </a></td>
-{% endcomment %}
-  <td class=note><div id="note" title="{{ row.label.msg }}">{{ row.label.msg }}</div>
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
+  <td class=note>{{ row.label.msg }}
 </tr>
 {% comment %}
+  <td class=note><div id="note" title="{{ row.label.msg }}">{{ row.label.msg }}</div>
 {% endcomment %}
 {% endfor %}
 
