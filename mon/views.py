@@ -1779,4 +1779,4 @@ def broke(request):
         'rows' : sortedrows,
         }
 
-    return render_to_response('mon/broke.html', context)
+    return render_to_response('mon/service.html', context)
