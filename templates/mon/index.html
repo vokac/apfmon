@@ -5,7 +5,9 @@
 
 <h2>ATLAS pilot factory monitor</h2>
 
+{% comment %}
 <p>Service degraded, looks like hardware issue...but maybe due to schedconfig outage. -Tues. Oct 18th</p>
+{% endcomment %}
 
 <p>
 <form action="{% url atl.mon.views.search %}" method="GET" name="search">
@@ -40,7 +42,6 @@
 </p>
 
 
-{% comment %}
 <p>
 <table>
 <tr>
@@ -62,6 +63,7 @@
 
 </table>
 </p>
+{% comment %}
 {% endcomment %}
 
 
