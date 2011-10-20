@@ -9,7 +9,7 @@ qids=`curl --connect-timeout 3 -fks -m 5 http://localhost/mon/r/`
 [ $? -ne 0 ] && ( echo FAIL rrd-queues r; exit 1 )
 # limit to q summary
 #qids=0
-fids=
+fids=14
 
 # loops over factories
 for f in 0 $fids; do
