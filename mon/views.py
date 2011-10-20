@@ -1224,7 +1224,7 @@ def test(request):
         'rows' : sortedrows,
         }
 
-    return render_to_response('mon/service.html', context)
+    return render_to_response('mon/broke.html', context)
 
 def index(request):
     """
@@ -1246,6 +1246,7 @@ def index(request):
     fstate = State.objects.get(name='FAULT')
 
     crows = []
+    #    labels = Label.objects.all()
     for cloud in clouds:
 
         factive = []
@@ -1254,11 +1255,11 @@ def index(request):
         factories = []
         ncreated = 0
 # undo comment once deployed on prod
-#        for label in labels:
-#            if label.fid not in factories:
-#                factories.append(label.fid)
-#                if label.fid.last_modified > dtwarn:
-#                    factive.append(label.fid)
+        for label in labels:
+            if label.fid not in factories:
+                factories.append(label.fid)
+                if label.fid.last_modified > dtwarn:
+                    factive.append(label.fid)
 
 # leave commented
 #            jcount = jobs.filter(label=label, created__gt=dt).count()
@@ -1317,6 +1318,7 @@ def cloud(request, name):
 
     labels = Label.objects.filter(pandaq__pandasite__site__cloud=c)
     dtwarn = datetime.now() - timedelta(minutes=20)
+    rstate = State.objects.get(name='RUNNING')
 
     factive = []
     finactive = []
@@ -1327,6 +1329,7 @@ def cloud(request, name):
             else:
                 finactive.append(label.fid)
 
+    nrunning = 0
     rows = []
 
     for site in sites:
@@ -1351,12 +1354,17 @@ def cloud(request, name):
                 suffix = savmatch.group(2)
                 url = SAVANNAHURL % suffix
 
+
+            jobs = Job.objects.filter(pandaq=pandaq)
+            nrunning = jobs.filter(state=rstate).count()
+
             row = {
                     'site' : site,
                     'url' : url,
                     'prefix' : prefix,
                     'suffix' : suffix,
-                    'pandaq' : pandaq
+                    'pandaq' : pandaq,
+                    'running' : nrunning,
                     }
             rows.append(row)
 
@@ -1609,7 +1617,12 @@ def msg(request):
 
             txt = text[:140]
         
-            pq = get_object_or_404(PandaQueue, name=nick)
+            try:
+                pq = PandaQueue.objects.get(name=nick)
+            except:
+                msg = 'PandaQueue not found, skipping: %s' % nick
+                logging.warn(msg)
+                continue
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
@@ -1734,3 +1747,36 @@ def site(request, sid):
     return render_to_response('mon/site.html', context)
 
 
+def broke(request):
+    pandaqs = PandaQueue.objects.all()
+
+    rows = []
+    for pandaq in pandaqs:
+
+        if not pandaq.type in ('ANALYSIS_QUEUE','PRODUCTION_QUEUE'): continue
+        labs = []
+        labels = Label.objects.filter(pandaq=pandaq)
+        for lab in labels:
+            labs.append(lab)
+        nlabs = len(labs)
+
+        serviced = 'pass'
+        if nlabs == 1:
+            serviced = 'warn'
+        if nlabs == 0:
+            serviced = 'fail'
+
+        row = {
+            'pandaq' : pandaq,
+            'labs' : labs,
+            'count' : len(labs),
+            'serviced' : serviced,
+            }
+        rows.append(row)
+
+    sortedrows = sorted(rows, key=itemgetter('count')) 
+    context = {
+        'rows' : sortedrows,
+        }
+
+    return render_to_response('mon/service.html', context)

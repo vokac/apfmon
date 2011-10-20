@@ -29,4 +29,4 @@ def humanize_timesince(date):
     if (num_minutes > 0):
         return ungettext(u"%d min ago", u"%d mins ago", num_minutes) % num_minutes
 
-    return ugettext(u"a few seconds ago")
+    return ugettext(u"seconds ago")

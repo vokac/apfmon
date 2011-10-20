@@ -30,9 +30,9 @@
 <img src="/media/states-1d-{{ factory.id }}-0.png" />
 </p>
 
-<table class="numeric">
+<table>
 <tr>
-<th title="" class=left>Factory queue label
+<th class=colhdr title="">Factory queue label
 <th title="">created
 <th title="">running
 <th title="">exiting
@@ -42,7 +42,7 @@
 </tr>
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
-  <td nowrap style="padding-right:2em" class=left>
+  <td class=colhdr>
     <a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
   <td class={{ row.statcr }}><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">{{ row.nrunning }}</a>

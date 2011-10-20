@@ -5,13 +5,13 @@
 
 fids=`curl -fks -m 5 http://localhost/mon/f/`
 [ $? -ne 0 ] && ( echo FAIL rrd-png f; exit 1 )
-#qids=`curl -fks -m 5 http://localhost/mon/r/`
+qids=`curl -fks -m 5 http://localhost/mon/r/`
 #[ $? -ne 0 ] && ( echo FAIL rrd-png r; exit 1 )
 # limit
 
 rrddir=/var/tmp/rrd
 media=/var/www/html/media
-wm=http://apfmon.lancs.ac.uk/mon/
+wm=http://apfmon.lancs.ac.uk/
 
 for f in 0 $fids; do
   # test for integer
@@ -22,7 +22,8 @@ for q in 0 $qids; do
   [ $q -eq $q ] || ( echo Bad qid:; break )
   db=$rrddir/job-state-$f-$q.rrd
 
-  for t in 6h 1d 1w ; do
+#  for t in 6h 1d 1w ; do
+  for t in 1d ; do
 #    echo rrdtool graph $media/states-$t-$f-$q.png 
     rrdtool graph $media/states-$t-$f-$q.png \
            --title "Last $t"     \
