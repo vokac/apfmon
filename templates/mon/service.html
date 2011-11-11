@@ -3,13 +3,12 @@
 
 {% block content %}
 
-<h2>Service view - factories serving each panda queue</h2>
+<h2>Service view - idle panda queues</h2>
 
 <table class=text>
 <tr>
 <th title="Panda nickname">PandaQueue
 <th title="Time since last activity">Last modified
-<th title="Number of factory entries (may be &gt; 1 per factory)">Count of factory entries
 </tr>
 {% for row in rows %}
 
@@ -17,7 +16,6 @@
   <td class="{{ row.serviced }}">{{ row.pandaq }}
   <td>{{ row.pandaq.label.last_modified|timesince }}
   
-  <td>{{ row.count }}
   <td>{{ row.pandaq.type }}
 {% comment %}
   <td nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>

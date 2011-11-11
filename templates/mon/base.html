@@ -171,7 +171,9 @@ ul.top li {
 </head>
 
 <body>
-    <p><a href="{% url atl.mon.views.index %}">Home</a> | <a href="{% url atl.mon.views.help %}">Help</a></p>
+    <p><a href="{% url atl.mon.views.index %}">Home</a> | 
+       <a href="{% url atl.mon.views.fault %}">Fault</a> | 
+       <a href="{% url atl.mon.views.help %}">Help</a></p>
     {% block content %}{% endblock %}
     {% block footer %}
     {% endblock %}

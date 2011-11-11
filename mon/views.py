@@ -64,7 +64,8 @@ def jobs(request, lid, state, p=1):
     dt = datetime.now() - timedelta(hours=1)
     if s:
         if s.name in ['DONE', 'FAULT']:
-            jobs = jobs.filter(state=s, last_modified__gt=dt)
+            #jobs = jobs.filter(state=s, last_modified__gt=dt)
+            jobs = jobs.filter(state=s)
         else:
             jobs = jobs.filter(state=s)
     else:
@@ -286,9 +287,12 @@ def pandaq(request, qid, p=1):
         ncreated = jobs.filter(state=cstate).count()
         nrunning = jobs.filter(state=rstate).count()
         nexiting = jobs.filter(state=estate).count()
-        ndone = jobs.filter(state=dstate, last_modified__gt=dt).count()
-        nfault = jobs.filter(state=fstate, last_modified__gt=dt).count()
-        nmiss = jobs.filter(state=dstate, last_modified__gt=dt, result=20).count()
+#        ndone = jobs.filter(state=dstate, last_modified__gt=dt).count()
+        ndone = jobs.filter(state=dstate).count()
+#        nfault = jobs.filter(state=fstate, last_modified__gt=dt).count()
+        nfault = jobs.filter(state=fstate).count()
+#        nmiss = jobs.filter(state=dstate, last_modified__gt=dt, result=20).count()
+        nmiss = jobs.filter(state=dstate, result=20).count()
     
         row['jobcount'] = {
                 'created' : ncreated,
@@ -706,47 +710,47 @@ def staleold(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
-def cr(request):
-    """
-    Create the Job
-    """
-
-    cid = request.POST.get('cid', None)
-    nick = request.POST.get('nick', None)
-    fid = request.POST.get('fid', None)
-    label = request.POST.get('label', None)
-    ip = request.META['REMOTE_ADDR']
-    
-    if not (cid and nick and fid and label):
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    pq = get_object_or_404(PandaQueue, name=nick)
-
-    f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
-    if created:
-        msg = "Factory auto-created: %s" % fid
-        logging.warn(msg)
-
-    l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
-    if created:
-        msg = "Label auto-created: %s" % label
-        logging.warn(msg)
-
-    try:
-        state = State.objects.get(name='CREATED')
-        j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
-        j.save()
-    except Exception, e:
-        msg = "Failed to create: %s_%s" % (f, cid)
-        print msg, e
-        return HttpResponseBadRequest(msg, mimetype="text/plain")
-
-    msg = "CREATED"
-    m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-    m.save()
-
-    return HttpResponse("OK", mimetype="text/plain")
+#def cr(request):
+#    """
+#    Create the Job
+#    """
+#
+#    cid = request.POST.get('cid', None)
+#    nick = request.POST.get('nick', None)
+#    fid = request.POST.get('fid', None)
+#    label = request.POST.get('label', None)
+#    ip = request.META['REMOTE_ADDR']
+#    
+#    if not (cid and nick and fid and label):
+#        content = "Bad request"
+#        return HttpResponseBadRequest(content, mimetype="text/plain")
+#
+#    pq = get_object_or_404(PandaQueue, name=nick)
+#
+#    f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
+#    if created:
+#        msg = "Factory auto-created: %s" % fid
+#        logging.warn(msg)
+#
+#    l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+#    if created:
+#        msg = "Label auto-created: %s" % label
+#        logging.warn(msg)
+#
+#    try:
+#        state = State.objects.get(name='CREATED')
+#        j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
+#        j.save()
+#    except Exception, e:
+#        msg = "Failed to create: %s_%s" % (f, cid)
+#        print msg, e
+#        return HttpResponseBadRequest(msg, mimetype="text/plain")
+#
+#    msg = "CREATED"
+#    m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+#    m.save()
+#
+#    return HttpResponse("OK", mimetype="text/plain")
 
 def rn(request, fid, cid):
     """
@@ -780,13 +784,11 @@ def rn(request, fid, cid):
 
     return HttpResponse("OK", mimetype="text/plain")
 
-def ex(request, fid, cid, sc):
+def ex(request, fid, cid, sc=None):
     """
     Handle 'ex' signal from exiting wrapper
     """
     
-    if not sc: sc=None
-
     try:
         j = Job.objects.get(fid__name=fid, cid=cid)
     except Job.DoesNotExist, e:
@@ -1603,6 +1605,9 @@ def msg(request):
             data = jdecode.decode(raw)
             msg = "Number of msgs in JSON data: %d" % len(data)
             logging.debug(msg)
+            length = request.META['CONTENT_LENGTH']
+            msg = "Msg content length: %s" % length
+            logging.info(msg)
         except:
             msg = 'Error decoding POST json data'
             logging.error(msg)
@@ -1746,37 +1751,30 @@ def site(request, sid):
 
     return render_to_response('mon/site.html', context)
 
+def fault(request):
+    """
+    List Labels which have FAULT jobs
+    """
 
-def broke(request):
-    pandaqs = PandaQueue.objects.all()
+    jobs = Job.objects.filter(state__name='FAULT')
+    lablist = jobs.values('label__id').annotate(njob=Count('id'))
 
     rows = []
-    for pandaq in pandaqs:
-
-        if not pandaq.type in ('ANALYSIS_QUEUE','PRODUCTION_QUEUE'): continue
-        labs = []
-        labels = Label.objects.filter(pandaq=pandaq)
-        for lab in labels:
-            labs.append(lab)
-        nlabs = len(labs)
-
-        serviced = 'pass'
-        if nlabs == 1:
-            serviced = 'warn'
-        if nlabs == 0:
-            serviced = 'fail'
-
+    for lab in lablist:
+        lid = lab['label__id']
+        njob = lab['njob']
+        
+        label = Label.objects.get(id=lid)
+        
         row = {
-            'pandaq' : pandaq,
-            'labs' : labs,
-            'count' : len(labs),
-            'serviced' : serviced,
+            'label' : label,
+            'njob' : njob,
             }
         rows.append(row)
 
-    sortedrows = sorted(rows, key=itemgetter('count')) 
+    sortedrows = sorted(rows, key=itemgetter('njob'), reverse=True) 
     context = {
-        'rows' : sortedrows,
+        'rows' : sortedrows[:30],
         }
 
-    return render_to_response('mon/service.html', context)
+    return render_to_response('mon/fault.html', context)

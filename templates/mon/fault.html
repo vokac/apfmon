@@ -1,29 +1,33 @@
-{% extends "pyf/base.html" %}
-
-{% block title %}UK pilot factory monitor{% endblock %}
+{% extends "mon/base.html" %}
+{% load timesince_human %}
 
 {% block content %}
 
-<pre>
-FAULT JOB COUNT: {{ jobs|length }}
-</pre>
+<h2>Service view - idle Labels</h2>
 
-{% if jobs %}
-<table border=1>
-{% for j in jobs %}
+<table class=text>
 <tr>
-<td>
-<a href={% url gut.pyf.views.job j.cid %}>{{j.cid }}</a>
-</td>
+<th title="Label per Factory">Label
+<th title="Factory name">factory
+<th title="Count of jobs in FAULT state">fault
 </tr>
-{% endfor %}
-</table>
-{% else %}
-No jobs.
-{% endif %}
+{% for row in rows %}
 
-
+<tr class="{% cycle odd,even %}">
+  <td class="{{ row.serviced }}">{{ row.label }}
+  <td>{{ row.label.fid }}
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.njob }}</a>
 {% comment %}
+  <td nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
+  <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
+</tr>
+<tr class=even>
+  <td></td>
+  <td colspan=7 class=right>{{ row.label.msg }}
+</tr>
 {% endcomment %}
+{% endfor %}
+
+
 
 {% endblock %}
