@@ -205,8 +205,8 @@ def factory(request, fid):
         ncreated = jobs.filter(label=lab, state=cstate).count()
         nrunning = jobs.filter(label=lab, state=rstate).count()
         nexiting = jobs.filter(label=lab, state=estate).count()
-#        ndone = jobs.filter(label=lab, state=dstate, last_modified__gt=dt).count()
-#        nfault = jobs.filter(label=lab, state=fstate, last_modified__gt=dt).count()
+        ndone = jobs.filter(label=lab, state=dstate, last_modified__gt=dt).count()
+        nfault = jobs.filter(label=lab, state=fstate, last_modified__gt=dt).count()
 
         statcr = 'pass'
         if ncreated >= 1000:
@@ -220,13 +220,10 @@ def factory(request, fid):
         if nfault >= 50:
             statfault = 'hot'
 
-        activewarn = datetime.now() - timedelta(minutes=5)
-        activeerror = datetime.now() - timedelta(minutes=10)
+        activewarn = datetime.now() - timedelta(minutes=10)
         activity = 'ok'
         if activewarn > lab.last_modified:
             activity = 'warn'
-        if activeerror > lab.last_modified:
-            activity = 'note'
     
         row = {
             'label' : lab,
@@ -1498,6 +1495,7 @@ def cr2(request):
             ncreated = len(data)
             msg = "Number of jobs in JSON data: %d" % ncreated
             logging.debug(msg)
+            logging.error(msg)
         except:
             msg = 'Error decoding POST json data'
             logging.error(msg)
