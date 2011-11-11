@@ -40,7 +40,8 @@
   <tr class="{% cycle odd,even %}">
     <td style=background:white>
     <td class="{{ row.pandaq.type }}" title="{{ row.pandaq.type }}">
-      <a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">{{ row.pandaq }}</a>
+      <a href="{% url atl.mon.views.pandaq row.pandaq.id %}">{{ row.pandaq }}</a>
+      (<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">p</a>)
     <td class="{{ row.pandaq.state }} {{ row.pandaq.type }}">{{ row.pandaq.state }}
     <td class="numeric -text">{{ row.running }}
     {% if row.url %}
