@@ -8,8 +8,7 @@ fids=`curl --connect-timeout 3 -fks -m 5 http://localhost/mon/f/`
 qids=`curl --connect-timeout 3 -fks -m 5 http://localhost/mon/r/`
 [ $? -ne 0 ] && ( echo FAIL rrd-queues r; exit 1 )
 # limit to q summary
-#qids=0
-fids=
+qids=0
 
 # loops over factories
 for f in 0 $fids; do
@@ -24,6 +23,7 @@ for q in $qids; do
 
   r="N"
   for s in CREATED RUNNING EXITING FAULT DONE; do
+    #echo $q $s
     c=`curl --connect-timeout 3 -ks -m 5 http://localhost/mon/n/$f/$s/$q`
     r=$r:$c
     if [ $f -eq 0 ] && [ $s == 'FAULT' ] && [ $q -eq 0 ]; then date && echo $c; fi

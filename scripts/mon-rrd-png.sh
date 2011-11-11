@@ -6,8 +6,9 @@
 fids=`curl -fks -m 5 http://localhost/mon/f/`
 [ $? -ne 0 ] && ( echo FAIL rrd-png f; exit 1 )
 qids=`curl -fks -m 5 http://localhost/mon/r/`
-#[ $? -ne 0 ] && ( echo FAIL rrd-png r; exit 1 )
+[ $? -ne 0 ] && ( echo FAIL rrd-png r; exit 1 )
 # limit
+qids=
 
 rrddir=/var/tmp/rrd
 media=/var/www/html/media
@@ -24,7 +25,7 @@ for q in 0 $qids; do
 
 #  for t in 6h 1d 1w ; do
   for t in 1d ; do
-#    echo rrdtool graph $media/states-$t-$f-$q.png 
+    #echo rrdtool graph $media/states-$t-$f-$q.png 
     rrdtool graph $media/states-$t-$f-$q.png \
            --title "Last $t"     \
            --watermark $wm        \

@@ -9,6 +9,6 @@ from datetime import timedelta, datetime
 dt = datetime.now() - timedelta(hours=24)
 jobs = Job.objects.filter(last_modified__lt=dt)
 if jobs.count():
-  print jobs.count()
+#  print jobs.count()
 #if jobs: print jobs[0]
   jobs.delete()
