@@ -46,6 +46,10 @@
 <td>{{ m.msg }}
 </tr>
 {% endfor %}
+{% ifequal job.state.name 'FAULT' %}
+<tr class=note>
+<td class=note colspan=3>"FAULT, stale job" means the wrapper didn't run within 12 hours of creation.
+{% endifequal %}
 </table>
 </p>
 
