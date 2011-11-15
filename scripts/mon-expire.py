@@ -43,7 +43,7 @@ def main():
     dstate = State.objects.get(name='DONE')
     fstate = State.objects.get(name='FAULT')
     
-    deltat = datetime.now() - timedelta(hours=12)
+    deltat = datetime.now() - timedelta(hours=18)
     cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat)
     logging.info("created: %d" % cjobs.count())
     
