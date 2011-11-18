@@ -33,12 +33,12 @@
 <table>
 <tr>
 <th class=colhdr title="">Factory queue label
-<th title="">created
-<th title="">running
-<th title="">exiting
+<th title="count of created wrappers">created
+<th title="count of running wrappers">running
+<th title="count of exiting wrappers">exiting
 <th title="last hr">done
 <th title="last hr">fault
-<th>last msg
+<th title="hover to see detail">last msg
 </tr>
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
@@ -49,7 +49,7 @@
   <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">{{ row.nexiting }}</a>
   <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">{{ row.ndone }}</a>
   <td class={{ row.statfault }}><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.nfault }}</a>
-  <td class="{{ row.activity }}"><span title="{{ row.label.msg }}">{{ row.label.last_modified|timesince }} ago</span>
+  <td class="{{ row.activity }}"><div title="{{ row.label.msg }}">{{ row.label.last_modified|timesince_human }}</div>
 </tr>
 {% endfor %}
 </table>
