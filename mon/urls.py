@@ -43,8 +43,6 @@ urlpatterns = patterns('atl.mon.views',
     (r'^stale/$', 'stale'),
     (r'^search/$', 'search'),
     (r'^query/(?P<q>.+)/$', 'query'),
-#    (r'^q/$', 'pandaqueues'),
-#    (r'^s/$', 'pandasites'),
 
 )
 

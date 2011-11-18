@@ -221,13 +221,13 @@ def factory(request, fid):
         if nfault >= 50:
             statfault = 'hot'
 
-        activewarn = datetime.now() - timedelta(minutes=5)
-        activeerror = datetime.now() - timedelta(minutes=10)
+        delayed = datetime.now() - timedelta(minutes=5)
+        stale = datetime.now() - timedelta(minutes=30)
         activity = 'ok'
-        if activewarn > lab.last_modified:
+        if delayed > lab.last_modified:
             activity = 'warn'
-        if activeerror > lab.last_modified:
-            activity = 'note'
+        if stale > lab.last_modified:
+            activity = 'stale'
     
         row = {
             'label' : lab,
@@ -1400,12 +1400,7 @@ def queues(request):
     dt = datetime.now() - timedelta(hours=1)
     jobs = Job.objects.all()
 
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
-    astates = [cstate, rstate, estate]
+    astates = ['CREATED','RUNNING','EXITING']
 
     rows = []
     for pandaq in pandaqs:
@@ -1413,9 +1408,9 @@ def queues(request):
         nactive = 0
         ndone = 0
         nfault = 0
-        nactive = jobs.filter(pandaq=pandaq, state__in=[cstate,rstate,estate]).count()
-        ndone = jobs.filter(pandaq=pandaq, state=dstate, last_modified__gt=dt).count()
-        nfault = jobs.filter(pandaq=pandaq, state=fstate, last_modified__gt=dt).count()
+        nactive = jobs.filter(pandaq=pandaq, state__name__in=astates).count()
+        ndone = jobs.filter(pandaq=pandaq, state__name='DONE').count()
+        nfault = jobs.filter(pandaq=pandaq, state__name='FAULT').count()
 
         statactive = 'hot'
         statdone = 'pass'
@@ -1455,8 +1450,8 @@ def queues(request):
         rows.append(row)
 
     # factories with jobs in active states
-    fids = Factory.objects.filter(job__state__in=astates).annotate(nactive=Count('job'))
-        
+#    fids = Factory.objects.filter(job__state__in=astates).annotate(nactive=Count('job'))
+    fids = []       
     context = {
             'rows' : rows,
             'factories' : fids,
