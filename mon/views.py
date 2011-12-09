@@ -760,7 +760,7 @@ def rn(request, fid, cid):
     try:
         j = Job.objects.get(cid=cid, fid__name=fid)
     except Job.DoesNotExist, e:
-        msg = "RN unknown Job: %s_%s" % (fid, cid)
+        msg = "RN unknown job: %s_%s" % (fid, cid)
         logging.warn(msg)
         content = "Fine"
         return HttpResponseBadRequest(content, mimetype="text/plain")
@@ -1620,7 +1620,7 @@ def msg(request):
             try:
                 pq = PandaQueue.objects.get(name=nick)
             except:
-                msg = 'PandaQueue not found, skipping: %s' % nick
+                msg = 'FID:%s, PandaQueue not found, skipping: %s' % (fid,nick)
                 logging.warn(msg)
                 continue
         
