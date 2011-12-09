@@ -33,12 +33,15 @@
 <table>
 <tr>
 <th class=colhdr title="">Factory queue label
-<th title="">created
-<th title="">running
-<th title="">exiting
+<th title="count of created wrappers">created
+<th title="count of running wrappers">running
+<th title="count of exiting wrappers">exiting
+{% comment %}
 <th title="last hr">done
 <th title="last hr">fault
 <th class=left>last msg
+{% endcomment %}
+<th title="hover to see detail">last msg
 </tr>
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
@@ -47,9 +50,11 @@
   <td class={{ row.statcr }}><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">{{ row.nrunning }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">{{ row.nexiting }}</a>
+{% comment %}
   <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">{{ row.ndone }}</a>
   <td class={{ row.statfault }}><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.nfault }}</a>
-  <td class="left {{ row.activity }}"><span title="{{ row.label.msg }}">{{ row.label.last_modified|timesince_human }}</span>
+{% endcomment %}
+  <td class="{{ row.activity }}"><div title="{{ row.label.msg }}">{{ row.label.last_modified|timesince_human }}</div>
 </tr>
 {% endfor %}
 </table>

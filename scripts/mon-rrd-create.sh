@@ -1,10 +1,6 @@
 #
-# update the RRD for PYF. Count states for all queues
+# create rrd databases for all factories and queues
 #
-
-# Loop over all panda queues (qid), note qid=0 will return
-# a count for all queues
-
 # 1 minute samples
 # day: 1 averaged, store 1440
 # week: 5 averaged (5m), store 2016
