@@ -1508,7 +1508,13 @@ def cr2(request):
             fid = d[2]
             label = d[3]
     
-            pq = get_object_or_404(PandaQueue, name=nick)
+            try:
+                pq = PandaQueue.objects.get(name=nick)
+            except:
+                msg = 'FID:%s, PandaQueue not found, skipping: %s' % (fid,nick)
+                logging.warn(msg)
+                continue
+
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
@@ -1774,3 +1780,32 @@ def fault(request):
         }
 
     return render_to_response('mon/fault.html', context)
+
+def labels(request):
+    """
+    Rendered view of all Labels
+    """
+
+    jobs = Job.objects.all()
+    lablist = Label.objects.all()
+
+    stale = datetime.now() - timedelta(days=14)
+
+    rows = []
+    for lab in lablist:
+        activity = 'ok'
+        if stale > lab.last_modified:
+            activity = 'stale'
+        row = {
+            'label' : lab,
+            'last_modified' : lab.last_modified,
+            'activity' : activity,
+            }
+        rows.append(row)
+
+    sortedrows = sorted(rows, key=itemgetter('last_modified')) 
+    context = {
+        'rows' : sortedrows,
+        }
+
+    return render_to_response('mon/labels.html', context)
