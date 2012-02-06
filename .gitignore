@@ -1,2 +1,6 @@
 *.pyc
 settings.py
+bin/
+develop-eggs/
+eggs/
+parts/
