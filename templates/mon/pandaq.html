@@ -27,7 +27,7 @@
 {% for row in rows %}
 
 <tr class={% cycle odd,even %}>
-  <td class=colhdr title="{{ row.label.msg }}">{{ row.label }}
+  <td class=colhdr title="{{ row.label.msg }}"><a href="{% url atl.mon.views.label row.label.id %}">{{ row.label }}</a>
   <td><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
     {{ row.jobcount.created }} </a>
