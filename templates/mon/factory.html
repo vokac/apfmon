@@ -32,7 +32,7 @@
 
 <table>
 <tr>
-<th class=colhdr title="">Factory queue label
+<th class=colhdr title="">Factory label
 <th title="count of created wrappers">created
 <th title="count of running wrappers">running
 <th title="count of exiting wrappers">exiting
@@ -46,11 +46,12 @@
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
   <td class=colhdr>
-    <a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
+    <a href="{% url atl.mon.views.label row.label.id %}">{{ row.label }}</a>
   <td class={{ row.statcr }}><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">{{ row.nrunning }}</a>
   <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">{{ row.nexiting }}</a>
 {% comment %}
+  <td><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
   <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">{{ row.ndone }}</a>
   <td class={{ row.statfault }}><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.nfault }}</a>
 {% endcomment %}
