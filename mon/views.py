@@ -710,48 +710,6 @@ def staleold(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
-#def cr(request):
-#    """
-#    Create the Job
-#    """
-#
-#    cid = request.POST.get('cid', None)
-#    nick = request.POST.get('nick', None)
-#    fid = request.POST.get('fid', None)
-#    label = request.POST.get('label', None)
-#    ip = request.META['REMOTE_ADDR']
-#    
-#    if not (cid and nick and fid and label):
-#        content = "Bad request"
-#        return HttpResponseBadRequest(content, mimetype="text/plain")
-#
-#    pq = get_object_or_404(PandaQueue, name=nick)
-#
-#    f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
-#    if created:
-#        msg = "Factory auto-created: %s" % fid
-#        logging.warn(msg)
-#
-#    l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
-#    if created:
-#        msg = "Label auto-created: %s" % label
-#        logging.warn(msg)
-#
-#    try:
-#        state = State.objects.get(name='CREATED')
-#        j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
-#        j.save()
-#    except Exception, e:
-#        msg = "Failed to create: %s_%s" % (f, cid)
-#        print msg, e
-#        return HttpResponseBadRequest(msg, mimetype="text/plain")
-#
-#    msg = "CREATED"
-#    m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-#    m.save()
-#
-#    return HttpResponse("OK", mimetype="text/plain")
-
 def rn(request, fid, cid):
     """
     Handle 'rn' signal from a running job
@@ -1290,7 +1248,7 @@ def index(request):
 #        ncreated = jobs.filter(fid=f, state=cstate).count()
         ncreated = 4444
 
-        active = 'fail'
+        active = 'stale'
         if f.last_modified > dtfail:
             active = 'warn'
         if f.last_modified > dtwarn:
@@ -1495,7 +1453,6 @@ def cr2(request):
             ncreated = len(data)
             msg = "Number of jobs in JSON data: %d" % ncreated
             logging.debug(msg)
-            logging.error(msg)
         except:
             msg = 'Error decoding POST json data'
             logging.error(msg)
@@ -1809,3 +1766,81 @@ def labels(request):
         }
 
     return render_to_response('mon/labels.html', context)
+
+def label(request, lid, p=1):
+    """
+    Rendered view of a single Label with job details
+    """
+
+    l = get_object_or_404(Label, id=lid)
+
+    dt = datetime.now() - timedelta(hours=1)
+    # factories with labels serving selected pandaq
+
+    cstate = State.objects.get(name='CREATED')
+    rstate = State.objects.get(name='RUNNING')
+    estate = State.objects.get(name='EXITING')
+    dstate = State.objects.get(name='DONE')
+    fstate = State.objects.get(name='FAULT')
+
+    row = {}
+    ncreated = 0
+    nsubmitted = 0
+    nrunning = 0
+    nexiting = 0
+    ndone = 0
+    nfault = 0
+
+    jobs = Job.objects.filter(label=l)
+    ncreated = jobs.filter(state=cstate).count()
+    nrunning = jobs.filter(state=rstate).count()
+    nexiting = jobs.filter(state=estate).count()
+    ndone = jobs.filter(state=dstate).count()
+    nfault = jobs.filter(state=fstate).count()
+    nmiss = jobs.filter(state=dstate, result=20).count()
+    
+    row['jobcount'] = {
+            'created' : ncreated,
+            'running' : nrunning,
+            'exiting' : nexiting,
+            'done' : ndone,
+            'fault' : nfault,
+            'miss' : nmiss,
+            }
+
+    row['label'] = l
+    
+    statdone = 'pass'
+    if nexiting == 0:
+        statdone = 'fail'
+    elif nexiting <= 5:
+        statdone = 'warn'
+    
+    statfault = 'hot'
+    if nfault == 0:
+        statfault = 'pass'
+
+    row['statdone'] = statdone
+    row['statfault'] = statfault
+
+    activewarn = datetime.now() - timedelta(minutes=5)
+    activeerror = datetime.now() - timedelta(minutes=10)
+    row['activity'] = 'ok'
+    if activewarn > l.last_modified:
+        row['activity'] = 'warn'
+    if activeerror > l.last_modified:
+        row['activity'] = 'fail'
+
+    pages = Paginator(Job.objects.filter(label=lid).order_by('-last_modified'), 30)
+    jobs = Job.objects.filter(label=lid).order_by('-last_modified')[:30]
+
+    context = {
+            'label' : l,
+            'pandaq' : l.pandaq,
+            'row' : row,
+            'jobs' : jobs,
+            'pages' : pages,
+            'page' : pages.page(p),
+            }
+
+    return render_to_response('mon/label.html', context)
