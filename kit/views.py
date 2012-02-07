@@ -57,7 +57,7 @@ def update(request):
     Handle a POST contains json data from SSB
 
   {
-    "agis_gocdb_site_name": "UKI-NORTHGRID-LANCS-HEP",
+    "agis_gocdb_or_oim_site_name": "UKI-NORTHGRID-LANCS-HEP",
     "agis_ssb_site_name": "UKI-NORTHGRID-LANCS-HEP",
     "cloud": "UK",
     "ddm_site_name": "UKI-NORTHGRID-LANCS-HEP",
@@ -104,13 +104,13 @@ def update(request):
                 print msg
                 logging.warn(msg)
                 
-            defaults = {'name' : d['agis_gocdb_site_name'],
-                        'gocdbname' : d['agis_gocdb_site_name'],
+            defaults = {'name' : d['agis_gocdb_or_oim_site_name'],
+                        'gocdbname' : d['agis_gocdb_or_oim_site_name'],
                         'ssbname' : d['agis_ssb_site_name'],
                         'pandasitename' : d['panda_site_name'],
                         'cloud' : cloud,
                         }
-            site, created = Site.objects.get_or_create(name=d['agis_gocdb_site_name'], defaults=defaults)
+            site, created = Site.objects.get_or_create(name=d['agis_gocdb_or_oim_site_name'], defaults=defaults)
             if created:
                 msg = "Site auto-created: %s" % site
                 print msg
