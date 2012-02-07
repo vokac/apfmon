@@ -1,0 +1,75 @@
+{% extends "mon/base.html" %}
+{% load timesince_human %}
+
+{% block content %}
+
+<h2>Label view - {{ row.label }}</h2>
+
+<table class=numeric>
+<tr>
+<th class=colhdr title="Factory name">Factory
+<th title="PandaQ name">pandaq
+<th title="Count of jobs in CREATED state">created
+<th title="Count of jobs in RUNNING state">running 
+<th title="Count of jobs in EXITING state">exiting
+<th title="Count of jobs DONE, last 12hrs">done
+<th title="Count of idle pilots (no payload), last 12hrs">miss
+<th title="last 12hrs">fault
+<th>when
+<th class=left>message
+</tr>
+<tr class={% cycle odd,even %}>
+  <td class=colhdr><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
+  <td><a href="{% url atl.mon.views.pandaq pandaq.id %}">{{ pandaq }}</a>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'CREATED' %}">
+    {{ row.jobcount.created }} </a>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'RUNNING' %}">
+    {{ row.jobcount.running }} </a>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'EXITING' %}">
+    {{ row.jobcount.exiting }} </a>
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">
+    {{ row.jobcount.done }}</a>
+  <td>{{ row.jobcount.miss }}
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">
+    {{ row.jobcount.fault }} </a>
+  <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
+  <td class="left note">{{ row.label.msg }}
+</tr>
+
+</table>
+
+<p>
+<table class=job>
+<tr>
+  <th class=colhdr>Factory
+  <th>Job
+  <th>State
+  <th>Result
+  <th>Created
+  <th>Last modified
+</tr>
+{% for j in page.object_list %}
+<tr class="{% cycle odd,even %}">
+  <td class=colhdr>{{ j.fid }}
+  <td><a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+  <td class={{ j.state.name|lower }}>{{ j.state }}
+  <td>{{ j.result }}
+  <td>{{ j.created|timesince_human}}
+  <td>{{ j.last_modified|timesince_human}}
+</tr>
+{% endfor %}
+<tr>
+  <td colspan=6 class=right>
+    {% if page.has_previous %}
+      <a href="{% url atl.mon.views.pandaq pandaq.id page.previous_page_number %}">&lt; Newer</a>
+    {% endif %}
+    {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
+    {% if page.has_next %}
+      <a href="{% url atl.mon.views.pandaq pandaq.id page.next_page_number %}">Older &gt;</a>
+    {% endif %}
+  </td>
+</tr>
+</table>
+</p>
+
+{% endblock %}
