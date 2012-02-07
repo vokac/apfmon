@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 
 # clean pyf Job
 dt = datetime.now() - timedelta(hours=24)
-jobs = Job.objects.filter(last_modified__lt=dt)
+jobs = Job.objects.filter(state__name__in=['DONE','FAULT'], last_modified__lt=dt)
 if jobs.count():
 #  print jobs.count()
 #if jobs: print jobs[0]
