@@ -1,0 +1,48 @@
+{% extends "mon/base.html" %}
+{% load timesince_human %}
+
+{% block content %}
+
+<h2>ATLAS pilot factory monitor</h2>
+
+{% comment %}
+<p>Service degraded due to IO problem with our hosting service. They are working on it.  -Thurs. Jan 12th</p>
+{% endcomment %}
+
+<p>
+<form action="{% url atl.mon.views.search %}" method="GET" name="search">
+  <label for="q"></label>
+  <input type="text" name="q" value="{{ query|escape }}">
+  <input type="submit" value="Site search">
+</form>
+</p>
+
+<p>
+<table>
+<tr>
+<th class="colhdr" title="Cloud name">Cloud
+<th title="Active/Total number of factories serving this cloud">Factories
+<th title="Number of queues configured">Queue count
+</tr>
+{% for row in crows %}
+<tr class="{% cycle odd,even %}">
+  <td class="colhdr"><a href="{% url atl.mon.views.cloud row.cloud.name %}">{{ row.cloud }}</a>
+  {% if row.factories %}
+    <td>{{ row.factive|length }} of {{ row.factories|length }}
+  {% else %}
+    <td>-
+  {% endif %}
+  <td>{{ row.labels|length }}
+</tr>
+{% endfor %}
+
+</table>
+</p>
+{% comment %}
+{% endcomment %}
+
+
+
+{% endblock %}
+{% comment %}
+{% endcomment %}
