@@ -51,7 +51,7 @@ def main():
     rjobs = Job.objects.filter(state=rstate, last_modified__lt=deltat)
     logging.info("running: %d" % rjobs.count())
     
-    deltat = datetime.now() - timedelta(hours=1)
+    deltat = datetime.now() - timedelta(minutes=30)
     ejobs = Job.objects.filter(state=estate, last_modified__lt=deltat)
     logging.info("exiting: %d" % ejobs.count())
     
