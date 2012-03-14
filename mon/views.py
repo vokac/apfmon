@@ -265,6 +265,7 @@ def pandaq(request, qid, p=1):
 
     labels = Label.objects.filter(pandaq=q)
     dt = datetime.now() - timedelta(hours=1)
+    dtdead = datetime.now() - timedelta(days=10)
     # factories with labels serving selected pandaq
     fs = Factory.objects.filter(label__in=labels)
 
@@ -276,6 +277,7 @@ def pandaq(request, qid, p=1):
 
     rows = []
     for lab in labels:
+        if lab.last_modified < dtdead: continue
         row = {}
         ncreated = 0
         nsubmitted = 0
@@ -320,13 +322,16 @@ def pandaq(request, qid, p=1):
         row['statdone'] = statdone
         row['statfault'] = statfault
 
-        activewarn = datetime.now() - timedelta(minutes=5)
-        activeerror = datetime.now() - timedelta(minutes=10)
-        row['activity'] = 'ok'
-        if activewarn > lab.last_modified:
-            row['activity'] = 'warn'
-        if activeerror > lab.last_modified:
-            row['activity'] = 'fail'
+        dtwarn = datetime.now() - timedelta(minutes=5)
+        dtstale = datetime.now() - timedelta(minutes=10)
+
+        active = 'stale'
+        if lab.last_modified > dtstale:
+            active = 'warn'
+        if lab.last_modified > dtwarn:
+            active = 'pass'
+
+        row['activity'] = active
 
         rows.append(row)
 
@@ -1061,26 +1066,6 @@ def rrd(request):
 
     return response
 
-#def pandaqueues(request):
-#    """
-#    Return list of active panda queues
-#    """
-#
-#    sites = Site.objects.filter(tags__name__in=['analysis','production']).distinct()
-#
-#    queues = []
-#    for site in sites:
-#        qs = PandaQueue.objects.filter(site=site)
-#        queues += qs
-#
-#    response = HttpResponse(mimetype='text/plain')
-#
-#    writer = csv.writer(response)
-#    for q in queues:
-#        writer.writerow([q.name])
-#
-#    return response
-
 def pandasites(request):
     """
     Return list of active panda site names (siteid)
@@ -1198,6 +1183,7 @@ def index(request):
     dtfail = datetime.now() - timedelta(hours=1)
     dtwarn = datetime.now() - timedelta(minutes=20)
 
+    dtdead = datetime.now() - timedelta(days=10)
 
     cstate = State.objects.get(name='CREATED')
     rstate = State.objects.get(name='RUNNING')
@@ -1207,43 +1193,45 @@ def index(request):
 
     crows = []
     #    labels = Label.objects.all()
-    for cloud in clouds:
-
-        factive = []
-        labels = Label.objects.filter(pandaq__pandasite__site__cloud=cloud)
-
-        factories = []
-        ncreated = 0
-# undo comment once deployed on prod
-        for label in labels:
-            if label.fid not in factories:
-                factories.append(label.fid)
-                if label.fid.last_modified > dtwarn:
-                    factive.append(label.fid)
-
-# leave commented
-#            jcount = jobs.filter(label=label, created__gt=dt).count()
-#            ncreated += jcount
-       
-#        active = 'hot'
-#        if qactive <= 2000:
-#            active = 'pass'
-#        if qactive <= 5:
-#            active = 'cold'
-
-        row = {
-            'cloud' : cloud,
-            'labels' : labels,
-            'factories' : factories,
-            'factive' : factive,
-            'ncreated' : ncreated,
-            }
-
-        crows.append(row)
+#    for cloud in clouds:
+#
+#        factive = []
+#        labels = Label.objects.filter(pandaq__pandasite__site__cloud=cloud)
+#
+#        factories = []
+#        ncreated = 0
+## undo comment once deployed on prod
+#        for label in labels:
+#            if label.fid not in factories:
+#                if label.fid.last_modified < dtdead: continue
+#                factories.append(label.fid)
+#                if label.fid.last_modified > dtwarn:
+#                    factive.append(label.fid)
+#
+## leave commented
+##            jcount = jobs.filter(label=label, created__gt=dt).count()
+##            ncreated += jcount
+#       
+##        active = 'hot'
+##        if qactive <= 2000:
+##            active = 'pass'
+##        if qactive <= 5:
+##            active = 'cold'
+#
+#        row = {
+#            'cloud' : cloud,
+#            'labels' : labels,
+#            'factories' : factories,
+#            'factive' : factive,
+#            'ncreated' : ncreated,
+#            }
+#
+#        crows.append(row)
 
     factories = Factory.objects.all().order_by('name')
     frows = []
     for f in factories:
+        if f.last_modified < dtdead: continue
 
 #        ncreated = jobs.filter(fid=f, state=cstate).count()
         ncreated = 4444
@@ -1262,7 +1250,6 @@ def index(request):
         frows.append(row)
 
     context = {
-            'crows' : crows,
             'frows' : frows,
             }
 
@@ -1733,7 +1720,7 @@ def fault(request):
 
     sortedrows = sorted(rows, key=itemgetter('njob'), reverse=True) 
     context = {
-        'rows' : sortedrows[:30],
+        'rows' : sortedrows[:10],
         }
 
     return render_to_response('mon/fault.html', context)
@@ -1844,3 +1831,65 @@ def label(request, lid, p=1):
             }
 
     return render_to_response('mon/label.html', context)
+
+def cloudindex(request):
+    """
+    Rendered view of front page which shows a table of activity
+    for each cloud with counts of number of active factories
+    """
+
+    clouds = Cloud.objects.all().order_by('name')
+    jobs = Job.objects.all()
+    dt = datetime.now() - timedelta(minutes=10)
+    dtfail = datetime.now() - timedelta(hours=1)
+    dtwarn = datetime.now() - timedelta(minutes=20)
+
+    dtdead = datetime.now() - timedelta(days=10)
+
+    cstate = State.objects.get(name='CREATED')
+    rstate = State.objects.get(name='RUNNING')
+    estate = State.objects.get(name='EXITING')
+    dstate = State.objects.get(name='DONE')
+    fstate = State.objects.get(name='FAULT')
+
+    crows = []
+    #    labels = Label.objects.all()
+    for cloud in clouds:
+
+        factive = []
+        labels = Label.objects.filter(pandaq__pandasite__site__cloud=cloud)
+
+        factories = []
+        ncreated = 0
+# undo comment once deployed on prod
+        for label in labels:
+            if label.fid not in factories:
+                if label.fid.last_modified < dtdead: continue
+                factories.append(label.fid)
+                if label.fid.last_modified > dtwarn:
+                    factive.append(label.fid)
+
+# leave commented
+#            jcount = jobs.filter(label=label, created__gt=dt).count()
+#            ncreated += jcount
+       
+#        active = 'hot'
+#        if qactive <= 2000:
+#            active = 'pass'
+#        if qactive <= 5:
+#            active = 'cold'
+
+        row = {
+            'cloud' : cloud,
+            'labels' : labels,
+            'factories' : factories,
+            'factive' : factive,
+            'ncreated' : ncreated,
+            }
+
+        crows.append(row)
+
+    context = { 'crows' : crows }
+
+    return render_to_response('mon/cloudindex.html', context)
+

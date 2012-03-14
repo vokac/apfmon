@@ -41,7 +41,11 @@
   <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">
     {{ row.jobcount.fault }} </a>
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
-  <td class="left note">{{ row.label.msg }}
+  {% ifequal row.activity 'stale' %}
+    <td class="left note">-
+  {% else %}
+    <td class="left note">{{ row.label.msg }}
+  {% endifequal %}
 </tr>
 {% comment %}
 <tr class={% cycle odd,even %}>
