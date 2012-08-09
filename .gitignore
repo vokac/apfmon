@@ -3,4 +3,5 @@ settings.py
 bin/
 develop-eggs/
 eggs/
+env/
 parts/
