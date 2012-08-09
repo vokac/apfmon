@@ -27,9 +27,10 @@ urlpatterns = patterns('atl.mon.views',
 #    (r'^img/states-(?P<t>\d[hdwmy])-(?P<fid>\d*)-(?P<qid>\d*).png$', 'img'),
     (r'^debug/$', 'debug'),
     (r'^test/$', 'test'),
+    (r'^stats/$', 'stats'),
 
 # non-rendered views
-    (r'^c/$', 'cr2'),
+    (r'^c/$', 'cr'),
     (r'^f/$', 'fids'),
     (r'^h/$', 'helo'),
 #    (r'^i/(?P<fid>\S*)/(?P<cid>\S*)/$', 'info'),

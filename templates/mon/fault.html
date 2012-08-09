@@ -26,7 +26,19 @@
 </tr>
 {% endcomment %}
 {% endfor %}
+</table>
 
+<h2>Service view - Panda queues with only one Factory</h2>
+<table class=text>
+<tr>
+<th title="Panda queue">Panda queue
+<th title="Factory count">Factory count
+{% for solo in sololist %}
+<tr class="{% cycle odd,even %}">
+  <td nowrap><a href="{% url atl.mon.views.pandaq solo.pandaq__id %}">{{ solo.pandaq__name }}
+  <td>{{ solo.n }}
+{% endfor %}
 
+</table>
 
 {% endblock %}

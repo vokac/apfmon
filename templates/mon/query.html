@@ -15,15 +15,15 @@
 <p>
 {% if labels %}
 <table class=text>
-<th class=colhdr title="Name of Panda queue">Site
-<th title="Name of factory">Factory
+<th class=colhdr title="Name of factory">Site
+<th title="Factory label name">Label
 <th title="Name of Panda queue">PandaQueue
 <th title="age of last modification">When
 </tr>
 {% for label in labels %}
 <tr class="{% cycle odd,even %}">
-  <td><a href="{% url atl.mon.views.site label.pandaq.pandasite.site.id %}">{{ label.pandaq.pandasite.site }}</a>
-  <td>{{ label.fid }}
+  <td class="colhdr"><a href="{% url atl.mon.views.site label.pandaq.pandasite.site.id %}">{{ label.pandaq.pandasite.site }}</a>
+  <td><a href="{% url atl.mon.views.label label.id %}">{{ label }}</a>
   <td><a href="{% url atl.mon.views.pandaq label.pandaq.id %}">{{ label.pandaq }}</a>
   <td>{{ label.last_modified|timesince }} ago
 </tr>
@@ -33,7 +33,7 @@
 
 {% else %}
 <p>
-No match in Site, PandaSite, or PandaQueue names.
+No match in Label, Site, PandaSite, or PandaQueue names.
 </p>
 {% endif %}
 </p>

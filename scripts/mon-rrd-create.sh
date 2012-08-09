@@ -33,8 +33,8 @@ for f in 0 $fids; do
               DS:created:GAUGE:900:U:U  \
               DS:running:GAUGE:900:U:U   \
               DS:exiting:GAUGE:900:U:U    \
-              DS:fault:GAUGE:900:U:U       \
-              DS:done:GAUGE:900:U:U         \
+              DS:fault:COUNTER:900:U:U       \
+              DS:done:COUNTER:900:U:U         \
               RRA:AVERAGE:0.5:1:1440         \
               RRA:AVERAGE:0.5:5:2016          \
               RRA:AVERAGE:0.5:60:720           \
