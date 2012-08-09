@@ -9,7 +9,7 @@ from atl.mon.models import Job
 from atl.mon.models import Message
 from atl.mon.models import State
 #from atl.mon.models import Factory
-
+from django.core.cache import cache
 
 def main():
     usage = "usage: %prog [options]"
@@ -43,7 +43,7 @@ def main():
     dstate = State.objects.get(name='DONE')
     fstate = State.objects.get(name='FAULT')
     
-    deltat = datetime.now() - timedelta(hours=18)
+    deltat = datetime.now() - timedelta(hours=6)
     cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat)
     logging.info("created: %d" % cjobs.count())
     
@@ -55,17 +55,55 @@ def main():
     ejobs = Job.objects.filter(state=estate, last_modified__lt=deltat)
     logging.info("exiting: %d" % ejobs.count())
     
+    skey = {'CREATED' : 'fcr',
+            'RUNNING' : 'frn',
+            'EXITING' : 'fex',
+            }
+
     jobs = []
     jobs.extend(cjobs)
     jobs.extend(rjobs)
     for j in jobs:
-        msg = "%s -> FAULT, stale job" % j.state
+        statenow = j.state
+        msg = "%s -> FAULT, stale job" % statenow
         m = Message(job=j, msg=msg, client="127.0.0.1")
         m.save()
         msg = "%s_%s: %s -> FAULT, stale job" % (j.fid.name, j.cid, j.state)
         logging.debug(msg)
         j.state = fstate
         j.save()
+
+        prefix = skey[statenow.name]
+        key = "%s%d" % (prefix, j.fid.id)
+        val = cache.decr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=j.fid, state=statenow).count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+            else:
+                msg = "Failed to decr key: %s" % key
+                logging.debug(msg)
+
+        key = "fft%d" % j.fid.id
+        val = cache.incr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=j.fid, state=fstate).count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+            else:
+                msg = "Failed to incr key: %s" % key
+                logging.debug(msg)
+
 
     for j in ejobs:
         msg = "%s -> DONE" % j.state
@@ -77,6 +115,35 @@ def main():
         j.save()
 
 
+        key = "fex%d" % j.fid.id
+        val = cache.decr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=j.fid, state=estate).count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+            else:
+                msg = "Failed to decr key: %s" % key
+                logging.debug(msg)
+
+        key = "fdn%d" % j.fid.id
+        val = cache.incr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=j.fid, state=dstate).count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+            else:
+                msg = "Failed to incr key: %s, db count: %d" % (key, val)
+                logging.debug(msg)
 
 if __name__ == "__main__":
     sys.exit(main())

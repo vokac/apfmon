@@ -21,11 +21,11 @@ for f in 0 $fids; do
 for q in 0 $qids; do
   # test for integer
   [ $q -eq $q ] || ( echo Bad qid:; break )
+  [ $f -eq 35 ] && continue
   db=$rrddir/job-state-$f-$q.rrd
 
-#  for t in 6h 1d 1w ; do
-  for t in 1d ; do
-    #echo rrdtool graph $media/states-$t-$f-$q.png 
+  for t in 1h 4h 12h 1d 1w ; do
+#    echo rrdtool graph $media/states-$t-$f-$q.png 
     rrdtool graph $media/states-$t-$f-$q.png \
            --title "Last $t"     \
            --watermark $wm        \
@@ -53,9 +53,9 @@ for q in 0 $qids; do
            LINE1:ln1#C9B215               \
            LINE1:ln2#1598C3                \
            LINE1:ln3#CC7016                 \
-           LINE3:ln4#cc3118:'FAULT (last hr)'\
-           LINE3:ln5#23bc14:'DONE (last hr)'  \
                                 >/dev/null
+#           LINE3:ln4#cc3118:'FAULT (last hr)'\
+#           LINE3:ln5#23bc14:'DONE (last hr)'  \
   done
 done
 

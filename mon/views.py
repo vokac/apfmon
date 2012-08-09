@@ -23,9 +23,11 @@ from django.db.models import Count
 from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from django.core.urlresolvers import reverse
+from django.core.exceptions import MultipleObjectsReturned
 
 try:
     import json as json
@@ -72,7 +74,7 @@ def jobs(request, lid, state, p=1):
         jobs = jobs.filter(state__name__in=['CREATED','RUNNING','EXITING'])
 
     
-    pages = Paginator(jobs, 25)
+    pages = Paginator(jobs, 100)
 
     try:
         page = pages.page(p)
@@ -195,6 +197,7 @@ def factory(request, fid):
     dstate = State.objects.get(name='DONE')
     fstate = State.objects.get(name='FAULT')
 
+    lifetime = 300
     rows = []
     for lab in labels:
         ncreated = 0
@@ -203,11 +206,60 @@ def factory(request, fid):
         nexiting = 0
         ndone = 0
         nfault = 0
-        ncreated = jobs.filter(label=lab, state=cstate).count()
-        nrunning = jobs.filter(label=lab, state=rstate).count()
-        nexiting = jobs.filter(label=lab, state=estate).count()
-        ndone = jobs.filter(label=lab, state=dstate, last_modified__gt=dt).count()
-        nfault = jobs.filter(label=lab, state=fstate, last_modified__gt=dt).count()
+
+        key = "lcr%d" % lab.id
+        val = cache.get(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = jobs.filter(label=lab, state=cstate).count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+        ncreated = val
+
+        key = "lrn%d" % lab.id
+        val = cache.get(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = jobs.filter(label=lab, state=rstate).count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+        nrunning = val
+
+        key = "lex%d" % lab.id
+        val = cache.get(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = jobs.filter(label=lab, state=estate).count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+        nexiting = val
+
+#        ncreated = jobs.filter(label=lab, state=cstate).count()
+#        nrunning = jobs.filter(label=lab, state=rstate).count()
+#        nexiting = jobs.filter(label=lab, state=estate).count()
+#        ndone = jobs.filter(label=lab, state=dstate, last_modified__gt=dt).count()
+#        nfault = jobs.filter(label=lab, state=fstate, last_modified__gt=dt).count()
 
         statcr = 'pass'
         if ncreated >= 1000:
@@ -335,8 +387,8 @@ def pandaq(request, qid, p=1):
 
         rows.append(row)
 
-    pages = Paginator(Job.objects.filter(pandaq=qid).order_by('-last_modified'), 30)
-    jobs = Job.objects.filter(pandaq=qid).order_by('-last_modified')[:30]
+    pages = Paginator(Job.objects.filter(pandaq=qid).order_by('-last_modified'), 100)
+    jobs = Job.objects.filter(pandaq=qid).order_by('-last_modified')[:100]
 
     context = {
             'pandaq' : q,
@@ -721,10 +773,18 @@ def rn(request, fid, cid):
     """
 
     try:
-        j = Job.objects.get(cid=cid, fid__name=fid)
+        f = Factory.objects.get(name=fid)
+    except Factory.DoesNotExist:
+        msg = "Factory %s not found" % fid
+        logging.debug(msg)
+        content = "Bad request"
+        return HttpResponseBadRequest(content, mimetype="text/plain")
+
+    try:
+        j = Job.objects.get(cid=cid, fid=f)
     except Job.DoesNotExist, e:
-        msg = "RN unknown job: %s_%s" % (fid, cid)
-        logging.warn(msg)
+        msg = "RN unknown job: %s_%s" % (f, cid)
+#PAL - pending fix for apfv2        logging.warn(msg)
         content = "Fine"
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
@@ -734,6 +794,66 @@ def rn(request, fid, cid):
         msg = "%s -> RUNNING" % j.state
         j.state = State.objects.get(name='RUNNING')
         j.save()
+
+        key = "fcr%d" % f.id
+        val = cache.decr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=f, state__name='CREATED').count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to decr key: %s" % key
+                logging.warn(msg)
+
+        key = "frn%d" % f.id
+        val = cache.incr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to incr key: %s" % key
+                logging.warn(msg)
+
+        key = "lcr%d" % j.label.id
+        val = cache.decr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(label=j.label, state__name='CREATED').count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to decr key: %s" % key
+                logging.warn(msg)
+
+        key = "lrn%d" % j.label.id
+        val = cache.incr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(label=j.label, state__name='RUNNING').count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to incr key: %s" % key
+                logging.warn(msg)
 
     else:
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
@@ -753,10 +873,18 @@ def ex(request, fid, cid, sc=None):
     """
     
     try:
-        j = Job.objects.get(fid__name=fid, cid=cid)
+        f = Factory.objects.get(name=fid)
+    except Factory.DoesNotExist:
+        msg = "Factory %s not found" % fid
+        logging.debug(msg)
+        content = "Bad request"
+        return HttpResponseBadRequest(content, mimetype="text/plain")
+
+    try:
+        j = Job.objects.get(fid=f, cid=cid)
     except Job.DoesNotExist, e:
-        msg = "EX unknown Job: %s_%s" % (fid, cid)
-        logging.warn(msg)
+        msg = "EX unknown Job: %s_%s" % (f, cid)
+#PAL        logging.warn(msg)
         return HttpResponseBadRequest('Fine', mimetype="text/plain")
     
     msg = None
@@ -774,6 +902,39 @@ def ex(request, fid, cid, sc=None):
         else:
             j.flag = True
         j.save()
+
+        key = "fex%d" % f.id
+        val = cache.incr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=f, state__name='EXITING').count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to incr key: %s" % key
+                logging.warn(msg)
+
+        key = "frn%d" % f.id
+        val = cache.decr(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.warn(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
+            added = cache.add(key, val)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to decr key: %s" % key
+                logging.warn(msg)
+
+
+
 
     else:
         msg = "%s -> EXITING STATUSCODE: %s (WARN: state not RUNNING)" % (j.state, sc)
@@ -844,7 +1005,7 @@ def info(request, fid, cid):
     info = request.POST.get('msg', None)
 
     if pandaid:
-        send_mail('PANDAID found', 'PANDAID:%s, CID:%s'% (pandaid,j.cid), 'atl@py-dev.lancs.ac.uk', ['p.love@lancaster.ac.uk'], fail_silently=False)
+        send_mail('PANDAID found', 'PANDAID:%s, CID:%s'% (pandaid,j.cid), 'atl@py-prod.lancs.ac.uk', ['p.love@lancaster.ac.uk'], fail_silently=False)
 
         msg = "%s pandaid:%s, pilot status:%s" % (j.cid, pandaid, j.result)
         logging.warn(msg)
@@ -909,36 +1070,6 @@ def awol(request):
             j.state = State.objects.get(name='FAULT')
             j.flag = True
             j.save()
-
-    return HttpResponse("OK", mimetype="text/plain")
-
-def awolold(request):
-    """
-    Handle jobs which have been lost within condor
-    """
-
-    fid = request.POST.get('fid', None)
-    cid = request.POST.get('cid', None)
-
-    if not (fid and cid):
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    try:
-        j = Job.objects.get(fid__name=fid, cid=cid)
-    except Job.DoesNotExist:
-        content = "DoesNotExist: %s" % cid
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    if j.state.name not in ['DONE', 'FAULT']:
-        msg = "%s -> FAULT (AWOL)" % j.state
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
-        msg = "%s -> FAULT (AWOL) FID:%s CID:%s" % (j.state, j.fid, j.cid)
-        logging.warn(msg)
-        j.state = State.objects.get(name='FAULT')
-        j.flag = True
-        j.save()
 
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -1136,40 +1267,91 @@ def pandasites(request):
 #    f.close()
 #    return response
 
+def stats(request):
 
-def test(request):
+    labels = Label.objects.all()
 
-    pandaqs = PandaQueue.objects.all()
-
+    lifetime = 300
     rows = []
-    for pandaq in pandaqs:
+    for l in labels:
 
-        labs = []
-        labels = Label.objects.filter(pandaq=pandaq)
-        for lab in labels:
-            labs.append(lab)
-        nlabs = len(labs)
+        key = "ldn%d" % l.id
+        val = cache.get(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(label=l, state__name='DONE').count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+        ndone = val
 
-        serviced = 'pass'
-        if nlabs == 1:
-            serviced = 'warn'
-        if nlabs == 0:
-            serviced = 'fail'
+        key = "lft%d" % l.id
+        val = cache.get(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            # key not known so set to current count
+            val = Job.objects.filter(label=l, state__name='FAULT').count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.debug(msg)
+        nfault = val
 
+        dt = datetime.now()
+        date = "%d-%02d-%02d" % (dt.year, dt.month, dt.day)
+        # these need to come from Factory info
+        out = "%s/%s/%s/%s.out"
+        err = "%s/%s/%s/%s.err"
+        log = "%s/%s/%s/%s.log"
+
+        dir = str(l.name).translate(string.maketrans('/:','__'))
+
+        logurl = "%s/%s/%s/" % (l.fid.url, date, dir)
+
+
+        url = l.fid.url
+        nhit = Job.objects.filter(state__name='DONE', label=l, result=0).count()
+        nmiss = Job.objects.filter(state__name='DONE', label=l, result=20).count()
         row = {
-            'pandaq' : pandaq,
-            'labs' : labs,
-            'count' : len(labs),
-            'serviced' : serviced,
+            'label' : l.name,
+            'labelid' : l.id,
+            'factory' : l.fid.name,
+            'factoryid' : l.fid.id,
+            'factoryver' : l.fid.version,
+            'pandaq' : l.pandaq.name,
+            'pandaqid' : l.pandaq.id,
+            'ndone' : ndone,
+            'nfault' : nfault,
+            'nhit' : nhit,
+            'nmiss' : nmiss,
+            'logurl' : logurl,
+            'timestamp' : datetime.now().strftime('%F %H:%M:%S UTC'),
             }
         rows.append(row)
 
-    sortedrows = sorted(rows, key=itemgetter('count')) 
     context = {
-        'rows' : sortedrows,
+        'rows' : rows,
         }
 
-    return render_to_response('mon/broke.html', context)
+    return HttpResponse(json.dumps(rows, sort_keys=True, indent=2), mimetype="application/json")
+
+
+def test(request):
+
+    jobs = Job.objects.all()
+
+    context = {}
+    return render_to_response('mon/test.html', context)
 
 def index(request):
     """
@@ -1424,7 +1606,7 @@ def shout(request):
     
     return HttpResponse("OK", mimetype="text/plain")
 
-def cr2(request):
+def cr(request):
     """
     Create the Job, expect data format is:
     (cid, nick, fid, label)
@@ -1442,7 +1624,7 @@ def cr2(request):
             logging.debug(msg)
         except:
             msg = 'Error decoding POST json data'
-            logging.error(msg)
+            logging.debug(msg)
             content = "Bad request"
             return HttpResponseBadRequest(content, mimetype="text/plain")
 
@@ -1458,7 +1640,6 @@ def cr2(request):
                 msg = 'FID:%s, PandaQueue not found, skipping: %s' % (fid,nick)
                 logging.warn(msg)
                 continue
-
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
@@ -1468,18 +1649,46 @@ def cr2(request):
             f.last_ncreated = ncreated
             f.save()
         
-            l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+            try: 
+                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+            except MultipleObjectsReturned,e:
+                msg = "Multiple objects - apfv2 issue?"
+                logging.warn(msg)
+                msg = "Multiple objects error"
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+
             if created:
                 msg = "Label auto-created: %s" % label
-                logging.warn(msg)
+                logging.debug(msg)
         
             try:
                 state = State.objects.get(name='CREATED')
                 j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
                 j.save()
+
+                key = "fcr%d" % f.id
+                val = cache.incr(key)
+                if val is None:
+                    msg = "MISS key: %s" % key
+                    logging.warn(msg)
+                    # key not known so set to current count
+                    val = Job.objects.filter(fid=f, state=state).count()
+                    added = cache.add(key, val)
+                    if added:
+                        msg = "Added DB count for key %s : %d" % (key, val)
+                        logging.warn(msg)
+                    else:
+                        msg = "Failed to incr key: %s" % key
+                        logging.warn(msg)
+
+                if not val % 1000:
+                    msg = "memcached key:%s val:%d" % (key, val)
+                    logging.warn(msg)
             except Exception, e:
-                msg = "Failed to create: %s_%s" % (f, cid)
+                msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
                 logging.error(msg)
+                logging.error(e)
+                msg = 'ok'
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
         
             msg = "CREATED"
@@ -1584,7 +1793,14 @@ def msg(request):
                 f.last_cycle = cycle
             f.save()
         
-            l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+            try:
+                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+            except MultipleObjectsReturned, e:
+                msg = "Multiple objects - apfv2 issue?"
+                logging.warn(msg)
+                msg = "Multiple objects error"
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+
             if created:
                 msg = "Label auto-created: %s" % label
                 logging.warn(msg)
@@ -1625,6 +1841,7 @@ def query(request, q):
     """
     if q:
         qset = (
+            Q(name__icontains=q) |
             Q(pandaq__name__icontains=q) |
             Q(pandaq__pandasite__name__icontains=q) |
             Q(pandaq__pandasite__site__name__icontains=q)
@@ -1704,13 +1921,19 @@ def fault(request):
 
     jobs = Job.objects.filter(state__name='FAULT')
     lablist = jobs.values('label__id').annotate(njob=Count('id'))
+    qlist = Label.objects.values('pandaq__name','pandaq__id').annotate(n=Count('fid'))
 
     rows = []
     for lab in lablist:
         lid = lab['label__id']
         njob = lab['njob']
         
-        label = Label.objects.get(id=lid)
+        try:
+            label = Label.objects.get(id=lid)
+        except Label.DoesNotExist:
+            msg = 'Label does not exist: %s' % lid
+            logging.warn(msg)
+            continue
         
         row = {
             'label' : label,
@@ -1718,9 +1941,15 @@ def fault(request):
             }
         rows.append(row)
 
+    sololist = []
+    for q in qlist:
+        if q['n'] == 1:
+            sololist.append(q)
+
     sortedrows = sorted(rows, key=itemgetter('njob'), reverse=True) 
     context = {
         'rows' : sortedrows[:10],
+        'sololist' : sololist,
         }
 
     return render_to_response('mon/fault.html', context)
@@ -1818,8 +2047,8 @@ def label(request, lid, p=1):
     if activeerror > l.last_modified:
         row['activity'] = 'fail'
 
-    pages = Paginator(Job.objects.filter(label=lid).order_by('-last_modified'), 30)
-    jobs = Job.objects.filter(label=lid).order_by('-last_modified')[:30]
+    pages = Paginator(Job.objects.filter(label=lid).order_by('-last_modified'), 200)
+    jobs = Job.objects.filter(label=lid).order_by('-last_modified')[:200]
 
     context = {
             'label' : l,

@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<h2>Panda Queue view - <a href="http://panda.cern.ch:25980/server/pandamon/query?tp=queue&id={{ pandaq }}">{{ pandaq }}</a> - {{ pandaq.state }}</h2>
+<h2>Panda Queue view - <a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">{{ pandaq }}</a> - {{ pandaq.state }}</h2>
 
 {% comment %}
 <p>
@@ -63,7 +63,7 @@
   <th class=colhdr>Factory
   <th>Job
   <th>State
-  <th>Result
+  <th>Payload?
   <th>Created
   <th>Last modified
 </tr>
@@ -72,7 +72,15 @@
   <td class=colhdr>{{ j.fid }}
   <td><a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
-  <td>{{ j.result }}
+  {% ifequal j.result 20 %}
+    <td>miss
+  {% endifequal %}
+  {% ifequal j.result 0 %}
+    <td>yes
+  {% endifequal %}
+  {% ifequal j.result -1 %}
+    <td>-
+  {% endifequal %}
   <td>{{ j.created|timesince_human}}
   <td>{{ j.last_modified|timesince_human}}
 </tr>

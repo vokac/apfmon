@@ -110,7 +110,7 @@ class Job(models.Model):
     state = models.ForeignKey(State)
     pandaq = models.ForeignKey(PandaQueue)
     label = models.ForeignKey(Label)
-    result = models.SmallIntegerField(blank=True, default=0)
+    result = models.SmallIntegerField(blank=True, default=-1)
     flag = models.BooleanField(default=False)
     class Meta:
         ordering = ('-last_modified', )

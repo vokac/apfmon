@@ -25,8 +25,23 @@
   <td>STATE
   <td>{{ job.state }}
 <tr>
-  <td>RESULT
-  <td>{{ job.result }}
+  <td>PAYLOAD?
+  {% ifequal job.result 20 %}
+    <td>miss
+  {% endifequal %}
+  {% ifequal job.result 0 %}
+    <td>yes
+  {% endifequal %}
+  {% ifequal job.result -1 %}
+    <td>-
+  {% endifequal %}
+<tr>
+  <td>PILOTCODE
+  {% ifequal job.result -1 %}
+    <td>-
+  {% else %}
+    <td>{{ job.result }}
+  {% endifequal %}
 <tr>
   <td>FLAG
   <td>{{ job.flag }}
@@ -48,7 +63,7 @@
 {% endfor %}
 {% ifequal job.state.name 'FAULT' %}
 <tr class=note>
-<td class=note colspan=3>"FAULT, stale job" means the wrapper didn't run within 18 hours of creation.
+<td class=note colspan=3>"FAULT, stale job" means the wrapper didn't run within 6 hours of creation.
 {% endifequal %}
 </table>
 </p>
