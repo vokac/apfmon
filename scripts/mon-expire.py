@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime
 import logging
+import pytz
 from optparse import OptionParser
 import sys
 
@@ -43,15 +44,15 @@ def main():
     dstate = State.objects.get(name='DONE')
     fstate = State.objects.get(name='FAULT')
     
-    deltat = datetime.now() - timedelta(hours=6)
+    deltat = datetime.now(pytz.utc) - timedelta(hours=6)
     cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat)
     logging.info("created: %d" % cjobs.count())
     
-    deltat = datetime.now() - timedelta(hours=48)
+    deltat = datetime.now(pytz.utc) - timedelta(hours=48)
     rjobs = Job.objects.filter(state=rstate, last_modified__lt=deltat)
     logging.info("running: %d" % rjobs.count())
     
-    deltat = datetime.now() - timedelta(minutes=30)
+    deltat = datetime.now(pytz.utc) - timedelta(minutes=30)
     ejobs = Job.objects.filter(state=estate, last_modified__lt=deltat)
     logging.info("exiting: %d" % ejobs.count())
     
@@ -75,11 +76,12 @@ def main():
 
         prefix = skey[statenow.name]
         key = "%s%d" % (prefix, j.fid.id)
-        val = cache.decr(key)
-        if val is None:
+        try:
+            val = cache.decr(key)
+        except ValueError:
+            # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            # key not known so set to current count
             val = Job.objects.filter(fid=j.fid, state=statenow).count()
             added = cache.add(key, val)
             if added:
@@ -90,11 +92,12 @@ def main():
                 logging.debug(msg)
 
         key = "fft%d" % j.fid.id
-        val = cache.incr(key)
-        if val is None:
+        try:
+            val = cache.incr(key)
+        except ValueError:
+            # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            # key not known so set to current count
             val = Job.objects.filter(fid=j.fid, state=fstate).count()
             added = cache.add(key, val)
             if added:
@@ -116,11 +119,12 @@ def main():
 
 
         key = "fex%d" % j.fid.id
-        val = cache.decr(key)
-        if val is None:
+        try:
+            val = cache.decr(key)
+        except ValueError:
+            # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            # key not known so set to current count
             val = Job.objects.filter(fid=j.fid, state=estate).count()
             added = cache.add(key, val)
             if added:
@@ -131,11 +135,12 @@ def main():
                 logging.debug(msg)
 
         key = "fdn%d" % j.fid.id
-        val = cache.incr(key)
-        if val is None:
+        try:
+            val = cache.incr(key)
+        except ValueError:
+            # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            # key not known so set to current count
             val = Job.objects.filter(fid=j.fid, state=dstate).count()
             added = cache.add(key, val)
             if added:
