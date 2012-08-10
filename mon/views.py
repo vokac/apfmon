@@ -13,6 +13,7 @@ from atl.kit.models import PandaSite
 
 import csv
 import logging
+import pytz
 import re
 import string
 import sys
@@ -24,6 +25,7 @@ from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
 from django.core.cache import cache
+from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from django.core.urlresolvers import reverse
@@ -63,7 +65,7 @@ def jobs(request, lid, state, p=1):
 
     jobs = Job.objects.filter(label=l).order_by('-last_modified')
 
-    dt = datetime.now() - timedelta(hours=1)
+    dt = datetime.now(pytz.utc) - timedelta(hours=1)
     if s:
         if s.name in ['DONE', 'FAULT']:
             #jobs = jobs.filter(state=s, last_modified__gt=dt)
@@ -160,13 +162,13 @@ def debug(request):
     Rendered view of selected Jobs
     """
 
-    dt = datetime.now() - timedelta(minutes=60)
+    dt = datetime.now(pytz.utc) - timedelta(minutes=60)
     fault = Job.objects.filter(last_modified__gt=dt, state__name='FAULT')
     done = Job.objects.filter(last_modified__gt=dt, state__name='DONE').filter(result=0)
     flagged = Job.objects.filter(last_modified__gt=dt, flag=True)
     havejob = done.filter(result=0)
 
-    dt = datetime.now() - timedelta(hours=48)
+    dt = datetime.now(pytz.utc) - timedelta(hours=48)
     ancient = Job.objects.filter(created__lt=dt).order_by('created').exclude(state__name__in=['FAULT','DONE'])
 
     context = {
@@ -189,7 +191,7 @@ def factory(request, fid):
     pandaqs = PandaQueue.objects.all()
     labels = Label.objects.filter(fid=f)
     jobs = Job.objects.filter(fid=f)
-    dt = datetime.now() - timedelta(hours=1)
+    dt = datetime.now(pytz.utc) - timedelta(hours=1)
 
     cstate = State.objects.get(name='CREATED')
     rstate = State.objects.get(name='RUNNING')
@@ -273,8 +275,8 @@ def factory(request, fid):
         if nfault >= 50:
             statfault = 'hot'
 
-        delayed = datetime.now() - timedelta(minutes=5)
-        stale = datetime.now() - timedelta(minutes=30)
+        delayed = datetime.now(pytz.utc) - timedelta(minutes=5)
+        stale = datetime.now(pytz.utc) - timedelta(minutes=30)
         activity = 'ok'
         if delayed > lab.last_modified:
             activity = 'warn'
@@ -316,8 +318,8 @@ def pandaq(request, qid, p=1):
     q = get_object_or_404(PandaQueue, id=qid)
 
     labels = Label.objects.filter(pandaq=q)
-    dt = datetime.now() - timedelta(hours=1)
-    dtdead = datetime.now() - timedelta(days=10)
+    dt = datetime.now(pytz.utc) - timedelta(hours=1)
+    dtdead = datetime.now(pytz.utc) - timedelta(days=10)
     # factories with labels serving selected pandaq
     fs = Factory.objects.filter(label__in=labels)
 
@@ -374,8 +376,8 @@ def pandaq(request, qid, p=1):
         row['statdone'] = statdone
         row['statfault'] = statfault
 
-        dtwarn = datetime.now() - timedelta(minutes=5)
-        dtstale = datetime.now() - timedelta(minutes=10)
+        dtwarn = datetime.now(pytz.utc) - timedelta(minutes=5)
+        dtstale = datetime.now(pytz.utc) - timedelta(minutes=10)
 
         active = 'stale'
         if lab.last_modified > dtstale:
@@ -407,7 +409,7 @@ def oldindex(request):
 
     factories = Factory.objects.all()
    
-    dt = datetime.now() - timedelta(hours=1)
+    dt = datetime.now(pytz.utc) - timedelta(hours=1)
     jobs = Job.objects.all()
 
     cstate = State.objects.get(name='CREATED')
@@ -519,7 +521,7 @@ def count(request, state=None, fid=None, qid=None):
 
 
     if state in ['FAULT', 'DONE']:
-        deltat = datetime.now() - timedelta(hours=1)
+        deltat = datetime.now(pytz.utc) - timedelta(hours=1)
         jobs = jobs.filter(last_modified__gt=deltat)
 
     result = jobs.count()
@@ -796,11 +798,12 @@ def rn(request, fid, cid):
         j.save()
 
         key = "fcr%d" % f.id
-        val = cache.decr(key)
-        if val is None:
+        try:
+            val = cache.decr(key)
+        except ValueError:
+            # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.warn(msg)
-            # key not known so set to current count
             val = Job.objects.filter(fid=f, state__name='CREATED').count()
             added = cache.add(key, val)
             if added:
@@ -811,11 +814,12 @@ def rn(request, fid, cid):
                 logging.warn(msg)
 
         key = "frn%d" % f.id
-        val = cache.incr(key)
-        if val is None:
+        try:
+            val = cache.incr(key)
+        except ValueError:
+            # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.warn(msg)
-            # key not known so set to current count
             val = Job.objects.filter(fid=f, state__name='RUNNING').count()
             added = cache.add(key, val)
             if added:
@@ -826,8 +830,9 @@ def rn(request, fid, cid):
                 logging.warn(msg)
 
         key = "lcr%d" % j.label.id
-        val = cache.decr(key)
-        if val is None:
+        try:
+            val = cache.decr(key)
+        except ValueError:
             msg = "MISS key: %s" % key
             logging.warn(msg)
             # key not known so set to current count
@@ -841,8 +846,9 @@ def rn(request, fid, cid):
                 logging.warn(msg)
 
         key = "lrn%d" % j.label.id
-        val = cache.incr(key)
-        if val is None:
+        try:
+            val = cache.incr(key)
+        except ValueError:
             msg = "MISS key: %s" % key
             logging.warn(msg)
             # key not known so set to current count
@@ -904,8 +910,9 @@ def ex(request, fid, cid, sc=None):
         j.save()
 
         key = "fex%d" % f.id
-        val = cache.incr(key)
-        if val is None:
+        try:
+            val = cache.incr(key)
+        except ValueError:
             msg = "MISS key: %s" % key
             logging.warn(msg)
             # key not known so set to current count
@@ -919,8 +926,9 @@ def ex(request, fid, cid, sc=None):
                 logging.warn(msg)
 
         key = "frn%d" % f.id
-        val = cache.decr(key)
-        if val is None:
+        try:
+            val = cache.decr(key)
+        except ValueError:
             msg = "MISS key: %s" % key
             logging.warn(msg)
             # key not known so set to current count
@@ -1139,13 +1147,13 @@ def old(request, fid):
     rstate = State.objects.get(name='RUNNING')
     estate = State.objects.get(name='EXITING')
 
-    deltat = datetime.now() - timedelta(hours=24)
+    deltat = datetime.now(pytz.utc) - timedelta(hours=24)
     cjobs = Job.objects.filter(fid=f, state=cstate, last_modified__lt=deltat)[:500]
 
-    deltat = datetime.now() - timedelta(hours=48)
+    deltat = datetime.now(pytz.utc) - timedelta(hours=48)
     rjobs = Job.objects.filter(fid__name=fid, state__name='RUNNING', last_modified__lt=deltat)[:500]
 
-    deltat = datetime.now() - timedelta(hours=1)
+    deltat = datetime.now(pytz.utc) - timedelta(hours=1)
     ejobs = Job.objects.filter(fid__name=fid, state__name='EXITING', last_modified__lt=deltat)[:500]
 
     jobs = []
@@ -1268,7 +1276,9 @@ def pandasites(request):
 #    return response
 
 def stats(request):
-
+    """
+    WTF
+    """
     labels = Label.objects.all()
 
     lifetime = 300
@@ -1307,7 +1317,7 @@ def stats(request):
                 logging.debug(msg)
         nfault = val
 
-        dt = datetime.now()
+        dt = datetime.now(pytz.utc)
         date = "%d-%02d-%02d" % (dt.year, dt.month, dt.day)
         # these need to come from Factory info
         out = "%s/%s/%s/%s.out"
@@ -1335,7 +1345,7 @@ def stats(request):
             'nhit' : nhit,
             'nmiss' : nmiss,
             'logurl' : logurl,
-            'timestamp' : datetime.now().strftime('%F %H:%M:%S UTC'),
+            'timestamp' : datetime.now(pytz.utc).strftime('%F %H:%M:%S UTC'),
             }
         rows.append(row)
 
@@ -1361,11 +1371,11 @@ def index(request):
 
     clouds = Cloud.objects.all().order_by('name')
     jobs = Job.objects.all()
-    dt = datetime.now() - timedelta(minutes=10)
-    dtfail = datetime.now() - timedelta(hours=1)
-    dtwarn = datetime.now() - timedelta(minutes=20)
+    dt = datetime.now(pytz.utc) - timedelta(minutes=10)
+    dtfail = datetime.now(pytz.utc) - timedelta(hours=1)
+    dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
 
-    dtdead = datetime.now() - timedelta(days=10)
+    dtdead = datetime.now(pytz.utc) - timedelta(days=10)
 
     cstate = State.objects.get(name='CREATED')
     rstate = State.objects.get(name='RUNNING')
@@ -1446,7 +1456,7 @@ def cloud(request, name):
     sites = Site.objects.filter(cloud=c)
 
     labels = Label.objects.filter(pandaq__pandasite__site__cloud=c)
-    dtwarn = datetime.now() - timedelta(minutes=20)
+    dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
     rstate = State.objects.get(name='RUNNING')
 
     factive = []
@@ -1524,7 +1534,7 @@ def queues(request):
     """
 
     pandaqs = PandaQueue.objects.all()
-    dt = datetime.now() - timedelta(hours=1)
+    dt = datetime.now(pytz.utc) - timedelta(hours=1)
     jobs = Job.objects.all()
 
     astates = ['CREATED','RUNNING','EXITING']
@@ -1554,8 +1564,8 @@ def queues(request):
         if nfault <= 10:
             statfault = 'pass'
 
-        activewarn = datetime.now() - timedelta(minutes=5)
-        activeerror = datetime.now() - timedelta(minutes=10)
+        activewarn = datetime.now(pytz.utc) - timedelta(minutes=5)
+        activeerror = datetime.now(pytz.utc) - timedelta(minutes=10)
         activity = 'ok'
         for lab in labs:
             if activewarn > lab.last_modified:
@@ -1667,8 +1677,9 @@ def cr(request):
                 j.save()
 
                 key = "fcr%d" % f.id
-                val = cache.incr(key)
-                if val is None:
+                try:
+                    val = cache.incr(key)
+                except ValueError:
                     msg = "MISS key: %s" % key
                     logging.warn(msg)
                     # key not known so set to current count
@@ -1688,7 +1699,7 @@ def cr(request):
                 msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
                 logging.error(msg)
                 logging.error(e)
-                msg = 'ok'
+                msg = 'Failed to create job'
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
         
             msg = "CREATED"
@@ -1738,7 +1749,7 @@ def helo(request):
     f.ip = ip
     f.url = url
     f.email = owner
-    f.last_startup = datetime.now()
+    f.last_startup = datetime.now(pytz.utc)
     f.version = ver
     f.save()
 
@@ -1870,7 +1881,7 @@ def site(request, sid):
     estate = State.objects.get(name='EXITING')
     dstate = State.objects.get(name='DONE')
     fstate = State.objects.get(name='FAULT')
-    dt = datetime.now() - timedelta(hours=1)
+    dt = datetime.now(pytz.utc) - timedelta(hours=1)
 
     # all labels serving this site
     labels = Label.objects.filter(pandaq__pandasite__site=s)
@@ -1962,7 +1973,7 @@ def labels(request):
     jobs = Job.objects.all()
     lablist = Label.objects.all()
 
-    stale = datetime.now() - timedelta(days=14)
+    stale = datetime.now(pytz.utc) - timedelta(days=14)
 
     rows = []
     for lab in lablist:
@@ -1990,7 +2001,7 @@ def label(request, lid, p=1):
 
     l = get_object_or_404(Label, id=lid)
 
-    dt = datetime.now() - timedelta(hours=1)
+    dt = datetime.now(pytz.utc) - timedelta(hours=1)
     # factories with labels serving selected pandaq
 
     cstate = State.objects.get(name='CREATED')
@@ -2039,8 +2050,8 @@ def label(request, lid, p=1):
     row['statdone'] = statdone
     row['statfault'] = statfault
 
-    activewarn = datetime.now() - timedelta(minutes=5)
-    activeerror = datetime.now() - timedelta(minutes=10)
+    activewarn = datetime.now(pytz.utc) - timedelta(minutes=5)
+    activeerror = datetime.now(pytz.utc) - timedelta(minutes=10)
     row['activity'] = 'ok'
     if activewarn > l.last_modified:
         row['activity'] = 'warn'
@@ -2069,11 +2080,11 @@ def cloudindex(request):
 
     clouds = Cloud.objects.all().order_by('name')
     jobs = Job.objects.all()
-    dt = datetime.now() - timedelta(minutes=10)
-    dtfail = datetime.now() - timedelta(hours=1)
-    dtwarn = datetime.now() - timedelta(minutes=20)
+    dt = datetime.now(pytz.utc) - timedelta(minutes=10)
+    dtfail = datetime.now(pytz.utc) - timedelta(hours=1)
+    dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
 
-    dtdead = datetime.now() - timedelta(days=10)
+    dtdead = datetime.now(pytz.utc) - timedelta(days=10)
 
     cstate = State.objects.get(name='CREATED')
     rstate = State.objects.get(name='RUNNING')
@@ -2090,7 +2101,6 @@ def cloudindex(request):
 
         factories = []
         ncreated = 0
-# undo comment once deployed on prod
         for label in labels:
             if label.fid not in factories:
                 if label.fid.last_modified < dtdead: continue
