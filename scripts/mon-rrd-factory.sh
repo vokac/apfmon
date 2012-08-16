@@ -20,7 +20,7 @@ for f in $fids; do
   r="N"
   for s in fcr frn fex fft fdn; do
     c=""
-    c=`memcat --servers $host "$s$f" | tr -d [:space:]`
+    c=`memcat --servers $host "py-prod:1:$s$f" | tr -d [:space:]`
     if [ $? -ne 0 ]; then
       echo memcat bad exit $?
     fi
@@ -41,6 +41,6 @@ for f in $fids; do
   if [ $? -ne 0 ]; then
     echo $db $r
   fi
-  #echo "rrdtool update $db $r"
+#  echo "rrdtool update $db $r"
 
 done

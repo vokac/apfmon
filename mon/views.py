@@ -25,6 +25,7 @@ from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
 from django.core.cache import cache
+from django.views.decorators.cache import cache_page
 from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
@@ -186,7 +187,7 @@ def factory(request, fid):
     Rendered view of Factory instance. Lists all factory labels with
     a count of jobs in each state.
     """
-    if not int(fid): return redirect('atl.mon.views.index')
+#    if not int(fid): return redirect('atl.mon.views.index')
     f = get_object_or_404(Factory, id=int(fid))
     pandaqs = PandaQueue.objects.all()
     labels = Label.objects.filter(fid=f)
@@ -213,7 +214,7 @@ def factory(request, fid):
         val = cache.get(key)
         if val is None:
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             # key not known so set to current count
             val = jobs.filter(label=lab, state=cstate).count()
             added = cache.add(key, val, lifetime)
@@ -229,7 +230,7 @@ def factory(request, fid):
         val = cache.get(key)
         if val is None:
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             # key not known so set to current count
             val = jobs.filter(label=lab, state=rstate).count()
             added = cache.add(key, val, lifetime)
@@ -245,7 +246,7 @@ def factory(request, fid):
         val = cache.get(key)
         if val is None:
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             # key not known so set to current count
             val = jobs.filter(label=lab, state=estate).count()
             added = cache.add(key, val, lifetime)
@@ -794,6 +795,8 @@ def rn(request, fid, cid):
 
     if j.state.name == 'CREATED':
         msg = "%s -> RUNNING" % j.state
+        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+        m.save()
         j.state = State.objects.get(name='RUNNING')
         j.save()
 
@@ -803,7 +806,7 @@ def rn(request, fid, cid):
         except ValueError:
             # key not known so set to current count
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             val = Job.objects.filter(fid=f, state__name='CREATED').count()
             added = cache.add(key, val)
             if added:
@@ -819,7 +822,7 @@ def rn(request, fid, cid):
         except ValueError:
             # key not known so set to current count
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             val = Job.objects.filter(fid=f, state__name='RUNNING').count()
             added = cache.add(key, val)
             if added:
@@ -834,7 +837,7 @@ def rn(request, fid, cid):
             val = cache.decr(key)
         except ValueError:
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             # key not known so set to current count
             val = Job.objects.filter(label=j.label, state__name='CREATED').count()
             added = cache.add(key, val)
@@ -850,7 +853,7 @@ def rn(request, fid, cid):
             val = cache.incr(key)
         except ValueError:
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             # key not known so set to current count
             val = Job.objects.filter(label=j.label, state__name='RUNNING').count()
             added = cache.add(key, val)
@@ -863,13 +866,12 @@ def rn(request, fid, cid):
 
     else:
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
+        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+        m.save()
         j.state = State.objects.get(name='RUNNING')
         j.flag = True
         j.save()
 
-    if msg:
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
 
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -890,18 +892,22 @@ def ex(request, fid, cid, sc=None):
         j = Job.objects.get(fid=f, cid=cid)
     except Job.DoesNotExist, e:
         msg = "EX unknown Job: %s_%s" % (f, cid)
-#PAL        logging.warn(msg)
+        logging.warn(msg)
         return HttpResponseBadRequest('Fine', mimetype="text/plain")
     
     msg = None
 
     if j.state.name in ['DONE', 'FAULT']:
         msg = "Terminal: %s, no state change allowed." % j.state
+        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+        m.save()
         j.flag = True
         j.save()
 
     elif j.state.name == 'RUNNING':
         msg = "%s -> EXITING STATUSCODE: %s" % (j.state, sc)
+        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+        m.save()
         j.state = State.objects.get(name='EXITING')
         if sc:
             j.result = (sc)
@@ -914,7 +920,7 @@ def ex(request, fid, cid, sc=None):
             val = cache.incr(key)
         except ValueError:
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             # key not known so set to current count
             val = Job.objects.filter(fid=f, state__name='EXITING').count()
             added = cache.add(key, val)
@@ -930,7 +936,7 @@ def ex(request, fid, cid, sc=None):
             val = cache.decr(key)
         except ValueError:
             msg = "MISS key: %s" % key
-            logging.warn(msg)
+            logging.debug(msg)
             # key not known so set to current count
             val = Job.objects.filter(fid=f, state__name='RUNNING').count()
             added = cache.add(key, val)
@@ -946,15 +952,14 @@ def ex(request, fid, cid, sc=None):
 
     else:
         msg = "%s -> EXITING STATUSCODE: %s (WARN: state not RUNNING)" % (j.state, sc)
+        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+        m.save()
         j.state = State.objects.get(name='EXITING')
         if sc:
             j.result = int(sc)
         j.flag = True
         j.save()
 
-    if msg:
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
 
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -1528,16 +1533,26 @@ def testtimeline(request):
 
     return render_to_response('mon/test.html', context)
 
+#@cache_page(60 * 3)
 def queues(request):
     """
     Rendered view of all queues, all factories.
     """
 
-    pandaqs = PandaQueue.objects.all()
+    # cache lifetime for pandaq state counts
+    lifetime = 300
+
+    clouds = Cloud.objects.all()
+    pandaqs = PandaQueue.objects.filter().order_by('pandasite__site__cloud','name')
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     jobs = Job.objects.all()
 
     astates = ['CREATED','RUNNING','EXITING']
+
+    cloudlist = []
+    for cloud in clouds:
+        npq = PandaQueue.objects.filter(pandasite__site__cloud=cloud).count()
+        cloudlist.append({'name' : cloud.name, 'npq' : npq})
 
     rows = []
     for pandaq in pandaqs:
@@ -1545,9 +1560,57 @@ def queues(request):
         nactive = 0
         ndone = 0
         nfault = 0
-        nactive = jobs.filter(pandaq=pandaq, state__name__in=astates).count()
-        ndone = jobs.filter(pandaq=pandaq, state__name='DONE').count()
-        nfault = jobs.filter(pandaq=pandaq, state__name='FAULT').count()
+        
+        # ACTIVE job count from cache
+        key = "pq%d%s" % (pandaq.id, 'astate')
+        val = cache.get(key)
+        if val is None:
+            # key not known so set to current count
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            val = jobs.filter(pandaq=pandaq, state__name__in=astates).count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+        nactive = val
+
+        # DONE job count from cache
+        key = "pq%d%s" % (pandaq.id, 'dstate')
+        val = cache.get(key)
+        if val is None:
+            # key not known so set to current count
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            val = jobs.filter(pandaq=pandaq, state__name="DONE").count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+        ndone = val
+
+        # FAULT job count from cache
+        key = "pq%d%s" % (pandaq.id, 'fstate')
+        val = cache.get(key)
+        if val is None:
+            # key not known so set to current count
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            val = jobs.filter(pandaq=pandaq, state__name="FAULT").count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+        nfault = val
 
         statactive = 'hot'
         statdone = 'pass'
@@ -1574,14 +1637,14 @@ def queues(request):
                 activity = 'note'
     
         row = {
-            'pandaq' : pandaq,
-            'nactive' : nactive,
-            'ndone' : ndone,
-            'nfault' : nfault,
+            'pandaq'     : pandaq,
+            'nactive'    : nactive,
+            'ndone'      : ndone,
+            'nfault'     : nfault,
             'statactive' : statactive,
-            'statdone' : statdone,
-            'statfault' : statfault,
-            'activity' : activity,
+            'statdone'   : statdone,
+            'statfault'  : statfault,
+            'activity'   : activity,
             }
 
         rows.append(row)
@@ -1590,9 +1653,9 @@ def queues(request):
 #    fids = Factory.objects.filter(job__state__in=astates).annotate(nactive=Count('job'))
     fids = []       
     context = {
-            'rows' : rows,
+            'clouds'    : cloudlist,
+            'rows'      : rows,
             'factories' : fids,
-            'plot' : 'on',
             }
 
     return render_to_response('mon/queues.html', context)
@@ -1681,7 +1744,7 @@ def cr(request):
                     val = cache.incr(key)
                 except ValueError:
                     msg = "MISS key: %s" % key
-                    logging.warn(msg)
+                    logging.debug(msg)
                     # key not known so set to current count
                     val = Job.objects.filter(fid=f, state=state).count()
                     added = cache.add(key, val)
@@ -1737,7 +1800,7 @@ def helo(request):
     d = {'ip' : ip,
          'url' : url,
          'email' : owner,
-         'last_startup' : datetime.now(),
+         'last_startup' : datetime.now(pytz.utc),
          'version' : ver,
         }
 

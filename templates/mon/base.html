@@ -1,159 +1,27 @@
 {% load humanize %}
 {% load timesince_human %}
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<!DOCTYPE html">
 <html lang="en">
-
 <head>
-<!--<script src="http://code.jquery.com/jquery-1.4.4.min.js" type="text/javascript"></script>
+    <meta charset="utf-8">
+    <title>Autopyfactory Monitoring</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Monitor ATLAS pilot factories and job wrappers">
+    <meta name="author" content="p.love@lancaster.ac.uk">
+
+<!--
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
 -->
-<title>Autopyfactory Monitoring</title>
-<style type="text/css">
-tr.em {background:#DDDDDD}
-tr.even {background:none}
-tr.odd {background:#e0eeee}
-td.online {color:#438843}
-td.offline {color:#aa4343}
-td.brokeroff {color:#444444}
-td.pass {background:none}
-td.cold {background:#c8d9f9}
-td.hot {background:#ae3c51}
-td.hot {background:#ffc0cb}
-td.warn {color:#aa4343}
-td.ANALYSIS_QUEUE {background:#f0f0f6}
-td.ANALYSIS_QUEUE {background:none}
-td.PRODUCTION_QUEUE {background:#e4ebf3}
-td.PRODUCTION_QUEUE {background:none}
-td.SPECIAL_QUEUE{text-decoration:line-through}
-a.fail {color:#cc3118}
-a:link {text-decoration: none}
-a:visited {text-decoration: none}
-a:active {text-decoration: none}
-a:hover {text-decoration: underline}
-td.fail {color:#cc3118}
-td.fault {color:#ea644a}
-td.stale {color:#cc3118}
-tr.collapse {visibility:collapse;}
-div.hidden {visibility:collapse;}
-.noborder {
-  border-style:none;
-}
-table {
-  font-family:monospace;
-  border-style:none;
-  border-collapse:collapse;
-}
-th {
-  text-align:right;
-  padding-left:0.5em;
-  padding-right:2em;
-  padding-bottom:6px;
-}
-td {
-  text-align:right;
-  border-style:none;
-  padding-right:2em;
-  padding-left:0.5em;
-  white-space:nowrap;
-}
-th.colhdr {
-  text-align:left;
-  padding-left:0.5em;
-}
-td.colhdr {
-  text-align:left;
-  border-style:none;
-  padding-left:0.5em;
-}
-td.note {
-  color:#777777;
-}
-td.num {
-  text-align:right;
-}
-#note {
-    width: inherit;
-    overflow: auto;
-}
+    <link href="/static/css/style.css" rel="stylesheet">
 
-table.text th {
-  text-align:left;
-}
-table.text td {
-  text-align:left;
-  padding-left:0.5em;
-  padding-right:2em;
-}
-table.numeric {
-  font-family:monospace;
-  border-style:none;
-  border-collapse:collapse;
-}
-table.numeric th.colhdr {
-  text-align:left;
-  padding-left:0.5em;
-}
-table.numeric td.colhdr {
-  text-align:left;
-  padding-left:0.5em;
-}
-table.numeric th {
-  text-align:right;
-  padding-left:1em;
-  padding-right:0.5em;
-}
-table.numeric td {
-  text-align:right;
-  padding-left:1em;
-  padding-right:0.5em;
-}
-table.metadata td {
-  text-align:left;
-  padding:0 1em;
-}
-td.right {
-  text-align:right;
-}
-td.left {
-  text-align:left;
-}
-table.numeric th.left {
-  text-align:left;
-}
-table.numeric td.left {
-  text-align:left;
-}
-th.right {
-  text-align:right;
-}
-th.left {
-  text-align:left;
-}
-table.log {
-  border-style:none;
-  border-right:1px solid #000000;
-  border-left:1px solid #000000;
-}
-table.log td {
-  padding:0 1em;
-  text-align:left;
-}
-ul {
-  font-family:monospace;
-  padding:0 1em;
-}
-ul.top li {
-  display: inline;
-  list-style-type: none;
-}
-ul.top li {
-  display: inline;
-  list-style-type: none;
-  padding-right: 0.2em;
-}
-
-{% comment %}
-{% endcomment %}
-</style>
+<!--
+    <style>
+      body {
+        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
+      }
+    </style>
+-->
 
 </head>
 
@@ -162,7 +30,11 @@ ul.top li {
        <a href="{% url atl.mon.views.fault %}">Fault</a> | 
        <a href="{% url atl.mon.views.cloudindex %}">Clouds</a> | 
        <a href="{% url atl.mon.views.help %}">Help</a>
-       <div style="color:#aa4343">Heavy engineering in progress, expect bad behaviour (Fri 10 Aug)</div></p>
+{% comment %}
+       <a href="{% url atl.mon.views.queues %}">Queues</a> | 
+       <div style="color:#aa4343">Notice: DB maintenance in progress (Tue 14 Aug)</div>
+{% endcomment %}
+    </p>
     {% block content %}{% endblock %}
     {% block footer %}
     {% endblock %}
