@@ -4,6 +4,11 @@ import pytz
 from optparse import OptionParser
 import sys
 
+
+"""
+Enforce various timeouts by moving jobs to FAULT state
+"""
+
 sys.path.append('/var/local/django')
 
 from atl.mon.models import Job
@@ -46,15 +51,15 @@ def main():
     
     deltat = datetime.now(pytz.utc) - timedelta(hours=6)
     cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat)
-    logging.info("created: %d" % cjobs.count())
+    logging.info("Stale created: %d" % cjobs.count())
     
-    deltat = datetime.now(pytz.utc) - timedelta(hours=48)
+    deltat = datetime.now(pytz.utc) - timedelta(hours=96)
     rjobs = Job.objects.filter(state=rstate, last_modified__lt=deltat)
-    logging.info("running: %d" % rjobs.count())
+    logging.info("Stale running: %d" % rjobs.count())
     
     deltat = datetime.now(pytz.utc) - timedelta(minutes=30)
     ejobs = Job.objects.filter(state=estate, last_modified__lt=deltat)
-    logging.info("exiting: %d" % ejobs.count())
+    logging.info("Stale exiting: %d" % ejobs.count())
     
     skey = {'CREATED' : 'fcr',
             'RUNNING' : 'frn',
@@ -65,6 +70,7 @@ def main():
     jobs.extend(cjobs)
     jobs.extend(rjobs)
     for j in jobs:
+        # move stale jobs to FAULT state
         statenow = j.state
         msg = "%s -> FAULT, stale job" % statenow
         m = Message(job=j, msg=msg, client="127.0.0.1")
@@ -109,6 +115,7 @@ def main():
 
 
     for j in ejobs:
+        # move EXITING jobs to DONE state
         msg = "%s -> DONE" % j.state
         m = Message(job=j, msg=msg, client="127.0.0.1")
         m.save()
@@ -116,7 +123,6 @@ def main():
         logging.debug(msg)
         j.state = dstate
         j.save()
-
 
         key = "fex%d" % j.fid.id
         try:

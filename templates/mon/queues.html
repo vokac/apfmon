@@ -5,26 +5,47 @@
 
 <h2>Global view: all queues, all factories</h2>
 
+{% comment %}
 <a href="/mon/history/"><img src="/media/states-1d-0-0.png" alt="Pilot states 1d" /></a>
+{% endcomment %}
+
+<ul class="top">
+{% for cloud in clouds %}
+<li><a href="{% url atl.mon.views.cloud cloud.name %}">{{ cloud.name }}</a>:<a href="#{{ cloud.name }}">{{ cloud.npq }}</a>
+{% endfor %}
+</ul>
 
 <table>
 <tr nowrap>
 <th class=colhdr>Panda queue
+<th>cloud
+<th>state
 <th>active
 <th title="all jobs">done
 <th title="all jobs">fault
 </tr>
-{% for row in rows %}
-<tr class="{% cycle odd,even %}">
-  <td class=colhdr><a href="{% url atl.mon.views.pandaq row.pandaq.id %}">{{ row.pandaq }}</a>
-  <td>{{ row.nactive }}
-  <td>{{ row.ndone }}
-  <td>{{ row.nfault }}
-{% comment %}
-  <td class={{ row.statactive }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'ACTIVE' %}">{{ row.nactive }}</a>
-  <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'DONE' %}">{{ row.ndone }}</a>
-  <td class={{ row.statfault }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'FAULT' %}">{{ row.nfault }}</a>
-{% endcomment %}
+{% for cloud in clouds %}
+  {% for row in rows %}
+  {% ifequal cloud.name row.pandaq.pandasite.site.cloud.name %}
+  {% ifchanged cloud.name %}
+    <tr>
+    <th id={{ cloud.name }} class="colhdr">{{ cloud.name }}
+  {% endifchanged %}
+    <tr id={{ cloud.name }} class="{% cycle odd,even %}">
+    <td class=colhdr><a href="{% url atl.mon.views.pandaq row.pandaq.id %}">{{ row.pandaq }}</a>
+    <td>{{ row.pandaq.pandasite.site.cloud }}
+    <td class={{ row.pandaq.state }}>{{ row.pandaq.state }}
+    <td>{{ row.nactive }}
+    <td>{{ row.ndone }}
+    <td>{{ row.nfault }}
+  {% comment %}
+    <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'DONE' %}">{{ row.ndone }}</a>
+    <td class={{ row.statactive }}><a href="{% url atl.mon.views.jobs row.pandaq.id 'ACTIVE' %}">{{ row.nactive }}</a>
+    <td class={{ row.statfault }}><a href="{% url atl.mon.views.jobs 0 row.pandaq.id 'FAULT' %}">{{ row.nfault }}</a>
+  {% endcomment %}
+  {% endifequal %}
+{% endfor %}
 {% endfor %}
 </table>
+
 {% endblock %}

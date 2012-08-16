@@ -53,7 +53,7 @@
 </p>
 
 <p>
-<table class=log>
+<table>
 {% for m in msgs %}
 <tr class="{% cycle odd,even %}">
 <td>{{ m.received|date:"Y-m-d H:m:s" }}
@@ -63,7 +63,7 @@
 {% endfor %}
 {% ifequal job.state.name 'FAULT' %}
 <tr class=note>
-<td class=note colspan=3>"FAULT, stale job" means the wrapper didn't run within 6 hours of creation.
+<td class=note colspan=3>"FAULT, stale job" means the wrapper hit a timeout.
 {% endifequal %}
 </table>
 </p>

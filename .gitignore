@@ -1,4 +1,5 @@
 *.pyc
+*.png
 settings.py
 bin/
 develop-eggs/
