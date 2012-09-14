@@ -169,7 +169,7 @@ def debug(request):
     flagged = Job.objects.filter(last_modified__gt=dt, flag=True)
     havejob = done.filter(result=0)
 
-    dt = datetime.now(pytz.utc) - timedelta(hours=48)
+    dt = datetime.now(pytz.utc) - timedelta(hours=96)
     ancient = Job.objects.filter(created__lt=dt).order_by('created').exclude(state__name__in=['FAULT','DONE'])
 
     context = {
@@ -1533,7 +1533,7 @@ def testtimeline(request):
 
     return render_to_response('mon/test.html', context)
 
-#@cache_page(60 * 3)
+@cache_page(60 * 5)
 def queues(request):
     """
     Rendered view of all queues, all factories.
