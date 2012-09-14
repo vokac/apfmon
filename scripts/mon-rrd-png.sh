@@ -21,7 +21,6 @@ for f in 0 $fids; do
 for q in 0 $qids; do
   # test for integer
   [ $q -eq $q ] || ( echo Bad qid:; break )
-  [ $f -eq 35 ] && continue
   db=$rrddir/job-state-$f-$q.rrd
 
   for t in 1h 4h 12h 1d 1w ; do
