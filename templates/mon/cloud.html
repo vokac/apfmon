@@ -37,22 +37,22 @@
 
   {% for row in rows %}
   {% ifequal row.site.name site.name %}
-  <tr class="{% cycle odd,even %}">
+  <tr class="{{ row.class }} {% cycle odd,even %}">
     <td style=background:white>
-    <td class="{{ row.pandaq.type }}" title="{{ row.pandaq.type }}">
+    <td class="{{ row.class }}" title="{{ row.pandaq.type }}">
       <a href="{% url atl.mon.views.pandaq row.pandaq.id %}">{{ row.pandaq }}</a>
       (<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">p</a>)
-    <td class="{{ row.pandaq.state }} {{ row.pandaq.type }}">{{ row.pandaq.state }}
+    <td class="{{ row.class }}">{{ row.pandaq.state }}
     <td class="numeric -text">{{ row.running }}
     {% if row.url %}
-      <td class="note {{ row.pandaq.type }}"
+      <td class="note {{ row.class }}"
           title="{{ row.pandaq.last_modified|timesince_human }}">
          {{ row.prefix }}<a href="{{ row.url }}">{{ row.suffix }}</a>
     {% else %}
       {% ifequal row.pandaq.comment 'empty.comment' %}
-        <td class="note {{ row.pandaq.type }}" 
+        <td class="note {{ row.class }}" 
       {% else %}
-        <td class="note {{ row.pandaq.type }}" 
+        <td class="note {{ row.class }}" 
           title="{{ row.pandaq.last_modified|timesince_human }}">
           {{ row.pandaq.comment }}
       {% endifequal %}

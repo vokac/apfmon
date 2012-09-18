@@ -1,12 +1,21 @@
-/*body            { font-family: sans-serif; background: #eee; }
-a, h1, h2       { color: #377BA8; }
-h1, h2          { font-family: 'Georgia', serif; margin: 0; }
-h1              { border-bottom: 2px solid #eee; }
-h2              { font-size: 1.2em; }
+body            { 
+  font-family: 'Georgia', serif;
+  background-color: white;
+  font-size: 18px;
+  line-height: 22px; 
+  margin-left: 8px;
+  color: #330000;
+}
+
+a, h1, h2       { color: black; }
+/*
+ * h1, h2          { font-family: 'Georgia', serif; margin: 0; }
+h2              { font-size: 1.5em; }
 */
+h1              { border-bottom: 2px solid #eee; }
+
 /*.page           { margin: 2em auto; width: 35em; border: 5px solid #ccc;
                   padding: 0.8em; background: white; }
-*/
 .entries        { list-style: none; margin: 0; padding: 0; }
 .entries li     { margin: 0.8em 1.2em; }
 .entries li h2  { margin-left: -1em; }
@@ -25,6 +34,53 @@ h2              { font-size: 1.2em; }
                   margin-bottom: 0;
                   color: #555;
                 }
+.noborder       {
+                  border-style:none;
+                }
+*/
+a {
+  color: #0088cc;
+  color: rgb(37,75,196);
+  text-decoration: none;
+}
+
+a:hover {
+  color: rgb(37,75,196);
+  text-decoration: underline;
+}
+
+a:link {
+}
+
+a:visited {
+  color: #0B0080;
+}
+
+/*
+a.fail {color:#cc3118}
+*/
+
+.mute a, .mute td, .mute tr {
+  color: rgb(200,200,200);
+}
+
+select,
+textarea,
+input[type="text"],
+.uneditable-input {
+  height: 28px;
+}
+
+.well {
+  min-height: 20px;
+  padding: 19px;
+  margin-bottom: 20px;
+  background-color: #fff;
+  border-style: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
 
 tr.em {background:#DDDDDD}
 tr.even {background:none}
@@ -43,20 +99,11 @@ td.ANALYSIS_QUEUE {background:#f0f0f6}
 td.ANALYSIS_QUEUE {background:none}
 td.PRODUCTION_QUEUE {background:#e4ebf3}
 td.PRODUCTION_QUEUE {background:none}
-td.SPECIAL_QUEUE{text-decoration:line-through}
-a.fail {color:#cc3118}
-a:link {text-decoration: none}
-a:visited {text-decoration: underline}
-a:active {text-decoration: none}
-a:hover {text-decoration: underline}
 td.fail {color:#cc3118}
 td.fault {color:#ea644a}
 td.stale {color:#cc3118}
 tr.collapse {visibility:collapse;}
 div.hidden {visibility:collapse;}
-.noborder {
-  border-style:none;
-}
 table {
   font-family:monospace;
   border-style:none;
@@ -158,10 +205,6 @@ table.log td {
   text-align:left;
 }
 
-ul {
-  font-family:monospace;
-  padding:0 1em;
-}
 ul.top li {
   display: inline;
   list-style-type: none;

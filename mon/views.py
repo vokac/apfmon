@@ -1498,9 +1498,12 @@ def cloud(request, name):
                 suffix = savmatch.group(2)
                 url = SAVANNAHURL % suffix
 
-
             jobs = Job.objects.filter(pandaq=pandaq)
             nrunning = jobs.filter(state=rstate).count()
+
+            cssclass = pandaq.state 
+            if pandaq.type in ['SPECIAL_QUEUE']:
+                cssclass = 'mute'
 
             row = {
                     'site' : site,
@@ -1509,6 +1512,7 @@ def cloud(request, name):
                     'suffix' : suffix,
                     'pandaq' : pandaq,
                     'running' : nrunning,
+                    'class' : cssclass,
                     }
             rows.append(row)
 

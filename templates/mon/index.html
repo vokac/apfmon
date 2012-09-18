@@ -7,15 +7,20 @@
 
 {% comment %}
 <p>Service degraded due to IO problem with our hosting service. They are working on it.  -Thurs. Jan 12th</p>
+  <label for="q"></label>
 {% endcomment %}
 
-<p>
-<form action="{% url atl.mon.views.search %}" method="GET" name="search">
-  <label for="q"></label>
-  <input type="text" name="q" value="{{ query|escape }}">
-  <input type="submit" value="Site search">
-</form>
-</p>
+
+<div class="row">
+  <div class="span6">
+    <form class="well form-search" action="{% url atl.mon.views.search %}" method="GET" name="search">
+      <input type="text" class="input-large search-query" placeholder="Site or queue name" name="q" value="{{ query|escape }}">
+      <button type="submit" class="btn">Search</button>
+    </form>
+  </div>
+</div>
+
+
 
 <p>
 <table > 
