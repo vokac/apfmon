@@ -9,13 +9,11 @@
     <meta name="description" content="Monitor ATLAS pilot factories and job wrappers">
     <meta name="author" content="p.love@lancaster.ac.uk">
 
-<!--
     <link href="/static/css/bootstrap.css" rel="stylesheet">
-    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
--->
     <link href="/static/css/style.css" rel="stylesheet">
 
 <!--
+    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
     <style>
       body {
         padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
@@ -26,15 +24,25 @@
 </head>
 
 <body>
-    <p><a href="{% url atl.mon.views.index %}">Home</a> | 
-       <a href="{% url atl.mon.views.fault %}">Fault</a> | 
-       <a href="{% url atl.mon.views.cloudindex %}">Clouds</a> | 
+  <ul class="nav nav-pills">
+    <li>
+      <a href="{% url atl.mon.views.index %}">Home</a> 
+    </li>
+    <li>
+      <a href="{% url atl.mon.views.fault %}">Fault</a>
+    </li>
+    <li>
+       <a href="{% url atl.mon.views.cloudindex %}">Clouds</a>
+    </li>
+    <li>
        <a href="{% url atl.mon.views.help %}">Help</a>
+    </li>
+  </ul>
+
 {% comment %}
        <a href="{% url atl.mon.views.queues %}">Queues</a> | 
        <div style="color:#aa4343">Notice: DB maintenance in progress (Tue 14 Aug)</div>
 {% endcomment %}
-    </p>
     {% block content %}{% endblock %}
     {% block footer %}
     {% endblock %}
