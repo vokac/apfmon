@@ -15,8 +15,10 @@ import csv
 import logging
 import pytz
 import re
+import statsd
 import string
 import sys
+from time import time
 from operator import itemgetter
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
@@ -44,12 +46,13 @@ ELOGURL = 'https://atlas-logbook.cern.ch/elog/ATLAS+Computer+Operations+Logbook/
 GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
 SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
 
+ss = statsd.StatsClient(host='py-heimdallr', port=8125)
 
 # Flows
 # 1. CREATED <- condor_id (Entry)
 # 3. RUNNING <- signal from pilot-wrapper
 # 4. EXITING <- signal from pilot-wrapper
-# 5. DONE <- signal from cronjob script (mon-exiting.py) jobstate=4
+# 5. DONE <- signal from cronjob script (mon-expire.py) jobstate=4
 
 def jobs(request, lid, state, p=1):
     """
@@ -193,6 +196,7 @@ def factory(request, fid):
     labels = Label.objects.filter(fid=f)
     jobs = Job.objects.filter(fid=f)
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
+    dtlab = datetime.now(pytz.utc) - timedelta(weeks=3)
 
     cstate = State.objects.get(name='CREATED')
     rstate = State.objects.get(name='RUNNING')
@@ -203,6 +207,9 @@ def factory(request, fid):
     lifetime = 300
     rows = []
     for lab in labels:
+        if lab.last_modified < dtlab:
+            # todo: mark label inactive lab.save()
+            continue
         ncreated = 0
         nsubmitted = 0
         nrunning = 0
@@ -265,7 +272,7 @@ def factory(request, fid):
 #        nfault = jobs.filter(label=lab, state=fstate, last_modified__gt=dt).count()
 
         statcr = 'pass'
-        if ncreated >= 1000:
+        if ncreated >= 500:
             statcr = 'warn'
 
         statdone = 'pass'
@@ -531,7 +538,7 @@ def count(request, state=None, fid=None, qid=None):
 
 def st(request):
     """
-    Unrendered handle reported state of condor job, via mon-exiting.py cron
+    Unrendered handle reported state of condor job, via mon-expire.py cron
 
     JobStatus in job ClassAds
     0   Unexpanded  U
@@ -697,83 +704,12 @@ def stale(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
-def staleold(request):
-    """
-    Handle job which has been too long in a particular state
-    Called by the mon-stale.py cronjob using jobs given by old() func
-    """
-
-    fid = request.POST.get('fid', None)
-    cid = request.POST.get('cid', None)
-    js = request.POST.get('js', None)
-    gs = request.POST.get('gs', None)
-
-    if not (fid and cid):
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    try:
-        j = Job.objects.get(fid__name=fid, cid=cid)
-    except Job.DoesNotExist:
-        content = "DoesNotExist: %s_%s" % (fid, cid)
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    msg = None
-
-    if j.state.name in ['CREATED']:
-        if js in ['4']:
-            # CREATED job is done according to condor therefore missed state change
-            msg = "Missed state change. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-            j.state = State.objects.get(name='DONE')
-            j.flag = True
-            j.save()
-        elif js in ['2']:
-            # CREATED job is running according to condor therefore missed state change
-            msg = "Missed state change. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-            j.flag = True
-            j.save()
-        else:
-            # CREATED job in bad state, set FAULT
-            msg = "Stale %s -> FAULT js=%s, gs=%s" % (j.state, js, gs)
-            j.state = State.objects.get(name='FAULT')
-            j.save()
-
-    elif j.state.name in ['RUNNING']:
-        if js in ['4']:
-            # RUNNING job taking too long
-            msg = "Missed state change. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-            j.state = State.objects.get(name='DONE')
-            j.flag = True
-            j.save()
-        else:
-            msg = "Stale %s -> FAULT js=%s, gs=%s" % (j.state, js, gs)
-            j.state = State.objects.get(name='FAULT')
-            j.save()
-
-    elif j.state.name in ['EXITING']:
-        msg = "Stale %s (slow middleware), js=%s, gs=%s" % (j.state, js, gs)
-        j.save()
-
-    elif j.state.name in ['DONE', 'FAULT']:
-        msg = "Stale? Terminal state. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-        j.flag = True
-        j.save()
-
-    else:
-        msg = "Stale flagged Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-        j.flag = True
-        j.save()
-
-    if msg:
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
-
-    return HttpResponse("OK", mimetype="text/plain")
-
 def rn(request, fid, cid):
     """
     Handle 'rn' signal from a running job
     """
+    stat = 'apfmon.rn'
+    start = time()
 
     try:
         f = Factory.objects.get(name=fid)
@@ -798,6 +734,11 @@ def rn(request, fid, cid):
         m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
         m.save()
         j.state = State.objects.get(name='RUNNING')
+        if j.flag:
+            j.flag = False
+            msg = "RUNNING now, flag cleared"
+            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+            m.save()
         j.save()
 
         key = "fcr%d" % f.id
@@ -872,13 +813,16 @@ def rn(request, fid, cid):
         j.flag = True
         j.save()
 
-
+    elapsed = time() - start
+    ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
 def ex(request, fid, cid, sc=None):
     """
     Handle 'ex' signal from exiting wrapper
     """
+    stat = 'apfmon.ex'
+    start = time()
     
     try:
         f = Factory.objects.get(name=fid)
@@ -961,6 +905,8 @@ def ex(request, fid, cid, sc=None):
         j.save()
 
 
+    elapsed = time() - start
+    ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
 def action(request):
@@ -1684,6 +1630,8 @@ def cr(request):
     Create the Job, expect data format is:
     (cid, nick, fid, label)
     """
+    stat = 'apfmon.cr'
+    start = time()
 
     jdecode = json.JSONDecoder()
 
@@ -1768,6 +1716,9 @@ def cr(request):
             msg = "CREATED"
             m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
             m.save()
+
+    elapsed = time() - start
+    ss.timing(stat,int(elapsed))
 
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -1994,14 +1945,20 @@ def fault(request):
     """
 
     jobs = Job.objects.filter(state__name='FAULT')
+#    jobs = Job.objects.filter(flag=True)
     lablist = jobs.values('label__id').annotate(njob=Count('id'))
-    qlist = Label.objects.values('pandaq__name','pandaq__id').annotate(n=Count('fid'))
 
     rows = []
     for lab in lablist:
         lid = lab['label__id']
-        njob = lab['njob']
-        
+        nfault = lab['njob']
+        if nfault < 1000: continue
+        nflag = Job.objects.filter(label=lid, flag=True).count()
+#        nfault = Job.objects.filter(label=lid, state__name='FAULT').count()
+        totjob = Job.objects.filter(label=lid).count()
+        flagfrac = 100 * nflag/totjob
+        faultfrac = 100 * nfault/totjob
+
         try:
             label = Label.objects.get(id=lid)
         except Label.DoesNotExist:
@@ -2011,18 +1968,22 @@ def fault(request):
         
         row = {
             'label' : label,
-            'njob' : njob,
+            'flagfrac' : flagfrac,
+            'faultfrac' : faultfrac,
+            'totjob' : totjob,
             }
         rows.append(row)
 
+    # find panda queues only being serviced by one factory
+    qlist = Label.objects.values('pandaq__name','pandaq__id').annotate(n=Count('fid'))
     sololist = []
     for q in qlist:
         if q['n'] == 1:
             sololist.append(q)
 
-    sortedrows = sorted(rows, key=itemgetter('njob'), reverse=True) 
+    sortedrows = sorted(rows, key=itemgetter('flagfrac'), reverse=True) 
     context = {
-        'rows' : sortedrows[:10],
+        'rows' : sortedrows[:20],
         'sololist' : sololist,
         }
 
