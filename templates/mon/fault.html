@@ -3,20 +3,24 @@
 
 {% block content %}
 
-<h2>Service view - entries with high FAULT count</h2>
+<h2>Service view - entries with high fraction of jobs in FAULT state</h2>
 
 <table class=text>
 <tr>
 <th title="Label per Factory">Label
 <th title="Factory name">factory
-<th title="Count of jobs in FAULT state">fault
+<th title="Fraction of jobs flagged">% flagged
+<th title="Fraction of jobs in FAULT state">% fault
+<th title="Fraction of jobs in FAULT state">total job count
 </tr>
 {% for row in rows %}
 
 <tr class="{% cycle odd,even %}">
   <td nowrap><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
   <td>{{ row.label.fid }}
-  <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.njob }}</a>
+  <td>{{ row.flagfrac }}
+  <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.faultfrac }}</a>
+  <td>{{ row.totjob }}
 {% comment %}
   <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
 </tr>

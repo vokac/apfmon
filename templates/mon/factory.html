@@ -6,6 +6,9 @@
 <h2>Factory view: {{ factory.name }}</h2>
 
 {% comment %}
+<p>
+<img src="/media/states-4h-{{ factory.id }}-0.png" />
+</p>
 {% endcomment %}
 
 <p>
@@ -26,9 +29,6 @@
 </table>
 </p>
 
-<p>
-<img src="/media/states-4h-{{ factory.id }}-0.png" />
-</p>
 
 <table>
 <tr>
@@ -43,6 +43,7 @@
 {% endcomment %}
 <th title="hover to see detail">last msg
 </tr>
+{% if rows %}
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
   <td class=colhdr>
@@ -58,5 +59,10 @@
   <td class="{{ row.activity }}"><div title="{{ row.label.msg }}">{{ row.label.last_modified|timesince_human }}</div>
 </tr>
 {% endfor %}
+{% else %}
+<tr>
+  <td class=fail colspan=5>No queues found</td>
+</tr>
+{% endif %}
 </table>
 {% endblock %}

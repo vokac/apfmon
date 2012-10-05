@@ -1,11 +1,24 @@
-from time import time
-from datetime import timedelta, datetime
 import logging
 import pytz
-from optparse import OptionParser
 import statsd
 import sys
+from datetime import timedelta, datetime
+from optparse import OptionParser
+from pymongo import Connection
+from time import time
 
+
+#
+##collection = db.jobs
+#
+#job = {'name' : 'some-job-id',
+#       'msgs' : [ {'received' : 'somedate', 'msg' : 'some message', 'client' : 'some IP'},
+#                  {'received' : 'somedate', 'msg' : 'some message', 'client' : 'some IP'},
+#                ]
+#}
+#
+#db.jobs.insert(job);
+#
 
 """
 Enforce various timeouts by moving jobs to FAULT state
@@ -54,7 +67,7 @@ def main():
     ctimeout = 6
     rtimeout = 72
     etimeout = 30
-    ftimeout = 108
+    ftimeout = 96
 
     # created state
     deltat = datetime.now(pytz.utc) - timedelta(hours=ctimeout)
@@ -63,7 +76,7 @@ def main():
     
     # running state
     deltat = datetime.now(pytz.utc) - timedelta(hours=rtimeout)
-    rjobs = Job.objects.filter(state=rstate, last_modified__lt=deltat)
+    rjobs = Job.objects.filter(state=rstate, last_modified__lt=deltat, flag=False)
     logging.info("Stale running: %d" % rjobs.count())
     
     # exiting state
@@ -85,27 +98,29 @@ def main():
     for j in cjobs:
         # flag stale created jobs
         if j.flag: continue
-        msg = "In CREATED state > %dhrs, job flagged" % ctimeout 
+        msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
         m = Message(job=j, msg=msg, client="127.0.0.1")
         m.save()
+#        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
         j.flag = True
         j.save()
 
     for j in rjobs:
         # flag stale running jobs
         if j.flag: continue
-        msg = "In RUNNING state > %dhrs, job flagged" % rtimeout 
+        msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
         m = Message(job=j, msg=msg, client="127.0.0.1")
         m.save()
+#        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
         j.flag = True
         j.save()
 
-
     for j in fjobs:
         # move flagged jobs to FAULT state
-        msg = "%s -> FAULT, flagged job >%dhrs" % (j.state, ftimeout)
+        msg = "%s -> FAULT because job been flagged for >%dhrs" % (j.state, ftimeout)
         m = Message(job=j, msg=msg, client="127.0.0.1")
         m.save()
+#        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
         msg = "%s_%s: %s -> FAULT, stale job" % (j.fid.name, j.cid, j.state)
         logging.debug(msg)
         j.state = fstate
@@ -190,6 +205,8 @@ def main():
                 logging.debug(msg)
 
 if __name__ == "__main__":
+#    connection = Connection('py-stor', 27017)
+#    db = connection.jobdb
     c = statsd.StatsClient(host='py-heimdallr', port=8125)
     stat = 'apfmon.monexpire'
     start = time()
