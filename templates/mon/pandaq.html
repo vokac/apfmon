@@ -3,7 +3,11 @@
 
 {% block content %}
 
-<h2>Panda Queue view - <a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">{{ pandaq }}</a> - {{ pandaq.state }}</h2>
+<h2>Panda Queue view - {{ pandaq }}
+- {{ pandaq.state }}
+(<a href="http://atlas-agis.cern.ch/agis/panda_queue/detail/{{ pandaq }}/full/">AGIS</a>)
+(<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">schedconfig)
+</h2>
 
 {% comment %}
 <p>
@@ -11,6 +15,7 @@
 <p>
 {% endcomment %}
 
+<p>
 <table class=numeric>
 <tr>
 <th class=colhdr title="hover for message">Label
@@ -56,6 +61,7 @@
 {% endfor %}
 
 </table>
+</p>
 
 <p>
 <table class=job>
