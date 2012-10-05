@@ -61,10 +61,12 @@
 <td>{{ m.msg }}
 </tr>
 {% endfor %}
+{% comment %}
 {% ifequal job.state.name 'FAULT' %}
 <tr class=note>
 <td class=note colspan=3>"FAULT, stale job" means the wrapper hit a timeout.
 {% endifequal %}
+{% endcomment %}
 </table>
 </p>
 

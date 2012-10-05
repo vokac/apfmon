@@ -16,7 +16,7 @@ ANCIENT COUNT: {{ ancient|length }}
 <table border=1>
 {% for j in flagged %}
 <pre>
-{{ j.cid }} {{ j.fid.url }} {{ j.created|date:"Y-m-d" }} {{ j.label }} {{ j.cid }} .out
+<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
 </pre>
 {% endfor %}
 </table>

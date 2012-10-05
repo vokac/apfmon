@@ -8,6 +8,7 @@ import csv
 import logging
 import socket
 from datetime import timedelta, datetime
+from django.utils.timezone import utc
 from django.shortcuts import render_to_response, get_object_or_404
 from django.db.models import Count
 from django.db.models import Q
@@ -155,8 +156,10 @@ def update(request):
                 pandaq.save()
     
 #            print pandaq.timestamp,d['timestamp']
-            if pandaq.timestamp != d['timestamp']:
-                pandaq.timestamp = d['timestamp']
+            f = '%Y-%m-%d %H:%M:%S'
+            dt = datetime.strptime(d['timestamp'], f).replace(tzinfo=utc)
+            if pandaq.timestamp != dt:
+                pandaq.timestamp = dt
                 pandaq.save()
     
 #            print pandaq.state,d['queue_status']
