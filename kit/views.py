@@ -156,7 +156,7 @@ def update(request):
                 pandaq.save()
     
 #            print pandaq.timestamp,d['timestamp']
-            f = '%Y-%m-%d %H:%M:%S.%f'
+            f = '%Y-%m-%d %H:%M:%S'
             dt = datetime.strptime(d['timestamp'], f).replace(tzinfo=utc)
             if pandaq.timestamp != dt:
                 pandaq.timestamp = dt
