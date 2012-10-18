@@ -227,7 +227,7 @@ def factory(request, fid):
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                #logging.warn(msg)
             else:
                 msg = "Failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
@@ -243,7 +243,7 @@ def factory(request, fid):
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                #logging.warn(msg)
             else:
                 msg = "Failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
@@ -259,7 +259,7 @@ def factory(request, fid):
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                #logging.warn(msg)
             else:
                 msg = "Failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
@@ -752,7 +752,7 @@ def rn(request, fid, cid):
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                logging.debug(msg)
             else:
                 msg = "Failed to decr key: %s" % key
                 logging.warn(msg)
@@ -768,7 +768,7 @@ def rn(request, fid, cid):
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                logging.debug(msg)
             else:
                 msg = "Failed to incr key: %s" % key
                 logging.warn(msg)
@@ -784,7 +784,7 @@ def rn(request, fid, cid):
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                logging.debug(msg)
             else:
                 msg = "Failed to decr key: %s" % key
                 logging.warn(msg)
@@ -800,7 +800,7 @@ def rn(request, fid, cid):
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                logging.debug(msg)
             else:
                 msg = "Failed to incr key: %s" % key
                 logging.warn(msg)
@@ -849,7 +849,7 @@ def ex(request, fid, cid, sc=None):
         j.save()
 
     elif j.state.name == 'RUNNING':
-        msg = "%s -> EXITING STATUSCODE: %s" % (j.state, sc)
+        msg = "%s -> EXITING statuscode: %s" % (j.state, sc)
         m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
         m.save()
         j.state = State.objects.get(name='EXITING')
@@ -870,7 +870,7 @@ def ex(request, fid, cid, sc=None):
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                logging.debug(msg)
             else:
                 msg = "Failed to incr key: %s" % key
                 logging.warn(msg)
@@ -886,7 +886,7 @@ def ex(request, fid, cid, sc=None):
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                logging.debug(msg)
             else:
                 msg = "Failed to decr key: %s" % key
                 logging.warn(msg)
@@ -1483,7 +1483,7 @@ def testtimeline(request):
 
     return render_to_response('mon/test.html', context)
 
-@cache_page(60 * 5)
+@cache_page(60 * 10)
 def queues(request):
     """
     Rendered view of all queues, all factories.
@@ -1522,7 +1522,7 @@ def queues(request):
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                #logging.warn(msg)
             else:
                 msg = "Failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
@@ -1539,7 +1539,7 @@ def queues(request):
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                #logging.warn(msg)
             else:
                 msg = "Failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
@@ -1556,7 +1556,7 @@ def queues(request):
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
+                #logging.warn(msg)
             else:
                 msg = "Failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
@@ -1702,7 +1702,7 @@ def cr(request):
                     added = cache.add(key, val)
                     if added:
                         msg = "Added DB count for key %s : %d" % (key, val)
-                        logging.warn(msg)
+                        #logging.warn(msg)
                     else:
                         msg = "Failed to incr key: %s" % key
                         logging.warn(msg)
