@@ -6,7 +6,7 @@
 <h2>Panda Queue view - {{ pandaq }}
 - {{ pandaq.state }}
 (<a href="http://atlas-agis.cern.ch/agis/panda_queue/detail/{{ pandaq }}/full/">AGIS</a>)
-(<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">schedconfig)
+(<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">schedconfig</a>)
 </h2>
 
 {% comment %}
@@ -67,11 +67,11 @@
 <table class=job>
 <tr>
   <th class=colhdr>Factory
-  <th>Job
-  <th>State
-  <th>Payload?
-  <th>Created
-  <th>Last modified
+  <th title="Unique jobid in this factory">job
+  <th title="Current state of job">state
+  <th title="Did the pilot download a payload job?">payload?
+  <th title="When job was created">created
+  <th title="When job was last modified">last modified
 </tr>
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
