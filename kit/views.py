@@ -55,7 +55,7 @@ def pandasites(request):
 
 def update(request):
     """
-    Handle a POST contains json data from SSB
+    Handle a POST contains json data from AGIS
 
   {
     "agis_gocdb_or_oim_site_name": "UKI-NORTHGRID-LANCS-HEP",

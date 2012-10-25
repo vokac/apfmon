@@ -1,4 +1,8 @@
 import statsd
+import sys
+
+sys.path.append('/var/local/django')
+
 from atl.mon.models import State
 from atl.mon.models import Factory
 from atl.mon.models import Job
@@ -20,9 +24,13 @@ labelcount = Label.objects.count()
 factorycount = Factory.objects.count()
 
 print 'Total job count    : ', jobcount
+c.gauge('apfmon.njob', jobcount)
 print 'Total msg count    : ', msgcount
+c.gauge('apfmon.nmsg', msgcount)
 print 'Total label count  : ', labelcount
+c.gauge('apfmon.nlabel', labelcount)
 print 'Total factory count: ', factorycount
+c.gauge('apfmon.nfactory', factorycount)
 
 
 counts = Job.objects.values('state__name').annotate(count=Count('id'))
