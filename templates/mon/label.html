@@ -5,6 +5,7 @@
 
 <h2>Label view - {{ row.label }}</h2>
 
+<p>
 <table class=numeric>
 <tr>
 <th class=colhdr title="Factory name">Factory
@@ -35,8 +36,8 @@
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
   <td class="left note">{{ row.label.msg }}
 </tr>
-
 </table>
+</p>
 
 <p>
 <table class=job>
