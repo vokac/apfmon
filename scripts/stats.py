@@ -19,17 +19,20 @@ Get info about DB and print or publish to statsd
 c = statsd.StatsClient(host='py-heimdallr', port=8125)
 
 jobcount = Job.objects.count()
+flagcount = Job.objects.filter(flag=True).count()
 msgcount = Message.objects.count()
 labelcount = Label.objects.count()
 factorycount = Factory.objects.count()
 
-print 'Total job count    : ', jobcount
+print 'Total job count     : ', jobcount
 c.gauge('apfmon.njob', jobcount)
-print 'Total msg count    : ', msgcount
+print 'Total flagged count : ', flagcount
+c.gauge('apfmon.nflag', flagcount)
+print 'Total msg count     : ', msgcount
 c.gauge('apfmon.nmsg', msgcount)
-print 'Total label count  : ', labelcount
+print 'Total label count   : ', labelcount
 c.gauge('apfmon.nlabel', labelcount)
-print 'Total factory count: ', factorycount
+print 'Total factory count : ', factorycount
 c.gauge('apfmon.nfactory', factorycount)
 
 
