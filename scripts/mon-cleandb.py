@@ -1,3 +1,4 @@
+import logging
 import pytz
 import statsd
 import sys
@@ -73,4 +74,6 @@ if __name__ == "__main__":
     rc = main()
     elapsed = time() - start
     c.timing(stat,int(elapsed))
+    msg = "mon-clean.py elapsed time: %d" % int(elapsed)
+    logging.info(msg)
     sys.exit(rc)

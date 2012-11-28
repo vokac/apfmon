@@ -117,7 +117,7 @@ def main():
 
     for j in fjobs:
         # move flagged jobs to FAULT state
-        msg = "%s -> FAULT because job been flagged for >%dhrs" % (j.state, ftimeout)
+        msg = "Job flagged for >%dhrs so setting state to FAULT" % ftimeout
         m = Message(job=j, msg=msg, client="127.0.0.1")
         m.save()
 #        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
