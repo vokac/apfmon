@@ -40,11 +40,14 @@
     <li>
        <a href="{% url atl.mon.views.help %}">Help</a>
     </li>
+{% comment %}
+    <li>
+       <a style="color:#aa4343">Notice: CERN factories intervention is ongoing<a>
+    </li>
+{% endcomment %}
   </ul>
 
 {% comment %}
-       <a href="{% url atl.mon.views.queues %}">Queues</a> | 
-       <div style="color:#aa4343">Notice: DB maintenance in progress (Tue 14 Aug)</div>
 {% endcomment %}
     {% block content %}{% endblock %}
     {% block footer %}
