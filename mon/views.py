@@ -752,7 +752,7 @@ def rn(request, fid, cid):
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
+                logging.warn(msg)
             else:
                 msg = "Failed to decr key: %s" % key
                 logging.warn(msg)
@@ -1659,12 +1659,11 @@ def cr(request):
             fid = d[2]
             label = d[3]
     
-            try:
-                pq = PandaQueue.objects.get(name=nick)
-            except:
-                msg = 'FID:%s, PandaQueue not found, skipping: %s' % (fid,nick)
+            pq, created = PandaQueue.objects.get_or_create(name=nick)
+            if created:
+                msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
                 logging.warn(msg)
-                continue
+                pq.save()
         
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
@@ -1806,13 +1805,12 @@ def msg(request):
 
             txt = text[:140]
         
-            try:
-                pq = PandaQueue.objects.get(name=nick)
-            except:
-                msg = 'FID:%s, PandaQueue not found, skipping: %s' % (fid,nick)
+            pq, created = PandaQueue.objects.get_or_create(name=nick)
+            if created:
+                msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
                 logging.warn(msg)
-                continue
-        
+                pq.save()
+
             ip = request.META['REMOTE_ADDR']
             f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
             if created:
