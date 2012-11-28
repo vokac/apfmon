@@ -35,7 +35,7 @@ def pandaqueues(request):
 
 def pandasites(request):
     """
-    Return list of active panda site names (siteid)
+    Return list of active panda site names (siteid/panda_site)
     """
 
     sites = Site.objects.filter(tags__name__in=['analysis','production']).distinct()
@@ -57,83 +57,79 @@ def update(request):
     """
     Handle a POST contains json data from AGIS
 
-  {
-    "agis_gocdb_or_oim_site_name": "UKI-NORTHGRID-LANCS-HEP",
-    "agis_ssb_site_name": "UKI-NORTHGRID-LANCS-HEP",
-    "cloud": "UK",
-    "ddm_site_name": "UKI-NORTHGRID-LANCS-HEP",
-    "panda_queue": "UKI-NORTHGRID-LANCS-HEP-abaddon-normal-lsf",
-    "panda_siteID": "UKI-NORTHGRID-LANCS-HEP",
-    "panda_site_name": "UKI-NORTHGRID-LANCS-HEP",
-    "queue_comment": "empty.comment",
-    "queue_status_control": "manual",
-    "queue_type": "PRODUCTION_QUEUE",
-    "tier": "T2D",
-    "timestamp": "2011-08-16 08:55:15"
-  },
-
+    {
+      "rc_site": "UKI-NORTHGRID-LANCS-HEP",
+      "atlas_site": "UKI-NORTHGRID-LANCS-HEP",
+      "cloud": "UK",
+      "nickname": "UKI-NORTHGRID-LANCS-HEP-abaddon-normal-lsf",
+      "panda_resource": "UKI-NORTHGRID-LANCS-HEP",
+      "panda_site": "UKI-NORTHGRID-LANCS-HEP",
+      "comment": "empty.comment",
+      "status_control": "manual",
+      "type": "PRODUCTION_QUEUE",
+      "tier": "T2D",
+      "last_modified": "2011-08-16 08:55:15"
+    },
     """
 
-    raw = request.POST.get('data', None)
+    raw = None
+    if request.method == 'POST':
+        raw = request.body
 
     if not raw:
-        content = "Bad request"
+        content = "Bad request no data"
+        logging.error(content)
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
-#    return HttpResponse("OK", mimetype="text/plain")
-    jdecode = json.JSONDecoder()
     try:
-        data = jdecode.decode(raw)
-        msg = "JSON SSB length: %d" % len(data)
-        print msg
-        logging.debug(msg)
+        jdict = json.loads(raw)
+        msg = "AGIS JSON entry count: %d" % len(jdict)
+        logging.error(msg)
     except:
+        raise
         msg = "Error decoding POST json data"
-        print msg
         logging.error(msg)
         content = "Bad request, failed to decode json"
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
-#    return HttpResponse("OK", mimetype="text/plain")
-    for d in data:
+    for pq in jdict.keys():
+        d = jdict[pq]
         if not d: continue
 
+        msg = 'Updating AGIS PandaQueue: %s' % pq
+        logging.debug(msg)
         try:
             cloud, created = Cloud.objects.get_or_create(name=d['cloud'])
             if created:
                 msg = "Cloud auto-created: %s" % cloud
-                print msg
                 logging.warn(msg)
                 
-            defaults = {'name' : d['agis_gocdb_or_oim_site_name'],
-                        'gocdbname' : d['agis_gocdb_or_oim_site_name'],
-                        'ssbname' : d['agis_ssb_site_name'],
-                        'pandasitename' : d['panda_site_name'],
+            defaults = {'name' : d['rc_site'],
+                        'gocdbname' : d['rc_site'],
+                        'ssbname' : d['atlas_site'],
+                        'pandasitename' : d['panda_site'],
                         'cloud' : cloud,
                         }
-            site, created = Site.objects.get_or_create(name=d['agis_gocdb_or_oim_site_name'], defaults=defaults)
+            site, created = Site.objects.get_or_create(name=d['rc_site'], defaults=defaults)
             if created:
                 msg = "Site auto-created: %s" % site
-                print msg
                 logging.warn(msg)
             
-            defaults = {'name' : d['panda_siteID'],
+            defaults = {'name' : d['panda_resource'],
                         'site' : site,
                         'tier' : d['tier'],
                         }
-            pandasite, created = PandaSite.objects.get_or_create(name=d['panda_siteID'], defaults=defaults)
+            pandasite, created = PandaSite.objects.get_or_create(name=d['panda_resource'], defaults=defaults)
             if created:
                 msg = "PandaSite auto-created: %s" % site
-                print msg
                 logging.warn(msg)
     
-    
-            defaults = {'name' : d['panda_queue'],
+            defaults = {'name' : d['nickname'],
                         'pandasite' : pandasite,
                         }
-            pandaq, created = PandaQueue.objects.get_or_create(name=d['panda_queue'], defaults=defaults)
+            pandaq, created = PandaQueue.objects.get_or_create(name=d['nickname'], defaults=defaults)
             if created:
-                msg = "PandaQueue auto-created: %s" % site
+                msg = "PandaQueue auto-created: %s" % pandaq
                 print msg
                 logging.warn(msg)
 
@@ -144,42 +140,40 @@ def update(request):
 
         # update key values
         try:
-
-
             if pandaq.pandasite_id == None:
                 pandaq.pandasite = pandasite
                 pandaq.save()
 
-#            print pandaq.comment,d['queue_comment']
-            if pandaq.comment != d['queue_comment']:
-                pandaq.comment = d['queue_comment'] 
+#            print pandaq.comment,d['comment']
+            if pandaq.comment != d['comment']:
+                pandaq.comment = d['comment'] 
                 pandaq.save()
     
-#            print pandaq.timestamp,d['timestamp']
-            f = '%Y-%m-%d %H:%M:%S'
-            dt = datetime.strptime(d['timestamp'], f).replace(tzinfo=utc)
+#            print pandaq.timestamp,d['last_modified']
+            f = '%Y-%m-%dT%H:%M:%S.%f'
+            dt = datetime.strptime(d['last_modified'], f).replace(tzinfo=utc)
             if pandaq.timestamp != dt:
                 pandaq.timestamp = dt
                 pandaq.save()
     
-#            print pandaq.state,d['queue_status']
-            if pandaq.state != d['queue_status']:
-                pandaq.state = d['queue_status']
+#            print pandaq.state,d['status']
+            if pandaq.state != d['status']:
+                pandaq.state = d['status']
                 pandaq.save()
     
-#            print pandaq.type, d['queue_type']
-            if pandaq.type != d['queue_type']:
-                pandaq.type = d['queue_type']
+#            print pandaq.type, d['type']
+            if pandaq.type != d['type']:
+                pandaq.type = d['type']
                 pandaq.save()
     
-#            print pandaq.control, d['queue_status_control']
-            if pandaq.control != d['queue_status_control']:
-                pandaq.control = d['queue_status_control']
+#            print pandaq.control, d['status_control']
+            if pandaq.control != d['status_control']:
+                pandaq.control = d['status_control']
                 pandaq.save()
         except Exception, e:
             msg = "Exception caught: %s" % e
             print msg
             logging.error(msg)
 
-
-    return HttpResponse("OK", mimetype="text/plain")
+        content = 'updated %d' % len(jdict)
+    return HttpResponse(content, mimetype="text/plain")
