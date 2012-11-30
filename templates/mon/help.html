@@ -7,8 +7,6 @@
 <li>For help email <a href="mailto:atlas-project-adc-operations-pilot-factory@cern.ch">atlas-project-adc-operations-pilot-factory@cern.ch</a>
 </ul>
 </p>
-{% comment %}
-{% endcomment %}
 
 <h2>States</h2>
 <ul>
@@ -18,5 +16,44 @@
 <li><dfn>DONE: condor jobstate is Completed (or Removed)
 <li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
 </ul>
+
+{% comment %}
+{% endcomment %}
+<h2>API</h2>
+
+<table>
+<tr>
+  <th class=colhdr>Endpoint
+  <th class=colhdr>Description
+  <th class=colhdr>Format
+</tr>
+<tr>
+  <td class=left>/h/
+  <td class=left>hello from factory at start-up
+  <td class=left>POST with keys: factoryId,monitorURL,factoryOwner,baseLogDirUrl,versionTag
+</tr>
+<tr>
+  <td class=left>/c/
+  <td class=left>list of created jobids
+  <td class=left>JSON-encoded list of tuples: (cid, nick, fid, label)
+</tr>
+<tr>
+  <td class=left>/m/
+  <td class=left>list of messages to describe status of 'label'
+  <td class=left>JSON-encoded list of tuples: (nick, fid, label, text)
+</tr>
+<tr>
+  <td class=left>/$APFFID/$APFCID/rn/ 
+  <td class=left>ping when job wrapper starts on worker node
+  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
+</tr>
+<tr>
+  <td class=left>/$APFFID/$APFCID/ex/ 
+  <td class=left>ping when job wrapper exits
+  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
+</tr>
+
+
+</table>
 
 {% endblock %}
