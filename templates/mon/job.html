@@ -54,8 +54,13 @@
 
 <p>
 <table>
+<tr class=odd>
+<td>{{ job.created|date:"Y-m-d H:m:s" }}
+<td>{{ job.fid.ip }}
+<td>CREATED
+</tr>
 {% for m in msgs %}
-<tr class="{% cycle odd,even %}">
+<tr class="{% cycle even,odd %}">
 <td>{{ m.received|date:"Y-m-d H:m:s" }}
 <td>{{ m.client }}
 <td>{{ m.msg }}
