@@ -3,7 +3,7 @@ from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
 from atl.mon.models import Message
-from atl.mon.models import Pandaid
+#from atl.mon.models import Pandaid
 
 from atl.kit.models import Cloud
 from atl.kit.models import Tag
@@ -118,7 +118,7 @@ def job(request, fid, cid):
         
     job = get_object_or_404(Job, fid=f, cid=cid)
 
-    pids = Pandaid.objects.filter(job=job)
+#    pids = Pandaid.objects.filter(job=job)
     msgs = Message.objects.filter(job=job).order_by('received')
 
     date = "%d-%02d-%02d" % (job.created.year, job.created.month, job.created.day)
@@ -139,7 +139,7 @@ def job(request, fid, cid):
                 'logurl' : logurl,
                 'job' : job,
                 'msgs' : msgs,
-                'pids' : pids,
+#                'pids' : pids,
                 }
 
     return render_to_response('mon/job.html', context)
@@ -185,6 +185,7 @@ def debug(request):
 
     return render_to_response('mon/debug.html', context)
 
+@cache_page(60 * 10)
 def factory(request, fid):
     """
     Rendered view of Factory instance. Lists all factory labels with
@@ -265,6 +266,22 @@ def factory(request, fid):
                 logging.warn(msg)
         nexiting = val
 
+        key = "ldn%d" % lab.id
+        val = cache.get(key)
+        if val is None:
+            msg = "MISS key: %s" % key
+            logging.debug(msg)
+            # key not known so set to current count
+            val = jobs.filter(label=lab, state=dstate).count()
+            added = cache.add(key, val, lifetime)
+            if added:
+                msg = "Added DB count for key %s : %d" % (key, val)
+                #logging.warn(msg)
+            else:
+                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                logging.warn(msg)
+        ndone = val
+
 #        ncreated = jobs.filter(label=lab, state=cstate).count()
 #        nrunning = jobs.filter(label=lab, state=rstate).count()
 #        nexiting = jobs.filter(label=lab, state=estate).count()
@@ -313,7 +330,6 @@ def factory(request, fid):
             'jobs' : jobs,
             'pandaqs' : pandaqs,
             'factory' : f,
-            'plot' : 'on',
             }
 
     return render_to_response('mon/factory.html', context)
@@ -836,7 +852,7 @@ def ex(request, fid, cid, sc=None):
         j = Job.objects.get(fid=f, cid=cid)
     except Job.DoesNotExist, e:
         msg = "EX unknown Job: %s_%s" % (f, cid)
-        logging.warn(msg)
+#PAL - pending fix for apfv2        logging.warn(msg)
         return HttpResponseBadRequest('Fine', mimetype="text/plain")
     
     msg = None
@@ -948,46 +964,46 @@ def action(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
-def info(request, fid, cid):
-    """
-    Handle info about the panda job, find pandaID
-    """
-
-    try:
-        j = Job.objects.get(fid__name=fid, cid=cid)
-    except Job.DoesNotExist, e:
-        msg = "INF unknown Job: %s_%s" % (fid, cid)
-        logging.warn(msg)
-        return HttpResponseBadRequest('Fine', mimetype="text/plain")
-
-    pandaid = request.POST.get('PandaID', None)
-    info = request.POST.get('msg', None)
-
-    if pandaid:
-        send_mail('PANDAID found', 'PANDAID:%s, CID:%s'% (pandaid,j.cid), 'atl@py-prod.lancs.ac.uk', ['p.love@lancaster.ac.uk'], fail_silently=False)
-
-        msg = "%s pandaid:%s, pilot status:%s" % (j.cid, pandaid, j.result)
-        logging.warn(msg)
-
-#        try:
-#            p = Pandaid(pid=int(pandaid), job=j)
-#            p.save()
-#            msg = 'monpost: PandaID=%s' % pandaid
-#            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-#            m.save()
-#        except:
-#            msg = "Problem creating Pandaid: %s" % pandaid
-#            logging.warn(msg)
-    else:
-        l = len(request.POST.keys())
-        msg = "no info from monpost(), post len:%s" % l
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
-        #if j.result != 20:
-        msg = "%s monpost no pandaid, pilot status: %s, post len:%s" % (j.cid, j.result, l)
-        logging.warn(msg)
-
-    return HttpResponse("OK", mimetype="text/plain")
+#def info(request, fid, cid):
+#    """
+#    Handle info about the panda job, find pandaID
+#    """
+#
+#    try:
+#        j = Job.objects.get(fid__name=fid, cid=cid)
+#    except Job.DoesNotExist, e:
+#        msg = "INF unknown Job: %s_%s" % (fid, cid)
+#        logging.warn(msg)
+#        return HttpResponseBadRequest('Fine', mimetype="text/plain")
+#
+#    pandaid = request.POST.get('PandaID', None)
+#    info = request.POST.get('msg', None)
+#
+#    if pandaid:
+#        send_mail('PANDAID found', 'PANDAID:%s, CID:%s'% (pandaid,j.cid), 'atl@py-prod.lancs.ac.uk', ['p.love@lancaster.ac.uk'], fail_silently=False)
+#
+#        msg = "%s pandaid:%s, pilot status:%s" % (j.cid, pandaid, j.result)
+#        logging.warn(msg)
+#
+##        try:
+##            p = Pandaid(pid=int(pandaid), job=j)
+##            p.save()
+##            msg = 'monpost: PandaID=%s' % pandaid
+##            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+##            m.save()
+##        except:
+##            msg = "Problem creating Pandaid: %s" % pandaid
+##            logging.warn(msg)
+#    else:
+#        l = len(request.POST.keys())
+#        msg = "no info from monpost(), post len:%s" % l
+#        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+#        m.save()
+#        #if j.result != 20:
+#        msg = "%s monpost no pandaid, pilot status: %s, post len:%s" % (j.cid, j.result, l)
+#        logging.warn(msg)
+#
+#    return HttpResponse("OK", mimetype="text/plain")
 
 def awol(request):
     """
@@ -1226,6 +1242,7 @@ def pandasites(request):
 #    f.close()
 #    return response
 
+@cache_page(60 * 10)
 def stats(request):
     """
     WTF
@@ -1716,9 +1733,10 @@ def cr(request):
                 msg = 'Failed to create job'
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
         
-            msg = "CREATED"
-            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-            m.save()
+# PAL removed to help mon_message table, can use job createion time anyway
+#            msg = "CREATED"
+#            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
+#            m.save()
 
     elapsed = time() - start
     ss.timing(stat,int(elapsed))
@@ -1946,9 +1964,9 @@ def fault(request):
     List Labels which have FAULT jobs
     """
 
-    jobs = Job.objects.filter(state__name='FAULT')
+    jobs = Job.objects.filter(state__name='FAULT', pandaq__state='online')
 #    jobs = Job.objects.filter(flag=True)
-    lablist = jobs.values('label__id').annotate(njob=Count('id'))
+    lablist = jobs.values('label__id', 'label__pandaq').annotate(njob=Count('id'))
 
     rows = []
     for lab in lablist:

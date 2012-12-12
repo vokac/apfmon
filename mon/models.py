@@ -78,7 +78,7 @@ class Factory(models.Model):
     url = models.URLField(blank=True, verify_exists=False, default=DEFAULTURL)
     version = models.CharField(max_length=64, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
-    last_startup = models.DateTimeField(editable=True, null=True, db_index=True)
+    last_startup = models.DateTimeField(editable=True, null=True)
     last_cycle = models.PositiveIntegerField(default=0)
     last_ncreated = models.PositiveSmallIntegerField(default=0)
     def __unicode__(self):
@@ -90,7 +90,7 @@ class Label(models.Model):
     """
     name = models.CharField(max_length=64, blank=True)
     fid = models.ForeignKey(Factory)
-    pandaq = models.ForeignKey(PandaQueue, db_index=True)
+    pandaq = models.ForeignKey(PandaQueue)
     msg = models.CharField(max_length=140, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
     def __unicode__(self):
@@ -104,11 +104,11 @@ class Job(models.Model):
     Represent a condor pilot job
     """
     created = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
-    cid = models.CharField(max_length=16, unique=False, blank=False, db_index=True)
+    cid = models.CharField(max_length=16, unique=False, blank=False)
     fid = models.ForeignKey(Factory)
     last_modified = models.DateTimeField(auto_now=True, editable=False, db_index=True)
     state = models.ForeignKey(State)
-    pandaq = models.ForeignKey(PandaQueue)
+    pandaq = models.ForeignKey(PandaQueue, db_index=True)
     label = models.ForeignKey(Label)
     result = models.SmallIntegerField(blank=True, default=-1)
     flag = models.BooleanField(default=False)
@@ -128,14 +128,14 @@ class Job(models.Model):
 #        if self.pk:
 #            print 'Post', self.state
 
-class Pandaid(models.Model):
-    """
-    Simple many-to-one pandaid->job
-    """
-    pid = models.IntegerField(unique=False, blank=True, null=True)
-    job = models.ForeignKey(Job)
-    def __unicode__(self):
-        return str(self.pid)
+#class Pandaid(models.Model):
+#    """
+#    Simple many-to-one pandaid->job
+#    """
+#    pid = models.IntegerField(unique=False, blank=True, null=True)
+#    job = models.ForeignKey(Job)
+#    def __unicode__(self):
+#        return str(self.pid)
 
 class Message(models.Model):
     """
@@ -150,19 +150,12 @@ class Message(models.Model):
     def __unicode__(self):
         return str(self.msg[:23])
 
-class Alert(models.Model):
-    """
-    (not used)
-    Threshold settings for sending alerts
-    """
-    pass
-
-class StateHistory(models.Model):
-    """
-    (not used)
-    Record timestamp of each state change
-    """
-    job = models.ForeignKey(Job)
-    state_changed = models.DateTimeField(auto_now_add=True, editable=False)
-    from_state = models.ForeignKey(State, related_name='from_state')
-    to_state = models.ForeignKey(State , related_name='to_state')
+#class StateHistory(models.Model):
+#    """
+#    (not used)
+#    Record timestamp of each state change
+#    """
+#    job = models.ForeignKey(Job)
+#    state_changed = models.DateTimeField(auto_now_add=True, editable=False)
+#    from_state = models.ForeignKey(State, related_name='from_state')
+#    to_state = models.ForeignKey(State , related_name='to_state')
