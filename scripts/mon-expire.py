@@ -1,5 +1,6 @@
 import logging
 import pytz
+import redis
 import statsd
 import sys
 from datetime import timedelta, datetime
@@ -7,6 +8,8 @@ from optparse import OptionParser
 from pymongo import Connection
 from time import time
 
+
+r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 #
 ##collection = db.jobs
@@ -67,10 +70,11 @@ def main():
     ctimeout = 6
     rtimeout = 72
     etimeout = 30
-    ftimeout = 96
+    ftimeout = 48# 96
 
     # created state
     deltat = datetime.now(pytz.utc) - timedelta(hours=ctimeout)
+#    cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat)
     cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat, flag=False)
     logging.info("Stale created: %d" % cjobs.count())
     
@@ -86,7 +90,7 @@ def main():
     
     # flagged jobs
     deltat = datetime.now(pytz.utc) - timedelta(hours=ftimeout)
-    fjobs = Job.objects.filter(flag=True, last_modified__lt=deltat)
+    fjobs = Job.objects.filter(last_modified__lt=deltat, flag=True)
     logging.info("Stale flagged: %d" % fjobs.count())
 
     skey = {'CREATED' : 'fcr',
@@ -98,19 +102,22 @@ def main():
     for j in cjobs:
         # flag stale created jobs
         if j.flag: continue
-        msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
-        m = Message(job=j, msg=msg, client="127.0.0.1")
-        m.save()
+        # PAL commented to reduce mon_message table
+        #msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
+        #m = Message(job=j, msg=msg, client="127.0.0.1")
+        #m.save()
 #        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
+# redis here....
         j.flag = True
         j.save()
 
     for j in rjobs:
         # flag stale running jobs
         if j.flag: continue
-        msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
-        m = Message(job=j, msg=msg, client="127.0.0.1")
-        m.save()
+        # PAL commented to reduce mon_message table
+        #msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
+        #m = Message(job=j, msg=msg, client="127.0.0.1")
+        #m.save()
 #        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
         j.flag = True
         j.save()
