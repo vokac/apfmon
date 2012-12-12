@@ -7,7 +7,7 @@
 
 <table class=text>
 <tr>
-<th title="Label per Factory">Label
+<th title="Label name, unique to each factory">Label
 <th title="Factory name">factory
 <th title="Fraction of jobs flagged">% flagged
 <th title="Fraction of jobs in FAULT state">% fault
@@ -16,7 +16,7 @@
 {% for row in rows %}
 
 <tr class="{% cycle odd,even %}">
-  <td nowrap><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
+  <td nowrap><a href="{% url atl.mon.views.label row.label.id %}">{{ row.label }}</a>
   <td>{{ row.label.fid }}
   <td>{{ row.flagfrac }}
   <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.faultfrac }}</a>
