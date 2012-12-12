@@ -4,7 +4,7 @@ from atl.mon.models import State
 from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
-from atl.mon.models import Pandaid
+#from atl.mon.models import Pandaid
 from atl.mon.models import Message
 
 class JobAdmin(admin.ModelAdmin):
@@ -45,6 +45,6 @@ class FactoryAdmin(admin.ModelAdmin):
 admin.site.register(State)
 admin.site.register(Factory, FactoryAdmin)
 admin.site.register(Job, JobAdmin)
-admin.site.register(Pandaid)
+#admin.site.register(Pandaid)
 admin.site.register(Message, MessageAdmin)
 admin.site.register(Label, LabelAdmin)
