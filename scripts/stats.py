@@ -8,7 +8,7 @@ from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
 from atl.mon.models import Message
-from atl.mon.models import Pandaid
+#from atl.mon.models import Pandaid
 from django.db.models import Count
 
 """
