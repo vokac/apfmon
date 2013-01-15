@@ -1668,19 +1668,17 @@ def jobs2(request):
 
     if request.method == 'POST':
 
-        jdecode = json.JSONDecoder()
+        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
+        logging.debug(msg)
 
-        if ip == '130.199.3.165':
-            msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.POST)
-            logging.error(msg)
-
-        joblist = json.loads(request.POST)
+        joblist = json.loads(request.body)
 
         n = len(joblist)
         msg = "Number of jobs in JSON data: %d (%s)" % (n, ip)
         logging.debug(msg)
 
-        context = 'Received %d jobs' % n
+        txt = 'job' if n == 1 else 'jobs'
+        context = 'Received %d %s' % (n, txt)
         return HttpResponse(context, mimetype="text/plain")
 
     if request.method == 'GET':
@@ -1701,10 +1699,6 @@ def cr(request):
 
     ip = request.META['REMOTE_ADDR']
     jdecode = json.JSONDecoder()
-
-    if ip == '130.199.3.165':
-        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.POST)
-        logging.error(msg)
 
 #    msg = "POST DATA: %s %s" % (ip, rawdata)
 #    logging.error(msg)
@@ -1729,10 +1723,6 @@ def cr(request):
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
     for d in data:
-        if ip == '130.199.3.165':
-            msg = "Single data: %s " % d
-            logging.error(msg)
-
         cid = d[0]
         nick = d[1]
         fid = d[2]
