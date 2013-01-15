@@ -30,7 +30,7 @@ urlpatterns = patterns('atl.mon.views',
     (r'^stats/$', 'stats'),
 
 # APIv2 
-    (r'^api/jobs$', 'jobs2'),
+    (r'^jobs2$', 'jobs2'),
 
 # non-rendered views
     (r'^c/$', 'cr'),
