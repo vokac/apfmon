@@ -1647,30 +1647,48 @@ def shout(request):
     
     return HttpResponse("OK", mimetype="text/plain")
 
-def cr2(request):
+def jobs2(request):
     """
+    Handle requests from /jobs resource depending on GET or POST.
+
+    POST:
     Create the Job, expect data format is a JSON encoded list of dicts
     with the following keys:
     jid     : uid of job
     nick    : panda queue name
     factory : factory name
     label   : factory label for each queue (name of section in factory config)
+    
+    GET:
+    Return a list of jobs refined by zero or more URL parameters fid,state,label
+
     """
 
     ip = request.META['REMOTE_ADDR']
-    jdecode = json.JSONDecoder()
 
-    if ip == '130.199.3.165':
-        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.POST)
-        logging.error(msg)
+    if request.method == 'POST':
 
-    joblist = json.loads(request.POST)
+        jdecode = json.JSONDecoder()
 
-    n = len(joblist)
-    msg = "Number of jobs in JSON data: %d (%s)" % (n, ip)
-    logging.debug(msg)
+        if ip == '130.199.3.165':
+            msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.POST)
+            logging.error(msg)
 
-    context = 'Received %d jobs' % n
+        joblist = json.loads(request.POST)
+
+        n = len(joblist)
+        msg = "Number of jobs in JSON data: %d (%s)" % (n, ip)
+        logging.debug(msg)
+
+        context = 'Received %d jobs' % n
+        return HttpResponse(context, mimetype="text/plain")
+
+    if request.method == 'GET':
+
+        context = 'OK'
+        return HttpResponse(context, mimetype="text/plain")
+
+    context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, mimetype="text/plain")
 
 def cr(request):

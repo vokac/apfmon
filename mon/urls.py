@@ -29,6 +29,9 @@ urlpatterns = patterns('atl.mon.views',
     (r'^test/$', 'test'),
     (r'^stats/$', 'stats'),
 
+# APIv2 
+    (r'^api/jobs$', 'jobs2'),
+
 # non-rendered views
     (r'^c/$', 'cr'),
     (r'^f/$', 'fids'),
