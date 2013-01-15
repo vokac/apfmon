@@ -37,6 +37,7 @@ from django.core.exceptions import MultipleObjectsReturned
 try:
     import json as json
 except ImportError, err:
+    logging.error('Cannot import json, using simplejson')
     import simplejson as json
 
 ELOGREGEX = re.compile('(.*elog[^0-9]*)([0-9]+)', re.IGNORECASE)
@@ -1646,6 +1647,32 @@ def shout(request):
     
     return HttpResponse("OK", mimetype="text/plain")
 
+def cr2(request):
+    """
+    Create the Job, expect data format is a JSON encoded list of dicts
+    with the following keys:
+    jid     : uid of job
+    nick    : panda queue name
+    factory : factory name
+    label   : factory label for each queue (name of section in factory config)
+    """
+
+    ip = request.META['REMOTE_ADDR']
+    jdecode = json.JSONDecoder()
+
+    if ip == '130.199.3.165':
+        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.POST)
+        logging.error(msg)
+
+    joblist = json.loads(request.POST)
+
+    n = len(joblist)
+    msg = "Number of jobs in JSON data: %d (%s)" % (n, ip)
+    logging.debug(msg)
+
+    context = 'Received %d jobs' % n
+    return HttpResponse(context, mimetype="text/plain")
+
 def cr(request):
     """
     Create the Job, expect data format is:
@@ -1654,85 +1681,101 @@ def cr(request):
     stat = 'apfmon.cr'
     start = time()
 
+    ip = request.META['REMOTE_ADDR']
     jdecode = json.JSONDecoder()
 
+    if ip == '130.199.3.165':
+        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.POST)
+        logging.error(msg)
+
+#    msg = "POST DATA: %s %s" % (ip, rawdata)
+#    logging.error(msg)
+
     raw = request.POST.get('data', None)
+
+    if not raw:
+        msg = 'No POST data found'
+        logging.error(msg)
+        content = "Bad request, no POST data found"
+        return HttpResponseBadRequest(content, mimetype="text/plain")
+
+    try:
+        data = jdecode.decode(raw)
+        ncreated = len(data)
+        msg = "Number of jobs in JSON data: %d (%s)" % (ncreated, ip)
+        logging.error(msg)
+    except:
+        msg = 'Error decoding POST json data'
+        logging.error(msg)
+        content = "Bad request"
+        return HttpResponseBadRequest(content, mimetype="text/plain")
+
+    for d in data:
+        if ip == '130.199.3.165':
+            msg = "Single data: %s " % d
+            logging.error(msg)
+
+        cid = d[0]
+        nick = d[1]
+        fid = d[2]
+        label = d[3]
     
-    if raw:
+        pq, created = PandaQueue.objects.get_or_create(name=nick)
+        if created:
+            msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
+            logging.debug(msg)
+            pq.save()
+    
+        f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
+        if created:
+            msg = "Factory auto-created: %s" % fid
+            logging.debug(msg)
+        f.last_ncreated = ncreated
+        f.save()
+    
+        try: 
+            l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+        except MultipleObjectsReturned,e:
+            msg = "Multiple objects - apfv2 issue?"
+            logging.warn(msg)
+            msg = "Multiple objects error"
+            return HttpResponseBadRequest(msg, mimetype="text/plain")
+
+        if created:
+            msg = "Label auto-created: %s" % label
+            logging.debug(msg)
+    
         try:
-            data = jdecode.decode(raw)
-            ncreated = len(data)
-            msg = "Number of jobs in JSON data: %d" % ncreated
-            logging.debug(msg)
-        except:
-            msg = 'Error decoding POST json data'
-            logging.debug(msg)
-            content = "Bad request"
-            return HttpResponseBadRequest(content, mimetype="text/plain")
+            state = State.objects.get(name='CREATED')
+            j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
+            j.save()
 
-        for d in data:
-            cid = d[0]
-            nick = d[1]
-            fid = d[2]
-            label = d[3]
-    
-            pq, created = PandaQueue.objects.get_or_create(name=nick)
-            if created:
-                msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
-                logging.warn(msg)
-                pq.save()
-        
-            ip = request.META['REMOTE_ADDR']
-            f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
-            if created:
-                msg = "Factory auto-created: %s" % fid
-                logging.warn(msg)
-            f.last_ncreated = ncreated
-            f.save()
-        
-            try: 
-                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
-            except MultipleObjectsReturned,e:
-                msg = "Multiple objects - apfv2 issue?"
-                logging.warn(msg)
-                msg = "Multiple objects error"
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
-
-            if created:
-                msg = "Label auto-created: %s" % label
-                logging.debug(msg)
-        
+            key = "fcr%d" % f.id
             try:
-                state = State.objects.get(name='CREATED')
-                j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
-                j.save()
-
-                key = "fcr%d" % f.id
-                try:
-                    val = cache.incr(key)
-                except ValueError:
-                    msg = "MISS key: %s" % key
-                    logging.debug(msg)
-                    # key not known so set to current count
-                    val = Job.objects.filter(fid=f, state=state).count()
-                    added = cache.add(key, val)
-                    if added:
-                        msg = "Added DB count for key %s : %d" % (key, val)
-                        #logging.warn(msg)
-                    else:
-                        msg = "Failed to incr key: %s" % key
-                        logging.warn(msg)
-
-                if not val % 1000:
-                    msg = "memcached key:%s val:%d" % (key, val)
+                val = cache.incr(key)
+            except ValueError:
+                msg = "MISS key: %s" % key
+                logging.debug(msg)
+                # key not known so set to current count
+                val = Job.objects.filter(fid=f, state=state).count()
+                added = cache.add(key, val)
+                if added:
+                    msg = "Added DB count for key %s : %d" % (key, val)
+                    #logging.warn(msg)
+                else:
+                    msg = "Failed to incr key: %s" % key
                     logging.warn(msg)
-            except Exception, e:
-                msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
-                logging.error(msg)
-                logging.error(e)
-                msg = 'Failed to create job'
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
-        
+
+            if not val % 1000:
+                msg = "memcached key:%s val:%d" % (key, val)
+                logging.warn(msg)
+        except Exception, e:
+            msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
+            logging.error(msg)
+            logging.error(e)
+            msg = 'Failed to create job'
+            return HttpResponseBadRequest(msg, mimetype="text/plain")
+    
 # PAL removed to help mon_message table, can use job createion time anyway
 #            msg = "CREATED"
 #            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
@@ -1796,6 +1839,8 @@ def msg(request):
     (nick, fid, label, text)
     """
 
+    ip=request.META['REMOTE_ADDR']
+
     jdecode = json.JSONDecoder()
 
     cycle = request.POST.get('cycle', None)
@@ -1804,7 +1849,7 @@ def msg(request):
     if raw:
         try:
             data = jdecode.decode(raw)
-            msg = "Number of msgs in JSON data: %d" % len(data)
+            msg = "Number of msgs in JSON data: %d (%s)" % (len(data), ip)
             logging.debug(msg)
             length = request.META['CONTENT_LENGTH']
             msg = "Msg content length: %s" % length
