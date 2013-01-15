@@ -1332,6 +1332,7 @@ def test(request):
     context = {}
     return render_to_response('mon/test.html', context)
 
+@cache_page(60 * 1)
 def index(request):
     """
     Rendered view of front page which shows a table of activity
