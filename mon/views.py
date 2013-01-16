@@ -1703,7 +1703,7 @@ def cr(request):
     ip = request.META['REMOTE_ADDR']
     jdecode = json.JSONDecoder()
 
-    if ip == '130.199.3.165':
+    if ip == '130.199.3.165' or ip == '148.88.189.151':
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.POST)
         logging.error(msg)
 
@@ -1730,7 +1730,7 @@ def cr(request):
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
     for d in data:
-        if ip == '130.199.3.165':
+        if ip == '130.199.3.165' or ip == '148.88.189.151':
             msg = "Single data: %s " % d
             logging.error(msg)
 
@@ -1742,13 +1742,13 @@ def cr(request):
         pq, created = PandaQueue.objects.get_or_create(name=nick)
         if created:
             msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
-            logging.debug(msg)
+            logging.error(msg)
             pq.save()
     
         f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
         if created:
             msg = "Factory auto-created: %s" % fid
-            logging.debug(msg)
+            logging.error(msg)
         f.last_ncreated = ncreated
         f.save()
     
@@ -1756,13 +1756,13 @@ def cr(request):
             l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
         except MultipleObjectsReturned,e:
             msg = "Multiple objects - apfv2 issue?"
-            logging.warn(msg)
+            logging.error(msg)
             msg = "Multiple objects error"
             return HttpResponseBadRequest(msg, mimetype="text/plain")
 
         if created:
             msg = "Label auto-created: %s" % label
-            logging.debug(msg)
+            logging.error(msg)
     
         try:
             state = State.objects.get(name='CREATED')
@@ -1792,7 +1792,7 @@ def cr(request):
             msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
             logging.error(msg)
             logging.error(e)
-            msg = 'Failed to create job'
+            msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
     
 # PAL removed to help mon_message table, can use job createion time anyway
@@ -1803,7 +1803,9 @@ def cr(request):
     elapsed = time() - start
     ss.timing(stat,int(elapsed))
 
-    return HttpResponse("OK", mimetype="text/plain")
+    txt = 'job' if len(data) == 1 else 'jobs'
+    context = 'Received %d %s' % (len(data), txt) 
+    return HttpResponse(context, mimetype="text/plain")
 
 def helo(request):
     """
