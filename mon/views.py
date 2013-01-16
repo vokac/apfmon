@@ -1671,14 +1671,77 @@ def jobs2(request):
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
         logging.debug(msg)
 
-        joblist = json.loads(request.body)
+        jobs = json.loads(request.body)
 
-        n = len(joblist)
-        msg = "Number of jobs in JSON data: %d (%s)" % (n, ip)
+        msg = "Number of jobs in JSON data: %d (%s)" % (len(jobs), ip)
         logging.debug(msg)
 
-        txt = 'job' if n == 1 else 'jobs'
-        context = 'Received %d %s' % (n, txt)
+        nfailed = 0
+        ncreated = 0
+        for job in jobs:
+            nick = job['nick']
+            factory = job['factory']
+            label = job['label']
+            jid = job['jid']
+
+            pq, created = PandaQueue.objects.get_or_create(name=nick)
+            if created:
+                msg = 'PandaQueue auto-created: %s (%s)' % (nick,factory)
+                logging.debug(msg)
+                pq.save()
+    
+            f, created = Factory.objects.get_or_create(name=factory, defaults={'ip':ip})
+            if created:
+                msg = "Factory auto-created: %s" % factory
+                logging.debug(msg)
+            f.last_ncreated = len(jobs)
+            f.save()
+    
+            try: 
+                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+            except MultipleObjectsReturned,e:
+                msg = "Multiple objects - apfv2 issue?"
+                logging.warn(msg)
+                msg = "Multiple objects error"
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+            if created:
+                msg = "Label auto-created: %s" % label
+                logging.debug(msg)
+    
+            try:
+                state = State.objects.get(name='CREATED')
+                j = Job(cid=jid, fid=f, state=state, pandaq=pq, label=l)
+                j.save()
+                ncreated += 1
+
+                key = "fcr%d" % f.id
+                try:
+                    val = cache.incr(key)
+                except ValueError:
+                    msg = "MISS key: %s" % key
+                    logging.debug(msg)
+                    # key not known so set to current count
+                    val = Job.objects.filter(fid=f, state=state).count()
+                    added = cache.add(key, val)
+                    if added:
+                        msg = "Added DB count for key %s : %d" % (key, val)
+                        #logging.warn(msg)
+                    else:
+                        msg = "Failed to incr key: %s" % key
+                        logging.warn(msg)
+
+                if not val % 1000:
+                    msg = "memcached key:%s val:%d" % (key, val)
+                    logging.warn(msg)
+            except Exception, e:
+                msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,jid,state,pq,l)
+                logging.error(msg)
+                logging.error(e)
+                nfailed += 1
+
+        txt = 'job' if ncreated == 1 else 'jobs'
+        txt2 = 'job' if nfailed == 1 else 'jobs'
+        context = 'Created %d %s, failed to create %d %s' % (ncreated, txt, nfailed, txt2)
         return HttpResponse(context, mimetype="text/plain")
 
     if request.method == 'GET':
