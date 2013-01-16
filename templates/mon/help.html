@@ -17,8 +17,6 @@
 <li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
 </ul>
 
-{% comment %}
-{% endcomment %}
 <h2>API</h2>
 
 <table>
@@ -52,8 +50,28 @@
   <td class=left>ping when job wrapper exits
   <td class=left>GET request with APFFID=factoryId, APFCID=jobid
 </tr>
+</table>
 
+
+{% comment %}
+<h2>APIv2 - coming soon</h2>
+
+<table class=table>
+<tr>
+  <th>Resource
+  <th>POST
+  <th>GET
+  <th>PUT
+  <th>DELETE
+<tr>
+  <td>/factories
+  <td>-
+  <td>list factories
+  <td>update factories
+  <td>-
 
 </table>
+{% endcomment %}
+
 
 {% endblock %}
