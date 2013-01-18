@@ -31,6 +31,7 @@ from django.views.decorators.cache import cache_page
 from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
+from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
 
@@ -80,7 +81,6 @@ def jobs(request, lid, state, p=1):
     else:
         jobs = jobs.filter(state__name__in=['CREATED','RUNNING','EXITING'])
 
-    
     pages = Paginator(jobs, 100)
 
     try:
@@ -192,8 +192,13 @@ def factory(request, fid):
     Rendered view of Factory instance. Lists all factory labels with
     a count of jobs in each state.
     """
-#    if not int(fid): return redirect('atl.mon.views.index')
-    f = get_object_or_404(Factory, id=int(fid))
+
+    try:
+        id = int(fid)
+    except ValueError:
+        raise Http404
+
+    f = get_object_or_404(Factory, id=id)
     pandaqs = PandaQueue.objects.all()
     labels = Label.objects.filter(fid=f)
     jobs = Job.objects.filter(fid=f)
@@ -1332,6 +1337,7 @@ def test(request):
     context = {}
     return render_to_response('mon/test.html', context)
 
+@cache_page(60 * 1)
 def index(request):
     """
     Rendered view of front page which shows a table of activity
@@ -1647,14 +1653,50 @@ def shout(request):
     
     return HttpResponse("OK", mimetype="text/plain")
 
-def jobs2(request):
+def job2(request, jid):
     """
-    Handle requests from /jobs resource depending on GET or POST.
+    Handle requests from /jobs/jobid resource depending on GET or POST
 
     POST:
+    Update the Job using data in the querystring
+    state : either 'running' or 'exiting'
+    ids   : comma separated list of pandaids (not implemented)
+    
+    GET:
+    Return a specific job including list of messages
+    """
+
+    ip = request.META['REMOTE_ADDR']
+
+    job = get_object_or_404(Job, jid=jid)
+
+    if request.method == 'GET':
+        messages = Message.objects.filter(job=job).values('client',
+                                   'msg', 'received')
+
+        j = Job.objects.filter(jid=jid).values()[0]
+        j['messages'] = list(messages)
+
+        return HttpResponse(json.dumps(j, 
+                            cls=DjangoJSONEncoder,
+                            sort_keys=True,
+                            indent=2),
+                            mimetype="application/json")
+
+    if request.method == 'POST':
+        pass
+
+    context = 'HTTP method not supported: %s' % request.method
+    return HttpResponse(context, mimetype="text/plain")
+
+def jobs2(request):
+    """
+    Handle requests from /jobs resource depending on GET or PUT.
+
+    PUT:
     Create the Job, expect data format is a JSON encoded list of dicts
     with the following keys:
-    jid     : uid of job
+    cid     : unique id of job, usually condorid but can be anything 
     nick    : panda queue name
     factory : factory name
     label   : factory label for each queue (name of section in factory config)
@@ -1666,7 +1708,7 @@ def jobs2(request):
 
     ip = request.META['REMOTE_ADDR']
 
-    if request.method == 'POST':
+    if request.method == 'PUT':
 
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
         logging.debug(msg)
@@ -1682,7 +1724,7 @@ def jobs2(request):
             nick = job['nick']
             factory = job['factory']
             label = job['label']
-            jid = job['jid']
+            cid = job['cid']
 
             pq, created = PandaQueue.objects.get_or_create(name=nick)
             if created:
@@ -1710,7 +1752,8 @@ def jobs2(request):
     
             try:
                 state = State.objects.get(name='CREATED')
-                j = Job(cid=jid, fid=f, state=state, pandaq=pq, label=l)
+                jid = ':'.join((f.name,cid))
+                j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=l)
                 j.save()
                 ncreated += 1
 
@@ -1739,15 +1782,126 @@ def jobs2(request):
                 logging.error(e)
                 nfailed += 1
 
-        txt = 'job' if ncreated == 1 else 'jobs'
-        txt2 = 'job' if nfailed == 1 else 'jobs'
-        context = 'Created %d %s, failed to create %d %s' % (ncreated, txt, nfailed, txt2)
+        txt = 'job' if len(jobs) == 1 else 'jobs'
+        context = 'Created %d/%d %s, %d not created' % (ncreated, len(jobs), txt, nfailed)
         return HttpResponse(context, mimetype="text/plain")
 
     if request.method == 'GET':
 
         context = 'OK'
         return HttpResponse(context, mimetype="text/plain")
+
+    context = 'HTTP method not supported: %s' % request.method
+    return HttpResponse(context, status=405, mimetype="text/plain")
+
+def factories(request):
+    """
+    Handle requests from /factories resource. Only GET supported.
+
+    GET:
+    Return a list of all factories
+
+    """
+
+    ip = request.META['REMOTE_ADDR']
+
+    if request.method != 'GET':
+        context = 'HTTP method not supported: %s' % request.method
+        return HttpResponse(context, mimetype="text/plain")
+
+    dtactive = datetime.now(pytz.utc) - timedelta(days=10)
+
+    factories = Factory.objects.values().order_by('name')
+    for f in factories:
+        active = True if f['last_modified'] > dtactive else False
+        f['active'] = active
+
+    return HttpResponse(json.dumps(list(factories), 
+                        cls=DjangoJSONEncoder,
+                        sort_keys=True,
+                        indent=2),
+                        mimetype="application/json")
+
+def factory2(request, factory):
+    """
+    Handle requests to /factories/foo-factory resource. Accepts GET and 
+    PUT methods.
+
+    GET:
+    Return a factory and list of labels associated with the factory.
+
+    PUT:
+    Create or update factory arrtributes, intended to be called upon
+    factory start-up. Accepts one or more of the following parameters:
+        + name
+        + email
+        + url
+        + version
+    """
+
+    ip = request.META['REMOTE_ADDR']
+    dt = datetime.now(pytz.utc) - timedelta(days=10)
+
+    if request.method == 'GET':
+        try:
+            f = get_object_or_404(Factory, name=factory)
+
+        except Factory.DoesNotExist:
+            raise Http404
+
+        labels = Label.objects.filter(fid__name=factory).values(
+                               'name', 'msg', 'last_modified', 'pandaq__name')
+
+        f = Factory.objects.filter(name=factory).values('name', 'email',
+                            'url', 'version', 'last_modified',
+                            'last_startup')[0]
+        f['labels'] = list(labels)
+
+        return HttpResponse(json.dumps(f, 
+                            cls=DjangoJSONEncoder,
+                            sort_keys=True,
+                            indent=2),
+                            mimetype="application/json")
+
+    if request.method == 'PUT':
+        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
+        logging.debug(msg)
+
+        data = json.loads(request.body)
+
+        defaults = {
+                'email'   : data['email'],
+                'url'     : data['url'],
+                'version' : data['version'],
+                'ip'      : ip,
+                }
+                
+        f, created = Factory.objects.get_or_create(name=factory,
+                                                   defaults=defaults)
+
+        status = 201 if created else 200
+
+        if not created:
+            if f.email != data['email']:
+                f.email = data['email']
+                f.save() 
+
+            if f.url != data['url']:
+                f.url = data['url']
+                f.save() 
+
+            if f.version != data['version']:
+                f.version = data['version']
+                f.save() 
+
+        f = Factory.objects.filter(name=factory).values()
+
+        return HttpResponse(json.dumps(list(f), 
+                            cls=DjangoJSONEncoder,
+                            sort_keys=True,
+                            indent=2),
+                            status=status,
+                            mimetype="application/json")
 
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, mimetype="text/plain")
@@ -1762,9 +1916,6 @@ def cr(request):
 
     ip = request.META['REMOTE_ADDR']
     jdecode = json.JSONDecoder()
-
-#    msg = "POST DATA: %s %s" % (ip, rawdata)
-#    logging.error(msg)
 
     raw = request.POST.get('data', None)
 
@@ -1794,13 +1945,13 @@ def cr(request):
         pq, created = PandaQueue.objects.get_or_create(name=nick)
         if created:
             msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
-            logging.debug(msg)
+            logging.error(msg)
             pq.save()
     
         f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
         if created:
             msg = "Factory auto-created: %s" % fid
-            logging.debug(msg)
+            logging.error(msg)
         f.last_ncreated = ncreated
         f.save()
     
@@ -1808,17 +1959,18 @@ def cr(request):
             l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
         except MultipleObjectsReturned,e:
             msg = "Multiple objects - apfv2 issue?"
-            logging.warn(msg)
+            logging.error(msg)
             msg = "Multiple objects error"
             return HttpResponseBadRequest(msg, mimetype="text/plain")
 
         if created:
             msg = "Label auto-created: %s" % label
-            logging.debug(msg)
+            logging.error(msg)
     
         try:
             state = State.objects.get(name='CREATED')
-            j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
+            jid = ':'.join((f.name,cid))
+            j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=l)
             j.save()
 
             key = "fcr%d" % f.id
@@ -1844,7 +1996,7 @@ def cr(request):
             msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
             logging.error(msg)
             logging.error(e)
-            msg = 'Failed to create job'
+            msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
     
 # PAL removed to help mon_message table, can use job createion time anyway
@@ -1855,7 +2007,9 @@ def cr(request):
     elapsed = time() - start
     ss.timing(stat,int(elapsed))
 
-    return HttpResponse("OK", mimetype="text/plain")
+    txt = 'job' if len(data) == 1 else 'jobs'
+    context = 'Received %d %s' % (len(data), txt) 
+    return HttpResponse(context, mimetype="text/plain")
 
 def helo(request):
     """
