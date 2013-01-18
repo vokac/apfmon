@@ -103,6 +103,7 @@ class Job(models.Model):
     """
     Represent a condor pilot job
     """
+    jid = models.CharField(max_length=50, blank=False, unique=True)
     created = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
     cid = models.CharField(max_length=16, unique=False, blank=False)
     fid = models.ForeignKey(Factory)
@@ -114,9 +115,8 @@ class Job(models.Model):
     flag = models.BooleanField(default=False)
     class Meta:
         ordering = ('-last_modified', )
-        unique_together = (('fid', 'cid'),)
     def __unicode__(self):
-        return str(self.cid+'_'+self.fid.name)
+        return str(self.jid)
         
     def save(self, *args, **kwargs):
         """

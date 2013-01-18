@@ -1,20 +1,30 @@
-# Django settings for apfmon project.
+# Django settings for atl project.
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+#import logging
+#import sys
+#
+#logging.basicConfig(
+#    level = logging.debug,
+#    format = '    [MON:%(levelname)s] %(message)s',
+##    format = '[MON:%(levelname)s %(asctime)s] %(message)s',
+#    stream = sys.stderr,
+#)
+
 ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
+    ('Peter Love', 'root@localhost'),
 )
 
 MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': '',                      # Or path to database file if using sqlite3.
-        'USER': '',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
+        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'apf',                      # Or path to database file if using sqlite3.
+        'USER': 'atl',                      # Not used with sqlite3.
+        'PASSWORD': 'x4b5f737',             # Not used with sqlite3.
         'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
@@ -23,15 +33,15 @@ DATABASES = {
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
-# In a Windows environment this must be set to your system time zone.
-TIME_ZONE = 'America/Chicago'
+# If running in a Windows environment this must be set to the same as your
+# system time zone.
+TIME_ZONE = 'Europe/London'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-GB'
 
 SITE_ID = 1
-
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
@@ -45,21 +55,22 @@ USE_TZ = True
 
 # Absolute filesystem path to the directory that will hold user-uploaded files.
 # Example: "/home/media/media.lawrence.com/media/"
-MEDIA_ROOT = ''
+MEDIA_ROOT = '/var/www/html/atl/media'
 
 # URL that handles the media served from MEDIA_ROOT. Make sure to use a
 # trailing slash.
 # Examples: "http://media.lawrence.com/media/", "http://example.com/media/"
-MEDIA_URL = ''
+MEDIA_URL = 'http://apfmon.lancs.ac.uk/media/'
 
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/home/media/media.lawrence.com/static/"
-STATIC_ROOT = ''
+STATIC_ROOT = '/var/www/html/apfmon/static/'
 
 # URL prefix for static files.
 # Example: "http://media.lawrence.com/static/"
+#STATIC_URL = 'http://apfmon.lancs.ac.uk/static/'
 STATIC_URL = '/static/'
 
 # Additional locations of static files
@@ -67,6 +78,7 @@ STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    '/var/local/django/atl/static',
 )
 
 # List of finder classes that know how to find static files in
@@ -78,7 +90,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
-SECRET_KEY = 'bmeq&amp;!rg8fybb8a!q)vqowes!j3p0c32sh^=l!u2$)#h6^-4jv'
+SECRET_KEY = '9(zlzxs1k-2^1-t9qs9o3sb30_a!6cgf1ai9i&amp;+bgwg5bom)&amp;d'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
@@ -90,36 +102,56 @@ TEMPLATE_LOADERS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+#    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
+#    'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-ROOT_URLCONF = 'apfmon.urls'
-
-# Python dotted path to the WSGI application used by Django's runserver.
-WSGI_APPLICATION = 'apfmon.wsgi.application'
+ROOT_URLCONF = 'atl.urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+    '/var/local/django/atl/templates',
 )
+
+#PAL debug: INTERNAL_IPS = ('0.0.0.0','148.88.67.14','128.141.152.11')
+
+
+# Python dotted path to the WSGI application used by Django's runserver.
+WSGI_APPLICATION = 'atl.wsgi.application'
+
+CACHES = {
+    'default' : {
+        'BACKEND'    : 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION'   : 'py-stor:11211',
+        'KEY_PREFIX' : 'py-prod',
+    }
+}
 
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
-    'django.contrib.messages',
+#    'django.contrib.messages',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
-    # 'django.contrib.admin',
+    'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
-    # 'django.contrib.admindocs',
+    'django.contrib.admindocs',
+    'atl.mon',
+    'atl.kit',
+    'django.contrib.humanize',
 )
+#INSTALLED_APPS = (
+#    'atl.mon',
+#    'atl.kit',
+#    'debug_toolbar',
+#)
 
 # A sample logging configuration. The only tangible logging
 # performed by this configuration is to send an email to
@@ -139,7 +171,12 @@ LOGGING = {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler'
-        }
+        },
+        'console':{
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+#            'formatter': 'simple'
+        },
     },
     'loggers': {
         'django.request': {

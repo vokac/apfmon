@@ -53,25 +53,67 @@
 </table>
 
 
-{% comment %}
 <h2>APIv2 - coming soon</h2>
 
 <table class=table>
 <tr>
   <th>Resource
-  <th>POST
   <th>GET
   <th>PUT
+  <th>POST
   <th>DELETE
 <tr>
   <td>/factories
-  <td>-
   <td>list factories
-  <td>update factories
+  <td>-
+  <td>-
+  <td>-
+<tr>
+  <td>/factories/<foo-factory>
+  <td>show factory with list of labels
+  <td>create or update factory
+  <td>-
+  <td>-
+<tr>
+  <td>/jobs
+  <td>-return collection of jobs (filtered with query string params)
+  <td>-create a collection of jobs
+  <td>-
+  <td>-
+<tr>
+  <td>/jobs/foo-jobid  (where jid=peter-UK-dev:123456.0)
+  <td>-return specific job
+  <td>-
+  <td>-update a specific job using params from querystring
+  <td>-
+<tr>
+  <td>/sites
+  <td>return collection of sites
+  <td>-
+  <td>-
+  <td>-
+<tr>
+  <td>/sites/foo-site
+  <td>return specific site
+  <td>-
+  <td>-
   <td>-
 
-</table>
+{% comment %}
+others:
+/sites
+/clouds
 {% endcomment %}
+
+</table>
+
+<dl>
+  <dt>Factory
+  <dd>A single instance of an AutoPyFactory.
+  <dt>Job
+  <dd>Representation of a single pilot job. Each submitted wrapper gets to be one of these.
+  <dt>Site
+  <dd>A OIM/GOCDB site as described by the <a href="http://atlas-agis.cern.ch/agis/atlassite/table_view/">AGIS</a>
 
 
 {% endblock %}

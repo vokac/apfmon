@@ -30,7 +30,10 @@ urlpatterns = patterns('atl.mon.views',
     (r'^stats/$', 'stats'),
 
 # APIv2 
+    (r'^factories$', 'factories'),
+    (r'^factories/(?P<factory>\S*)$', 'factory2'),
     (r'^jobs2$', 'jobs2'),
+    (r'^jobs2/(?P<jid>\S*)$', 'job2'),
 
 # non-rendered views
     (r'^c/$', 'cr'),
