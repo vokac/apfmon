@@ -2,7 +2,15 @@ import json
 import random
 import requests
 
-crlist = []
+def result(r):
+    print
+    print 'OK?', r.ok
+    print 'URL', r.url
+    print 'STATUS_CODE', r.status_code
+    print 'CONTENT-TYPE', r.headers['content-type']
+    print 'LOCATION', r.headers['location']
+    print 'TEXT:', r.text
+    print '--------------------------------------------------'
 
 baseuri = 'http://apfmon.lancs.ac.uk/api/'
 baseuri = 'http://py-dev.lancs.ac.uk:8000/api/'
@@ -28,40 +36,41 @@ j2 = {
     }
 
 # payload is a list of dicts defining individual jobs
+print "TEST: PUT /jobs2 with payload defining individual jobs"
 payload = [j1, j2]
 url = baseuri + 'jobs2'
 r = requests.put(url, data=json.dumps(payload))
-print 'OK?', r.ok
-print 'URL', r.url
-print 'STATUS_CODE', r.status_code
-print 'CONTENT-TYPE', r.headers['content-type']
-print 'TEXT:', r.text
+result(r)
+
+print "TEST: GET /jobs2/some-jobid of existing job"
+jid = ':'.join(('peter-uk-dev',j2['cid']))
+url = baseuri + '/'.join(('jobs2',jid))
+r = requests.get(url)
+result(r)
+
+print "TEST: GET /jobs2 with params to refine the query"
+url = baseuri + 'jobs2'
+payload = {
+        'factory' : 'peter-uk-dev',
+        'state'   : 'exiting',
+}
+r = requests.get(url, params=payload)
+result(r)
 
 # /factories GET
 url = baseuri + 'factories'
 r = requests.get(url)
-print 'OK?', r.ok
-print 'URL', r.url
-print 'STATUS_CODE', r.status_code
-print 'CONTENT-TYPE', r.headers['content-type']
-print 'TEXT:', r.text
+result(r)
 
 print "TEST: GET /factories/some-factory of an existing factory"
 url = baseuri + '/'.join(('factories',factory))
 r = requests.get(url)
-print 'OK?', r.ok
-print 'URL', r.url
-print 'STATUS_CODE', r.status_code
-print 'CONTENT-TYPE', r.headers['content-type']
-print 'TEXT:', r.text
+result(r)
 
 print "TEST: GET /factories/some-factory of a non-existing factory"
 url = baseuri + '/'.join(('factories','notme'))
 r = requests.get(url)
-print 'OK?', r.ok
-print 'URL', r.url
-print 'STATUS_CODE', r.status_code
-print 'CONTENT-TYPE', r.headers['content-type']
+result(r)
 
 print "TEST: PUT /factories/some-new-factory non-existing factory"
 factory = '-'.join(('new',str(random.randint(100,999))))
@@ -72,20 +81,11 @@ f = {
      'version' : '0.0.1',
     }
 r = requests.put(url, data=json.dumps(f))
-print 'OK?', r.ok
-print 'URL', r.url
-print 'STATUS_CODE', r.status_code
-print 'CONTENT-TYPE', r.headers['content-type']
-print 'TEXT:', r.text
+result(r)
 
-print "TEST: GET /jobs/some-jobid of existing job"
+print "TEST: POST /jobs2/some-jobid?state=running to change job state"
 jid = ':'.join(('peter-uk-dev',j2['cid']))
-jid = ':'.join(('peter-uk-dev','1237017.0'))
 url = baseuri + '/'.join(('jobs2',jid))
-r = requests.get(url)
-print 'OK?', r.ok
-print 'URL', r.url
-print 'STATUS_CODE', r.status_code
-print 'CONTENT-TYPE', r.headers['content-type']
-print 'TEXT:', r.text
-
+payload = {'state' : 'exiting'}
+r = requests.post(url, params=payload)
+result(r)
