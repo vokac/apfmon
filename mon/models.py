@@ -118,16 +118,6 @@ class Job(models.Model):
     def __unicode__(self):
         return str(self.jid)
         
-    def save(self, *args, **kwargs):
-        """
-        Override sae method to handle state history
-        """
-#        if self.pk:
-#            print 'Pre', self.state
-        super(Job, self).save(*args, **kwargs)
-#        if self.pk:
-#            print 'Post', self.state
-
 #class Pandaid(models.Model):
 #    """
 #    Simple many-to-one pandaid->job
