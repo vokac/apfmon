@@ -1674,17 +1674,51 @@ def job2(request, jid):
         messages = Message.objects.filter(job=job).values('client',
                                    'msg', 'received')
 
-        j = Job.objects.filter(jid=jid).values()[0]
+        jobargs = ('jid', 'cid', 'fid__name', 'created', 'flag',
+                   'label__name', 'last_modified', 'pandaq__name',
+                   'result', 'state__name')
+        j = Job.objects.filter(jid=jid).values(*jobargs)[0]
+
         j['messages'] = list(messages)
 
-        return HttpResponse(json.dumps(j, 
-                            cls=DjangoJSONEncoder,
-                            sort_keys=True,
-                            indent=2),
-                            mimetype="application/json")
+        response = HttpResponse(json.dumps(j, 
+                                cls=DjangoJSONEncoder,
+                                sort_keys=True,
+                                indent=2),
+                                mimetype="application/json")
+        location = "/api/jobs2/%s" % job.jid
+        response['Location'] = location
+        return response
+        
 
     if request.method == 'POST':
-        pass
+        newstate = request.POST.get('state', None)
+
+        if newstate == 'running':
+            if job.state.name != 'CREATED':
+                msg = "Invalid state transition, %s->%s" % (
+                                                job.state.name, newstate)
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+            job.state = State.objects.get(name='RUNNING')
+            job.save()
+            response = HttpResponse('OK', mimetype="text/plain")
+            location = "/api/jobs2/%s" % job.jid
+            response['Location'] = location
+            return response
+
+        elif newstate == 'exiting':
+            if job.state.name != 'RUNNING':
+                msg = "Invalid state transition: %s->%s" % (
+                                                job.state.name, newstate)
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+
+            job.state = State.objects.get(name='EXITING')
+            job.save()
+            return HttpResponse('OK', mimetype="text/plain")
+
+        else:
+            msg = "Invalid data: %s" % dict(request.POST)
+            return HttpResponseBadRequest(msg, mimetype="text/plain")
 
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, mimetype="text/plain")
@@ -1787,9 +1821,32 @@ def jobs2(request):
         return HttpResponse(context, mimetype="text/plain")
 
     if request.method == 'GET':
+        jobs = Job.objects.all()
+        factory = request.GET.get('factory', None)
+        label = request.GET.get('label', None)
+        site = request.GET.get('site', None)
+        state = request.GET.get('state', None)
+        
 
-        context = 'OK'
-        return HttpResponse(context, mimetype="text/plain")
+        if factory:
+            jobs = jobs.filter(fid__name=factory)
+
+        if label:
+            jobs = jobs.filter(label__name=label)
+
+        if state:
+            jobs = jobs.filter(state__name=state.upper())
+
+
+# limit
+# offset
+# state
+
+        return HttpResponse(json.dumps(list(jobs.values('jid','state__name')), 
+                            cls=DjangoJSONEncoder,
+                            sort_keys=True,
+                            indent=2),
+                            mimetype="application/json")
 
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, status=405, mimetype="text/plain")
