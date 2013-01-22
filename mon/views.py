@@ -1657,13 +1657,13 @@ def job2(request, jid):
     """
     Handle requests from /jobs/jobid resource depending on GET or POST
 
+    GET:
+    Return a specific job including list of messages
+
     POST:
     Update the Job using data in the querystring
     state : either 'running' or 'exiting'
     ids   : comma separated list of pandaids (not implemented)
-    
-    GET:
-    Return a specific job including list of messages
     """
 
     ip = request.META['REMOTE_ADDR']
@@ -1697,11 +1697,11 @@ def job2(request, jid):
         if newstate == 'running':
             if job.state.name != 'CREATED':
                 msg = "Invalid state transition, %s->%s" % (
-                                                job.state.name, newstate)
+                                                job.state.name, newstate.upper())
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
             job.state = State.objects.get(name='RUNNING')
             job.save()
-            response = HttpResponse('OK', mimetype="text/plain")
+            response = HttpResponse(mimetype="text/plain")
             location = "/api/jobs2/%s" % job.jid
             response['Location'] = location
             return response
@@ -1709,16 +1709,25 @@ def job2(request, jid):
         elif newstate == 'exiting':
             if job.state.name != 'RUNNING':
                 msg = "Invalid state transition: %s->%s" % (
-                                                job.state.name, newstate)
+                                                job.state.name, newstate.upper())
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = State.objects.get(name='EXITING')
             job.save()
-            return HttpResponse('OK', mimetype="text/plain")
+            return HttpResponse(mimetype="text/plain")
 
         else:
             msg = "Invalid data: %s" % dict(request.POST)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
+
+    if request.method == 'DELETE':
+        if ip == '127.0.0.1':
+            job.delete()
+            return HttpResponse(mimetype="text/plain")
+        else: 
+            context = "Remote deletion is forbidden"
+            return HttpResponseForbidden(context, mimetype="text/plain")
+            
 
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, mimetype="text/plain")
@@ -1747,7 +1756,12 @@ def jobs2(request):
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
         logging.debug(msg)
 
-        jobs = json.loads(request.body)
+        try:
+            jobs = json.loads(request.body)
+            print jobs
+        except ValueError, e:
+            msg = str(e)
+            return HttpResponseBadRequest(msg, mimetype="text/plain")
 
         msg = "Number of jobs in JSON data: %d (%s)" % (len(jobs), ip)
         logging.debug(msg)
@@ -1763,13 +1777,13 @@ def jobs2(request):
             pq, created = PandaQueue.objects.get_or_create(name=nick)
             if created:
                 msg = 'PandaQueue auto-created: %s (%s)' % (nick,factory)
-                logging.debug(msg)
+                logging.warn(msg)
                 pq.save()
     
             f, created = Factory.objects.get_or_create(name=factory, defaults={'ip':ip})
             if created:
                 msg = "Factory auto-created: %s" % factory
-                logging.debug(msg)
+                logging.warn(msg)
             f.last_ncreated = len(jobs)
             f.save()
     
@@ -1796,7 +1810,7 @@ def jobs2(request):
                     val = cache.incr(key)
                 except ValueError:
                     msg = "MISS key: %s" % key
-                    logging.debug(msg)
+                    logging.warn(msg)
                     # key not known so set to current count
                     val = Job.objects.filter(fid=f, state=state).count()
                     added = cache.add(key, val)
@@ -1807,9 +1821,9 @@ def jobs2(request):
                         msg = "Failed to incr key: %s" % key
                         logging.warn(msg)
 
-                if not val % 1000:
-                    msg = "memcached key:%s val:%d" % (key, val)
-                    logging.warn(msg)
+#                if not val % 1000:
+                msg = "memcached key:%s val:%d" % (key, val)
+                logging.warn(msg)
             except Exception, e:
                 msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,jid,state,pq,l)
                 logging.error(msg)
@@ -1837,11 +1851,8 @@ def jobs2(request):
         if state:
             jobs = jobs.filter(state__name=state.upper())
 
-
 # limit
 # offset
-# state
-
         return HttpResponse(json.dumps(list(jobs.values('jid','state__name')), 
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
