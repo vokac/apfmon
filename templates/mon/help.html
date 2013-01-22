@@ -67,7 +67,7 @@
   <td>list factories
   <td>-
   <td>-
-  <td>-
+  <td>-delete a factory (restricted)
 <tr>
   <td>/factories/<foo-factory>
   <td>show factory with list of labels
@@ -82,10 +82,10 @@
   <td>-
 <tr>
   <td>/jobs/foo-jobid  (where jid=peter-UK-dev:123456.0)
-  <td>-return specific job
+  <td>return specific job
   <td>-
-  <td>-update a specific job using params from querystring
-  <td>-
+  <td>update a specific job, curl -d state=running <url> 
+  <td>-delete a job (restricted)
 <tr>
   <td>/sites
   <td>return collection of sites
@@ -109,11 +109,13 @@ others:
 
 <dl>
   <dt>Factory
-  <dd>A single instance of an AutoPyFactory.
+  <dd>A single instance of AutoPyFactory.
   <dt>Job
-  <dd>Representation of a single pilot job. Each submitted wrapper gets to be one of these.
+  <dd>A single pilot job. Each submitted wrapper gets to be one of these.
   <dt>Site
-  <dd>A OIM/GOCDB site as described by the <a href="http://atlas-agis.cern.ch/agis/atlassite/table_view/">AGIS</a>
+  <dd>A site as defined by OIM/GOCDB and listed in <a href="http://atlas-agis.cern.ch/agis/atlassite/table_view/">AGIS</a>
+  <dt>Label
+  <dd>Unique name within a factory for each [queue] defined in the factory config
 
 
 {% endblock %}
