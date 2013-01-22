@@ -10,6 +10,9 @@
   <td>FACTORY
   <td><a href="{% url atl.mon.views.factory job.fid.id %}">{{ job.fid }}</a>
 <tr>
+  <td>JID
+  <td> {{ job.jid }}
+<tr>
   <td>CONDOR_ID
   <td> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
 <tr>
