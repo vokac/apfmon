@@ -1,91 +1,132 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import json
+import os
 import random
 import requests
+import unittest
 
-def result(r):
-    print
-    print 'OK?', r.ok
-    print 'URL', r.url
-    print 'STATUS_CODE', r.status_code
-    print 'CONTENT-TYPE', r.headers['content-type']
-    print 'LOCATION', r.headers['location']
-    print 'TEXT:', r.text
-    print '--------------------------------------------------'
 
-baseuri = 'http://apfmon.lancs.ac.uk/api/'
-baseuri = 'http://py-dev.lancs.ac.uk:8000/api/'
+APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:8000/api/')
 
-nick = 'ANALY_LANCS-nick'
-factory = 'peter-uk-dev'
-label = 'ANALY_LANCS-label'
+def apfmon(*suffix):
+    """Returns url for APFMON resource."""
+    return APFMONURL + '/'.join(suffix)
 
-cid = str(random.randint(1,10000))
-j1 = {
-      'cid'     : cid,
-      'nick'    : nick,
-      'factory' : factory,
-      'label'   : label,
-    }
+class APFmonTestCase(unittest.TestCase):
 
-cid = str(random.randint(1,10000))
-j2 = {
-      'cid'     : cid,
-      'nick'    : nick,
-      'factory' : factory,
-      'label'   : label,
-    }
+    _multiprocess_can_split_ = True
 
-# payload is a list of dicts defining individual jobs
-print "TEST: PUT /jobs2 with payload defining individual jobs"
-payload = [j1, j2]
-url = baseuri + 'jobs2'
-r = requests.put(url, data=json.dumps(payload))
-result(r)
+    def setUp(self):
+        """Create a few jobs, clearly this needs to work too."""
+        self.jobs = []
+        for j in range(3):
+            cid = str(random.randint(1,10000))
+            job = {
+                  'cid'     : 'dev' + cid,
+                  'nick'    : 'dev-nick',
+                  'factory' : 'dev-unittest',
+                  'label'   : 'dev-label',
+                }
+            self.jobs.append(job)
+        payload = json.dumps(self.jobs)
+        url = apfmon('jobs2')
+        r = requests.put(url, data=payload)
 
-print "TEST: GET /jobs2/some-jobid of existing job"
-jid = ':'.join(('peter-uk-dev',j2['cid']))
-url = baseuri + '/'.join(('jobs2',jid))
-r = requests.get(url)
-result(r)
+    def tearDown(self):
+        """Teardown."""
+        for job in self.jobs:
+            jid = ':'.join((job['factory'], job['cid']))
+            url = apfmon('jobs2',jid)
+            r = requests.delete(url)
+        del self.jobs
 
-print "TEST: GET /jobs2 with params to refine the query"
-url = baseuri + 'jobs2'
-payload = {
-        'factory' : 'peter-uk-dev',
-        'state'   : 'exiting',
-}
-r = requests.get(url, params=payload)
-result(r)
+    def test_assertion(self):
+        assert 1
 
-# /factories GET
-url = baseuri + 'factories'
-r = requests.get(url)
-result(r)
+#    def test_HTTP_200_OK_HEAD(self):
+#        r = requests.head(apfmon('get'))
+#        self.assertEqual(r.status_code, 200)
 
-print "TEST: GET /factories/some-factory of an existing factory"
-url = baseuri + '/'.join(('factories',factory))
-r = requests.get(url)
-result(r)
+#    def test_JOBS_200_OK_PUT(self):
+#        payload = json.dumps(self.jobs)
+#        url = apfmon('jobs2')
+#        r = requests.put(url, data=payload)
+#        self.assertEqual(r.status_code, 200)
+        
+    def test_JOBS_200_OK_GET(self):
+#        # create jobs again
+#        payload = json.dumps(self.jobs)
+#        url = apfmon('jobs2')
+#        r = requests.put(url, data=payload)
 
-print "TEST: GET /factories/some-factory of a non-existing factory"
-url = baseuri + '/'.join(('factories','notme'))
-r = requests.get(url)
-result(r)
+        for job in self.jobs:
+            jid = ':'.join((job['factory'], job['cid']))
+            url = apfmon('jobs2',jid)
+            r = requests.put(url)
+            self.assertEqual(r.status_code, 200)
 
-print "TEST: PUT /factories/some-new-factory non-existing factory"
-factory = '-'.join(('new',str(random.randint(100,999))))
-url = baseuri + '/'.join(('factories',factory))
-f = {
-     'url'     : 'http://localhost/',
-     'email'   : 'p.love@lancaster.ac.uk',
-     'version' : '0.0.1',
-    }
-r = requests.put(url, data=json.dumps(f))
-result(r)
+    def test_JOBS_200_OK_GET_WITH_PARAMS(self):
+        """GET list of jobs refined by query params /jobs2"""
+        for job in self.jobs:
+            url = apfmon('jobs2')
+            payload = {
+                    'factory' : 'dev-unittest',
+                    'state'   : 'created',
+                    }
+            r = requests.get(url, params=payload)
+            self.assertEqual(r.status_code, 200)
 
-print "TEST: POST /jobs2/some-jobid?state=running to change job state"
-jid = ':'.join(('peter-uk-dev',j2['cid']))
-url = baseuri + '/'.join(('jobs2',jid))
-payload = {'state' : 'exiting'}
-r = requests.post(url, params=payload)
-result(r)
+    def test_FACTORIES_200_OK_GET_ALL(self):
+        """GET a list of all factories /factories"""
+        url = apfmon('factories')
+        r = requests.get(url)
+        self.assertEqual(r.status_code, 200)
+
+    def test_FACTORIES_200_OK_GET_SINGLE(self):
+        """GET a single factory"""
+        url = apfmon('factories', 'dev-unittest')
+        r = requests.get(url)
+        self.assertEqual(r.status_code, 200)
+        
+    def test_FACTORIES_404_NOTFOUND_GET_NONEXISTENT(self):
+        """GET a single factory which does not exist"""
+        url = apfmon('factories', 'dev-notfound')
+        r = requests.get(url)
+        self.assertEqual(r.status_code, 404)
+
+
+    def test_FACTORIES_201_CREATED_PUT_NEW_FACTORY(self):
+        """PUT a new factory"""
+        factory = '-'.join(('new',str(random.randint(100,999))))
+        url = apfmon('factories',factory)
+        f = {
+             'url'     : 'http://localhost/',
+             'email'   : 'p.love@lancaster.ac.uk',
+             'version' : '0.0.1',
+            }
+        payload = json.dumps(f)
+        r = requests.put(url, data=payload)
+        self.assertEqual(r.status_code, 201)
+
+    def test_JOBS_200_OK_UPDATE_STATE(self):
+        """POST update the job status via query params"""
+        for job in self.jobs:
+            jid = ':'.join((job['factory'],job['cid']))
+            url = apfmon('jobs2',jid)
+            payload = {'state' : 'running'}
+            r = requests.post(url, data=payload)
+            self.assertEqual(r.status_code, 200)
+
+    def test_JOBS_200_OK_UPDATE_INVALID_STATE(self):
+        """POST update the job status via query params"""
+        for job in self.jobs:
+            jid = ':'.join((job['factory'],job['cid']))
+            url = apfmon('jobs2',jid)
+            payload = {'state' : 'exiting'}
+            r = requests.post(url, data=payload)
+            self.assertEqual(r.status_code, 400)
+
+if __name__ == '__main__':
+    unittest.main()
