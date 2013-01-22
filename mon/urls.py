@@ -29,7 +29,7 @@ urlpatterns = patterns('atl.mon.views',
     (r'^test/$', 'test'),
     (r'^stats/$', 'stats'),
 
-# APIv2 
+# APIv2 move to separate app
     (r'^factories$', 'factories'),
     (r'^factories/(?P<factory>\S*)$', 'factory2'),
     (r'^jobs2$', 'jobs2'),
