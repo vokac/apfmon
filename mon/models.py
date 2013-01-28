@@ -103,6 +103,7 @@ class Job(models.Model):
     """
     Represent a condor pilot job
     """
+    jid = models.CharField(max_length=64, blank=False, unique=True)
     created = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
     cid = models.CharField(max_length=16, unique=False, blank=False)
     fid = models.ForeignKey(Factory)
