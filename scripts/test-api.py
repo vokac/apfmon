@@ -31,14 +31,14 @@ class APFmonTestCase(unittest.TestCase):
                 }
             self.jobs.append(job)
         payload = json.dumps(self.jobs)
-        url = apfmon('jobs2')
+        url = apfmon('jobs')
         r = requests.put(url, data=payload)
 
     def tearDown(self):
         """Teardown."""
         for job in self.jobs:
             jid = ':'.join((job['factory'], job['cid']))
-            url = apfmon('jobs2',jid)
+            url = apfmon('jobs',jid)
             r = requests.delete(url)
         del self.jobs
 
@@ -51,26 +51,26 @@ class APFmonTestCase(unittest.TestCase):
 
 #    def test_JOBS_200_OK_PUT(self):
 #        payload = json.dumps(self.jobs)
-#        url = apfmon('jobs2')
+#        url = apfmon('jobs')
 #        r = requests.put(url, data=payload)
 #        self.assertEqual(r.status_code, 200)
         
     def test_JOBS_200_OK_GET(self):
 #        # create jobs again
 #        payload = json.dumps(self.jobs)
-#        url = apfmon('jobs2')
+#        url = apfmon('jobs')
 #        r = requests.put(url, data=payload)
 
         for job in self.jobs:
             jid = ':'.join((job['factory'], job['cid']))
-            url = apfmon('jobs2',jid)
+            url = apfmon('jobs',jid)
             r = requests.put(url)
             self.assertEqual(r.status_code, 200)
 
     def test_JOBS_200_OK_GET_WITH_PARAMS(self):
-        """GET list of jobs refined by query params /jobs2"""
+        """GET list of jobs refined by query params /jobs"""
         for job in self.jobs:
-            url = apfmon('jobs2')
+            url = apfmon('jobs')
             payload = {
                     'factory' : 'dev-unittest',
                     'state'   : 'created',
@@ -114,7 +114,7 @@ class APFmonTestCase(unittest.TestCase):
         """POST update the job status via query params"""
         for job in self.jobs:
             jid = ':'.join((job['factory'],job['cid']))
-            url = apfmon('jobs2',jid)
+            url = apfmon('jobs',jid)
             payload = {'state' : 'running'}
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 200)
@@ -123,7 +123,7 @@ class APFmonTestCase(unittest.TestCase):
         """POST update the job status via query params"""
         for job in self.jobs:
             jid = ':'.join((job['factory'],job['cid']))
-            url = apfmon('jobs2',jid)
+            url = apfmon('jobs',jid)
             payload = {'state' : 'exiting'}
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 400)
