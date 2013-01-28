@@ -21,18 +21,19 @@
 </div>
 
 
-
+<div class="row-fluid">
+<div class=span6>
 <p>
-<table > 
+<table class="table table-compact table-striped"> 
 <tr>
-<th class=colhdr title="factoryId">Factory
+<th title="factory name">Factory
 <th title="jobs created in last cycle">activity
 <th title="age of last modification">when
 <th title="factory version">version
 </tr>
 {% for row in frows %}
-<tr class="{% cycle odd,even %}">
-  <td class="colhdr"><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
+<tr>
+  <td><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
   <td class="{{ row.activity }}">{{ row.factory.last_ncreated }}
   <td class="{{ row.active }}">{{ row.factory.last_modified|timesince_human }}
   {% if row.factory.version %}
@@ -46,5 +47,7 @@
 </table>
 </p>
 
+</div>
+</div>
 
 {% endblock %}
