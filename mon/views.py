@@ -1766,7 +1766,8 @@ def cr(request):
     
         try:
             state = State.objects.get(name='CREATED')
-            j = Job(cid=cid, fid=f, state=state, pandaq=pq, label=l)
+            jid = ':'.join((f.name,cid))
+            j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=l)
             j.save()
 
             key = "fcr%d" % f.id
