@@ -56,7 +56,7 @@ ss = statsd.StatsClient(host='py-heimdallr', port=8125)
 # 4. EXITING <- signal from pilot-wrapper
 # 5. DONE <- signal from cronjob script (mon-expire.py) jobstate=4
 
-def jobs(request, lid, state, p=1):
+def jobs1(request, lid, state, p=1):
     """
     Rendered view of a set of Jobs for particular Label and optional State
     """
@@ -105,7 +105,7 @@ def jobs(request, lid, state, p=1):
     return render_to_response('mon/jobs.html', context)
 
 
-def job(request, fid, cid):
+def job1(request, fid, cid):
     """
     Rendered view of job information
     """
@@ -1653,7 +1653,7 @@ def shout(request):
     
     return HttpResponse("OK", mimetype="text/plain")
 
-def job2(request, jid):
+def job(request, jid):
     """
     Handle requests from /jobs/jobid resource depending on GET or POST
 
@@ -1686,7 +1686,7 @@ def job2(request, jid):
                                 sort_keys=True,
                                 indent=2),
                                 mimetype="application/json")
-        location = "/api/jobs2/%s" % job.jid
+        location = "/api/jobs/%s" % job.jid
         response['Location'] = location
         return response
         
@@ -1702,7 +1702,7 @@ def job2(request, jid):
             job.state = State.objects.get(name='RUNNING')
             job.save()
             response = HttpResponse(mimetype="text/plain")
-            location = "/api/jobs2/%s" % job.jid
+            location = "/api/jobs/%s" % job.jid
             response['Location'] = location
             return response
 
@@ -1732,7 +1732,7 @@ def job2(request, jid):
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, mimetype="text/plain")
 
-def jobs2(request):
+def jobs(request):
     """
     Handle requests from /jobs resource depending on GET or PUT.
 
@@ -1743,7 +1743,9 @@ def jobs2(request):
     nick    : panda queue name
     factory : factory name
     label   : factory label for each queue (name of section in factory config)
-    
+    queue   : computing resource endpoint
+    localqueue : local queue at the endpoint
+ 
     GET:
     Return a list of jobs refined by zero or more URL parameters fid,state,label
 
@@ -1758,7 +1760,6 @@ def jobs2(request):
 
         try:
             jobs = json.loads(request.body)
-            print jobs
         except ValueError, e:
             msg = str(e)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
@@ -1832,7 +1833,8 @@ def jobs2(request):
 
         txt = 'job' if len(jobs) == 1 else 'jobs'
         context = 'Created %d/%d %s, %d not created' % (ncreated, len(jobs), txt, nfailed)
-        return HttpResponse(context, mimetype="text/plain")
+        status = 201 if ncreated else 200
+        return HttpResponse(context, status=status, mimetype="text/plain")
 
     if request.method == 'GET':
         jobs = Job.objects.all()
@@ -1944,8 +1946,12 @@ def factory2(request, factory):
                 'ip'      : ip,
                 }
                 
-        f, created = Factory.objects.get_or_create(name=factory,
-                                                   defaults=defaults)
+        try:
+            f, created = Factory.objects.get_or_create(name=factory,
+                                                       defaults=defaults)
+        except:
+            content = "Unable to create resource using: %s" % data
+            return HttpResponseBadRequest(content, mimetype="text/plain")
 
         status = 201 if created else 200
 
