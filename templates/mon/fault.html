@@ -5,7 +5,9 @@
 
 <h2>Service view - entries with high fraction of jobs in FAULT state</h2>
 
-<table class=text>
+<div class=row-fluid>
+<div class=span8>
+<table class="table table-compact">
 <tr>
 <th title="Label name, unique to each factory">Label
 <th title="Factory name">factory
@@ -31,9 +33,14 @@
 {% endcomment %}
 {% endfor %}
 </table>
+</div>
+</div>
 
 <h2>Service view - Panda queues with only one Factory</h2>
-<table class=text>
+
+<div class=row-fluid>
+<div class=span8>
+<table class="table table-compact">
 <tr>
 <th title="Panda queue">Panda queue
 <th title="Factory count">Factory count
@@ -44,5 +51,7 @@
 {% endfor %}
 
 </table>
+</div>
+</div>
 
 {% endblock %}

@@ -12,8 +12,9 @@
 </p>
 {% endcomment %}
 
-<p>
-<table class="metadata">
+<div class=row-fluid>
+<div class=span6>
+<table class="table table-compact">
 <tr><td>FACTORY<td>{{ factory.name }}
 <tr><td>VERSION <td>{{ factory.version }}
 <tr>
@@ -28,12 +29,12 @@
 <tr><td>IP <td>{{ factory.ip }}
 <tr><td>LOGS <td><a href={{ factory.url }}>{{ factory.url }}</a>
 </table>
-</p>
+</div>
+</div>
 
-
-<table>
+<table class="table table-compact table-striped">
 <tr>
-<th class=colhdr title="">Factory label
+<th title="Unique Label name">Factory label
 <th title="count of created wrappers">created
 <th title="count of running wrappers">running
 <th title="count of exiting wrappers">exiting
@@ -50,10 +51,10 @@
 <tr class="{% cycle odd,even %}">
   <td class=colhdr>
     <a href="{% url 'atl.mon.views.label' row.label.id %}">{{ row.label }}</a>
-  <td class={{ row.statcr }}><a href="{% url 'atl.mon.views.jobs' row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
-  <td><a href="{% url 'atl.mon.views.jobs' row.label.id 'RUNNING' %}">{{ row.nrunning }}</a>
-  <td><a href="{% url 'atl.mon.views.jobs' row.label.id 'EXITING' %}">{{ row.nexiting }}</a>
-  <td><a href="{% url 'atl.mon.views.jobs' row.label.id 'DONE' %}">{{ row.ndone }}</a>
+  <td class={{ row.statcr }}><a href="{% url 'atl.mon.views.jobs1' row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
+  <td><a href="{% url 'atl.mon.views.jobs1' row.label.id 'RUNNING' %}">{{ row.nrunning }}</a>
+  <td><a href="{% url 'atl.mon.views.jobs1' row.label.id 'EXITING' %}">{{ row.nexiting }}</a>
+  <td><a href="{% url 'atl.mon.views.jobs1' row.label.id 'DONE' %}">{{ row.ndone }}</a>
 {% comment %}
   <td><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
   <td class={{ row.statdone }}><a href="{% url atl.mon.views.jobs row.label.id 'DONE' %}">{{ row.ndone }}</a>
@@ -68,4 +69,7 @@
 </tr>
 {% endif %}
 </table>
+</div>
+</div>
+
 {% endblock %}
