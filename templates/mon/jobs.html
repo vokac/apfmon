@@ -1,16 +1,16 @@
 {% extends "mon/base.html" %}
+{% load url from future %}
 {% load timesince_human %}
 
 {% block content %}
 
-<p>
-<table class="metadata">
+<table class="table table-compact">
 <tr>
   <td>FACTORY
-  <td><a href="{% url atl.mon.views.factory fid %}">{{ factoryname }}</a>
+  <td><a href="{% url 'atl.mon.views.factory' fid %}">{{ factoryname }}</a>
 <tr>
   <td>PANDAQ
-  <td><a href="{% url atl.mon.views.pandaq pandaq.id %}">{{ pandaq }}</a>
+  <td><a href="{% url 'atl.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a>
 <tr>
   <td>STATE
   <td> {{ statename }}
@@ -18,10 +18,10 @@
   <td>COUNT
   <td> {{ pages.count }}
 </table>
-</p>
 
-<p>
-<table class=job>
+<div class="row-fluid">
+<div class=span6>
+<table class="table table-compact table-striped">
 <tr>
   <th class=colhdr title="unique jobid">Job
   <th title="current state of this job">state
@@ -33,7 +33,7 @@
 
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td class=colhdr><a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+  <td class=colhdr><a href={% url 'atl.mon.views.job1' j.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% ifequal j.result 20 %}
     <td>miss
@@ -51,11 +51,11 @@
 <tr>
   <td colspan=5 class=right>
     {% if page.has_previous %}
-      <a href="{% url atl.mon.views.jobs label.id statename page.previous_page_number %}">&lt; Newer</a>
+      <a href="{% url 'atl.mon.views.jobs' label.id statename page.previous_page_number %}">&lt; Newer</a>
     {% endif %}
     {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
     {% if page.has_next %}
-      <a href="{% url atl.mon.views.jobs label.id statename page.next_page_number %}">&gt; Older</a>
+      <a href="{% url 'atl.mon.views.jobs' label.id statename page.next_page_number %}">&gt; Older</a>
     {% endif %}
   </td>
 </tr>
@@ -66,6 +66,7 @@
 </tr>
 {% endif %}
 </table>
-</p>
+</div>
+</div>
 
 {% endblock %}

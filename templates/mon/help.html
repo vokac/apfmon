@@ -2,12 +2,6 @@
 
 {% block content %}
 
-<h2>Help and information</h2>
-<ul>
-<li>For help email <a href="mailto:atlas-project-adc-operations-pilot-factory@cern.ch">atlas-project-adc-operations-pilot-factory@cern.ch</a>
-</ul>
-</p>
-
 <h2>Resources</h2>
 
 <dl>
@@ -30,51 +24,14 @@
 <li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
 </ul>
 
-<h2>API</h2>
-
-<table>
-<tr>
-  <th style="text-align: left">Endpoint
-  <th style="text-align: left">Description
-  <th style="text-align: left">Format
-</tr>
-<tr>
-  <td class=left>/h/
-  <td class=left>hello from factory at start-up
-  <td class=left>POST with keys: factoryId,monitorURL,factoryOwner,baseLogDirUrl,versionTag
-</tr>
-<tr>
-  <td class=left>/c/
-  <td class=left>list of created jobids
-  <td class=left>JSON-encoded list of tuples: (cid, nick, fid, label)
-</tr>
-<tr>
-  <td class=left>/m/
-  <td class=left>list of messages to describe status of 'label'
-  <td class=left>JSON-encoded list of tuples: (nick, fid, label, text)
-</tr>
-<tr>
-  <td class=left>/$APFFID/$APFCID/rn/ 
-  <td class=left>ping when job wrapper starts on worker node
-  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
-</tr>
-<tr>
-  <td class=left>/$APFFID/$APFCID/ex/ 
-  <td class=left>ping when job wrapper exits
-  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
-</tr>
-</table>
-
 
 <h2>APIv2 - coming soon</h2>
 
 <p>The base URL for these resources is <code>http://apfmon.lancs.ac.uk/api</code></p>
 
-<h3>Summary</h3>
-
 <div class=row-fluid>
-<div class=span12>
-<table class="table table-condensed table-hover">
+<table class="table table-condensed table-hover table-border">
+<caption>Summary of Resources</caption>
 <tr>
   <th>Resource
   <th>GET
@@ -86,7 +43,7 @@
   <td>list all factories, JSON encoded
   <td>-
   <td>-
-  <td>-delete a factory (restricted)
+  <td class=muted>delete a factory (restricted)
 <tr>
   <td>/factories/foo-factory
   <td>show factory with list of labels
@@ -95,8 +52,8 @@
   <td>-
 <tr>
   <td>/jobs
-  <td>-return collection of jobs (filtered)
-  <td>-create a collection of jobs
+  <td class=muted>return collection of jobs (filtered)
+  <td class=muted>create a collection of jobs
   <td>-
   <td>-
 <tr>
@@ -104,7 +61,7 @@
   <td>return specific job
   <td>-
   <td>update a specific job
-  <td>-delete a job (restricted)
+  <td class=muted>delete a job (restricted)
 <tr>
   <td>/sites
   <td>return collection of sites
@@ -120,13 +77,13 @@
 <tr>
   <td>/labels
   <td>return collection of labels (filtered)
-  <td>-
+  <td class=muted>update a collection of labels
   <td>-
   <td>-
 <tr>
   <td>/labels/foo-label
   <td>return specific label
-  <td>-
+  <td class=muted>update a specific label
   <td>-
   <td>-
 
@@ -138,8 +95,6 @@ Also add/replace /stats...it's slow!
 
 </table>
 </div>
-</div>
-</div>
 
 <h3>Detail and examples</h3>
 
@@ -149,8 +104,6 @@ http://code.google.com/p/google-code-prettify/
 {% endcomment %} 
 
 <div class=row-fluid>
-<div class=span10>
-
 <h4><code>PUT /factories/foo-factory</code></h4>
 <dl class="dl-horizontal">
   <dt>Description
@@ -238,6 +191,40 @@ curl -d "state=running" $url
   <dd>The example job ID 'foo-jobid' is a constructed from colon separated factory name and jobid. eg. foo-factory:123456.0
 </dl>
 </div>
-</div>
+
+<h2>Old API - deprecated</h2>
+
+<table class="table table-bordered">
+<tr>
+  <th style="text-align: left">Endpoint
+  <th style="text-align: left">Description
+  <th style="text-align: left">Format
+</tr>
+<tr>
+  <td class=left>/h/
+  <td class=left>hello from factory at start-up
+  <td class=left>POST with keys: factoryId,monitorURL,factoryOwner,baseLogDirUrl,versionTag
+</tr>
+<tr>
+  <td class=left>/c/
+  <td class=left>list of created jobids
+  <td class=left>JSON-encoded list of tuples: (cid, nick, fid, label)
+</tr>
+<tr>
+  <td class=left>/m/
+  <td class=left>list of messages to describe status of 'label'
+  <td class=left>JSON-encoded list of tuples: (nick, fid, label, text)
+</tr>
+<tr>
+  <td class=left>/$APFFID/$APFCID/rn/ 
+  <td class=left>ping when job wrapper starts on worker node
+  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
+</tr>
+<tr>
+  <td class=left>/$APFFID/$APFCID/ex/ 
+  <td class=left>ping when job wrapper exits
+  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
+</tr>
+</table>
 
 {% endblock %}
