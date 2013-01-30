@@ -16,7 +16,7 @@ Remove jobs from DB which have been in DONE/FAULT state for 24hrs
 
 def main():
     # clean pyf Job
-    dt = datetime.now(pytz.utc) - timedelta(hours=24)
+    dt = datetime.now(pytz.utc) - timedelta(hours=32)
     djobs = Job.objects.filter(state__name='DONE', last_modified__lt=dt)
     fjobs = Job.objects.filter(state__name='FAULT', last_modified__lt=dt)
     
