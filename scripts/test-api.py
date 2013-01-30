@@ -4,8 +4,8 @@ import requests
 
 crlist = []
 
-baseuri = 'http://apfmon.lancs.ac.uk/api/'
 baseuri = 'http://py-dev.lancs.ac.uk:8123/api/'
+baseuri = 'http://apfmon.lancs.ac.uk/api/'
 urlcr = 'http://apfmon.lancs.ac.uk/mon/c'
 
 nick = 'ANALY_LANCS'
