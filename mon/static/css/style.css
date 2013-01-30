@@ -47,6 +47,82 @@ h1              { border-bottom: 2px solid #eee; }
                   border-style:none;
                 }
 */
+
+/* PROD tweaks to bootstrap */
+
+.container {
+  margin-left: 5px;
+}
+.table th, .table td { 
+  border-top: none; 
+  white-space: nowrap;
+/*  text-overflow: ellipsis;
+  overflow: hidden; */
+}
+
+.table-border th, .table-border td { 
+  border-top: 1px solid #dddddd;
+}
+
+.table-compact th,
+.table-compact td {
+  padding: 0px 5px;
+}
+
+.table-striped tbody tr:nth-child(odd) td,
+.table-striped tbody tr:nth-child(odd) th {
+  background: none;
+}
+.table-striped tbody tr:nth-child(even) td,
+.table-striped tbody tr:nth-child(even) th {
+  background-color: #e0eeee;
+}
+
+.muted {
+  color: #cccccc;
+}
+
+.dl-compact dt,
+.dl-compact dd {
+  font-family:monospace;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.dl-horizontal dt {
+  float: left;
+  width: 100px;
+  overflow: hidden;
+  clear: left;
+  text-align: left;
+}
+
+.dl-horizontal dd {
+  margin-left: 120px;
+}
+
+ul, ol {
+padding: 0;
+margin: 0 0 0px 25px;
+}
+
+ul.inline > li,
+ol.inline > li {
+  display: inline-block;
+  padding-right: 10px;
+  padding-left: 0px;
+}
+
+/*
+.table-hover tbody tr:hover td,
+.table-hover tbody tr:hover th {
+  background-color: #f5f5f5;
+}
+
+*/
+
+/* ^^^^^^^^^^^^^^^^^^^^^^^^ */
+
 a {
   color: #0088cc;
   color: rgb(37,75,196);
@@ -63,14 +139,6 @@ a:link {
 
 a:visited {
   color: #0B0080;
-}
-
-/*
-a.fail {color:#cc3118}
-*/
-
-.mute a, .mute td, .mute tr {
-  color: rgb(200,200,200);
 }
 
 input.search-query {
@@ -98,8 +166,6 @@ input[type="text"],
 }
 
 tr.em {background:#DDDDDD}
-tr.even {background:none}
-tr.odd {background:#e0eeee}
 td.online {color:#438843}
 td.offline {color:#aa4343}
 td.brokeroff {color:#444444}
@@ -121,10 +187,8 @@ tr.collapse {visibility:collapse;}
 div.hidden {visibility:collapse;}
 table {
   font-family:monospace;
-  font-size: 13px;
-  border-style:none;
-  border-collapse:collapse;
 }
+/*
 th {
   text-align:right;
   padding-left:0.5em;
@@ -157,7 +221,9 @@ td.num {
     width: inherit;
     overflow: auto;
 }
+*/
 
+/*
 table.text th {
   text-align:left;
 }
@@ -220,8 +286,10 @@ table.log td {
   padding:0 1em;
   text-align:left;
 }
+*/
 
-ul.top li {
+/* old
+ * ul.top li {
   display: inline;
   list-style-type: none;
 }
@@ -230,4 +298,4 @@ ul.top li {
   list-style-type: none;
   padding-right: 0.2em;
 }
-
+*/

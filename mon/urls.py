@@ -20,17 +20,20 @@ urlpatterns = patterns('atl.mon.views',
     (r'^help/?$', 'help'),
     (r'^q/(?P<qid>\d*)/page/(?P<p>\d*)$', 'pandaq'),
     (r'^q/(?P<qid>\d*)/+$', 'pandaq'),
-    (r'^job/(?P<fid>\S*)/(?P<cid>\S*)/?$', 'job'),
-    (r'^jobs/(?P<lid>\d*)/(?P<state>[A-Z]*)/page/(?P<p>\d*)$', 'jobs'),
-    (r'^jobs/(?P<lid>\d*)/(?P<state>[A-Z]*)/?$', 'jobs'),
+    (r'^job1/(?P<fid>\S*)/(?P<cid>\S*)/?$', 'job1'),
+    (r'^jobs1/(?P<lid>\d*)/(?P<state>[A-Z]*)/page/(?P<p>\d*)$', 'jobs1'),
+    (r'^jobs1/(?P<lid>\d*)/(?P<state>[A-Z]*)/?$', 'jobs1'),
     # these rrd time periods: 1h 6h 1d 1w 1m 1y
 #    (r'^img/states-(?P<t>\d[hdwmy])-(?P<fid>\d*)-(?P<qid>\d*).png$', 'img'),
     (r'^debug/$', 'debug'),
     (r'^test/$', 'test'),
     (r'^stats/$', 'stats'),
 
-# APIv2 
-    (r'^api/jobs$', 'jobs2'),
+# APIv2 move to separate app
+    (r'^factories$', 'factories'),
+    (r'^factories/(?P<factory>\S*)$', 'factory2'),
+    (r'^jobs$', 'jobs'),
+    (r'^jobs/(?P<jid>\S*)$', 'job'),
 
 # non-rendered views
     (r'^c/$', 'cr'),

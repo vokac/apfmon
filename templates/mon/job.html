@@ -1,25 +1,27 @@
 {% extends "mon/base.html" %}
+{% load url from future %}
+
 
 {% block title %}UK pilot factory monitor{% endblock %}
 
 {% block content %}
 
-<p>
-<table class="metadata">
+<div class=row-fluid>
+<table class="table table-compact">
 <tr>
   <td>FACTORY
-  <td><a href="{% url atl.mon.views.factory job.fid.id %}">{{ job.fid }}</a>
+  <td><a href="{% url 'atl.mon.views.factory' job.fid.id %}">{{ job.fid }}</a>
 <tr>
-  <td>CONDOR_ID
+  <td>JOB_ID
   <td> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
 <tr>
   <td>PANDAQ
-  <td><a href="{% url atl.mon.views.pandaq job.pandaq.id %}">{{ job.pandaq }}</a>
+  <td><a href="{% url 'atl.mon.views.pandaq' job.pandaq.id %}">{{ job.pandaq }}</a>
 <tr>
   <td>CREATED
   <td>{{ job.created|date:"Y-m-d H:m:s" }} ({{ job.created|timesince }} ago)
 <tr>
-  <td>MODIFIED
+  <td>LAST MODIFIED
   <td> {{ job.last_modified|date:"Y-m-d H:m:s" }} ({{ job.last_modified|timesince }} ago)
 <tr>
   <td>STATE
@@ -50,10 +52,11 @@
 {% endfor %}
 
 </table>
-</p>
+</div>
 
-<p>
-<table>
+<div class=row-fluid>
+<div class=span6>
+<table class="table table-compact">
 <tr class=odd>
 <td>{{ job.created|date:"Y-m-d H:m:s" }}
 <td>{{ job.fid.ip }}
@@ -73,6 +76,7 @@
 {% endifequal %}
 {% endcomment %}
 </table>
-</p>
+</div>
+</div>
 
 {% endblock %}
