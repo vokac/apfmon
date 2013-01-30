@@ -2,13 +2,21 @@
 
 {% block content %}
 
-<h2>Help and information</h2>
-<ul>
-<li>For help email <a href="mailto:atlas-project-adc-operations-pilot-factory@cern.ch">atlas-project-adc-operations-pilot-factory@cern.ch</a>
-</ul>
-</p>
+<h2>Resources</h2>
 
-<h2>States</h2>
+<dl>
+  <dt>Factory
+  <dd>A single instance of AutoPyFactory.
+  <dt>Job
+  <dd>A single pilot job. Each submitted wrapper gets to be one of these.
+  <dt>Site
+  <dd>A site as defined by OIM/GOCDB and listed in <a href="http://atlas-agis.cern.ch/agis/atlassite/table_view/">AGIS</a>
+  <dt>Label
+  <dd>Unique name within a factory for each [queue] defined in the factory config
+</dl>
+
+<h2>Job states</h2>
+
 <ul>
 <li><dfn>CREATED: condor_submit executed, condor_id returned
 <li><dfn>RUNNING: pilot wrapper has started on Worker Node
@@ -17,13 +25,183 @@
 <li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
 </ul>
 
-<h2>API</h2>
 
-<table>
+<h2>APIv2 - coming soon</h2>
+
+<p>
+<div class=row-fluid>
+<table class="table table-condensed table-hover table-border">
+<caption>Summary of Resources, base URL is <code>http://apfmon.lancs.ac.uk/api</code></caption>
 <tr>
-  <th class=colhdr>Endpoint
-  <th class=colhdr>Description
-  <th class=colhdr>Format
+  <th>Resource
+  <th>GET
+  <th>PUT
+  <th>POST
+  <th>DELETE
+<tr>
+  <td>/factories
+  <td>list all factories, JSON encoded
+  <td>-
+  <td>-
+  <td class=muted>delete a factory (restricted)
+<tr>
+  <td>/factories/foo-factory
+  <td>show factory with list of labels
+  <td>create or update factory
+  <td>-
+  <td>-
+<tr>
+  <td>/jobs
+  <td class=muted>return collection of jobs (filtered)
+  <td class=muted>create a collection of jobs
+  <td>-
+  <td>-
+<tr>
+  <td>/jobs/foo-jobid
+  <td>return specific job
+  <td>-
+  <td>update a specific job
+  <td class=muted>delete a job (restricted)
+<tr>
+  <td>/sites
+  <td>return collection of sites
+  <td>-
+  <td>-
+  <td>-
+<tr>
+  <td>/sites/foo-site
+  <td>return specific site
+  <td>-
+  <td>-
+  <td>-
+<tr>
+  <td>/labels
+  <td>return collection of labels (filtered)
+  <td class=muted>update a collection of labels
+  <td>-
+  <td>-
+<tr>
+  <td>/labels/foo-label
+  <td>return specific label
+  <td class=muted>update a specific label
+  <td>-
+  <td>-
+
+{% comment %}
+others:
+/clouds
+Also add/replace /stats...it's slow!
+{% endcomment %}
+
+</table>
+</div>
+
+</p>
+
+<h3>Detail and examples</h3>
+
+{% comment %} 
+http://code.google.com/p/google-code-prettify/
+
+{% endcomment %} 
+
+<div class=row-fluid>
+<h4><code>PUT /factories/foo-factory</code></h4>
+<dl class="dl-horizontal">
+  <dt>Description
+  <dd>Creates or updates Factory with name foo-factory and expects JSON-encoded hash. Factories should send this at startup.
+  <dt>Example
+  <dd>
+<pre>
+# using requests library, HTTP for humans
+url = baseurl + '/factories/foo-factory'
+f = {
+     'url'     : 'http://example.com/logs',
+     'email'   : 'p.love@lancaster.ac.uk',
+     'version' : '1.0.0',
+     }
+payload = json.dumps(f)
+r = requests.put(url, data=payload) 
+print r.status_code
+</pre>
+  <dt>Returns
+  <dd>200 OK or 201 Created plus Location header linking to the factory resource
+  <dt>Errors
+  <dd>400 Bad Request, some detail in response body as Content-type: text/plain
+
+</dl>
+
+<h4><code>PUT /jobs</code></h4>
+<dl class="dl-horizontal">
+  <dt>Description
+  <dd>Creates job collection and expects JSON-encoded list of job hashes. Job hashes should be similar in form to the example. Factories should send the list at the end of each cycle.
+  <dt>Example
+  <dd>
+<pre>
+# using requests library, HTTP for humans
+url = baseurl + '/jobs'
+jobs = [
+        {
+         'cid'        : '123456.0',
+         'nick'       : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf',
+         'factory'    : 'foo-factory',
+         'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_FOOBAR',
+         'queue'      : 'abaddon.hec.lancs.ac.uk/cream-lsf',
+         'localqueue' : 'hex',
+         },
+        {
+         'cid'        : '123456.1',
+         'nick'       : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf',
+         'factory'    : 'foo-factory',
+         'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_FOOBAR',
+         'queue'      : 'abaddon.hec.lancs.ac.uk/cream-lsf',
+         'localqueue' : 'hex',
+         },
+        ]
+
+payload = json.dumps(jobs)
+r = requests.put(url, data=payload)
+print r.status_code
+print r.text
+</pre>
+  <dt>Returns
+  <dd>201 Created if at least one job was created, details in response body as Content-type:text/plain
+  <dt>Errors
+  <dd>400 Bad Request, some detail in response body as Content-type: text/plain
+
+</dl>
+
+
+
+<h4><code>POST /jobs/foo-jobid</code></h4>
+<dl class="dl-horizontal">
+  <dt>Description
+  <dd>Updates the state of an existing job using query string parameters. Primary scenario is for wrapper scripts to notify monitoring when entering 'running' and 'exiting' state.
+  <dt>Example
+  <dd>
+<pre>
+url='http://apfmon.lancs.ac.uk/api/v2/jobs/foo-factory:123456.0'
+curl -d "state=running" $url
+</pre>
+  <dt>Parameters
+  <dd><em>state</em>: can be either 'running' or 'exiting'
+  <dt>Returns
+  <dd>200 OK if job is successfully updated plus Location header linking to the Job resource
+  <dt>Errors
+  <dd>400 Bad Request, some detail in response body as Content-type: text/plain
+  <dt>Notes
+  <dd>The example job ID 'foo-jobid' is a constructed from colon separated factory name and jobid. eg. foo-factory:123456.0
+</dl>
+</div>
+
+<h2>Old API - deprecated</h2>
+
+<div class=row-fluid>
+<table class="table table-bordered">
+<tr>
+  <th style="text-align: left">Endpoint
+  <th style="text-align: left">Description
+  <th style="text-align: left">Format
 </tr>
 <tr>
   <td class=left>/h/
@@ -51,27 +229,6 @@
   <td class=left>GET request with APFFID=factoryId, APFCID=jobid
 </tr>
 </table>
-
-
-{% comment %}
-<h2>APIv2 - coming soon</h2>
-
-<table class=table>
-<tr>
-  <th>Resource
-  <th>POST
-  <th>GET
-  <th>PUT
-  <th>DELETE
-<tr>
-  <td>/factories
-  <td>-
-  <td>list factories
-  <td>update factories
-  <td>-
-
-</table>
-{% endcomment %}
-
+</div>
 
 {% endblock %}
