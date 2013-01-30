@@ -17,6 +17,7 @@
 
 <h2>Job states</h2>
 
+<p>
 <ul>
 <li><dfn>CREATED: condor_submit executed, condor_id returned
 <li><dfn>RUNNING: pilot wrapper has started on Worker Node
@@ -24,14 +25,17 @@
 <li><dfn>DONE: condor jobstate is Completed (or Removed)
 <li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
 </ul>
+</p>
 
+<h2>APIv2</h2>
 
-<h2>APIv2 - coming soon</h2>
+<h3>Summary</h3>
+
+<p>The base URL for these resources is <code>http://apfmon.lancs.ac.uk/api</code></p>
 
 <p>
 <div class=row-fluid>
 <table class="table table-condensed table-hover table-border">
-<caption>Summary of Resources, base URL is <code>http://apfmon.lancs.ac.uk/api</code></caption>
 <tr>
   <th>Resource
   <th>GET
@@ -64,13 +68,13 @@
   <td class=muted>delete a job (restricted)
 <tr>
   <td>/sites
-  <td>return collection of sites
+  <td class=muted>return collection of sites
   <td>-
   <td>-
   <td>-
 <tr>
-  <td>/sites/foo-site
-  <td>return specific site
+  <td class=muted>/sites/foo-site
+  <td class=muted>return specific site
   <td>-
   <td>-
   <td>-
@@ -82,7 +86,7 @@
   <td>-
 <tr>
   <td>/labels/foo-label
-  <td>return specific label
+  <td class=muted>return specific label
   <td class=muted>update a specific label
   <td>-
   <td>-
@@ -180,7 +184,7 @@ print r.text
   <dt>Example
   <dd>
 <pre>
-url='http://apfmon.lancs.ac.uk/api/v2/jobs/foo-factory:123456.0'
+url='http://apfmon.lancs.ac.uk/api/jobs/foo-factory:123456.0'
 curl -d "state=running" $url
 </pre>
   <dt>Parameters
@@ -197,7 +201,7 @@ curl -d "state=running" $url
 <h2>Old API - deprecated</h2>
 
 <div class=row-fluid>
-<table class="table table-bordered">
+<table class=table>
 <tr>
   <th style="text-align: left">Endpoint
   <th style="text-align: left">Description
