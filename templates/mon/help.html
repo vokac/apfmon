@@ -16,6 +16,7 @@
 </dl>
 
 <h2>Job states</h2>
+
 <ul>
 <li><dfn>CREATED: condor_submit executed, condor_id returned
 <li><dfn>RUNNING: pilot wrapper has started on Worker Node
@@ -27,11 +28,10 @@
 
 <h2>APIv2 - coming soon</h2>
 
-<p>The base URL for these resources is <code>http://apfmon.lancs.ac.uk/api</code></p>
-
+<p>
 <div class=row-fluid>
 <table class="table table-condensed table-hover table-border">
-<caption>Summary of Resources</caption>
+<caption>Summary of Resources, base URL is <code>http://apfmon.lancs.ac.uk/api</code></caption>
 <tr>
   <th>Resource
   <th>GET
@@ -95,6 +95,8 @@ Also add/replace /stats...it's slow!
 
 </table>
 </div>
+
+</p>
 
 <h3>Detail and examples</h3>
 
@@ -194,6 +196,7 @@ curl -d "state=running" $url
 
 <h2>Old API - deprecated</h2>
 
+<div class=row-fluid>
 <table class="table table-bordered">
 <tr>
   <th style="text-align: left">Endpoint
@@ -226,5 +229,6 @@ curl -d "state=running" $url
   <td class=left>GET request with APFFID=factoryId, APFCID=jobid
 </tr>
 </table>
+</div>
 
 {% endblock %}

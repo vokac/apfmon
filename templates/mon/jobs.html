@@ -51,11 +51,11 @@
 <tr>
   <td colspan=5 class=right>
     {% if page.has_previous %}
-      <a href="{% url 'atl.mon.views.jobs' label.id statename page.previous_page_number %}">&lt; Newer</a>
+      <a href="{% url 'atl.mon.views.jobs1' label.id statename page.previous_page_number %}">&lt; Newer</a>
     {% endif %}
     {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
     {% if page.has_next %}
-      <a href="{% url 'atl.mon.views.jobs' label.id statename page.next_page_number %}">&gt; Older</a>
+      <a href="{% url 'atl.mon.views.jobs1' label.id statename page.next_page_number %}">&gt; Older</a>
     {% endif %}
   </td>
 </tr>
