@@ -8,7 +8,7 @@ import requests
 import unittest
 
 
-APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:8000/api/')
+APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:80/api/')
 
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
@@ -128,3 +128,5 @@ class APFmonTestCase(unittest.TestCase):
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 400)
 
+if __name__ == '__main__':
+    unittest.main()
