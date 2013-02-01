@@ -8,7 +8,7 @@
 
 <div class=row-fluid>
 <dl class="dl-horizontal dl-compact">
-  <dt>Label name</dt>
+  <dt>Label</dt>
   <dd>{{ row.label }}
   <dt>Factory</dt>
   <dd><a href="{% url 'atl.mon.views.factory' row.label.fid.id %}">{{ row.label.fid }}</a>
@@ -38,8 +38,7 @@
 <div class=span8>
 <table class="table table-compact table-striped">
 <tr>
-  <th class=colhdr>Factory
-  <th>job
+  <th>Job
   <th>state
   <th>payload?
   <th>created
@@ -47,7 +46,6 @@
 </tr>
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td class=colhdr>{{ j.fid }}
   <td><a href={% url 'atl.mon.views.job1' j.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% ifequal j.result 20 %}
