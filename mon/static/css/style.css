@@ -69,6 +69,11 @@ h1              { border-bottom: 2px solid #eee; }
   padding: 0px 5px;
 }
 
+.table-compact th.num,
+.table-compact td.num {
+  text-align: right;
+}
+
 .table-striped tbody tr:nth-child(odd) td,
 .table-striped tbody tr:nth-child(odd) th {
   background: none;
