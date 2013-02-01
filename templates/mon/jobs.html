@@ -43,6 +43,8 @@
   {% endifequal %}
   {% ifequal j.result -1 %}
     <td>-
+  {% else %}
+    <td>{{ j.result }}
   {% endifequal %}
   <td>{{ j.created|timesince_human }}
   <td>{{ j.last_modified|timesince_human }}
