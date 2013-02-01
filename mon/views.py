@@ -29,7 +29,7 @@ from django.http import HttpResponseRedirect
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.core.context_processors import csrf
-from django.core.mail import send_mail
+from django.core.mail import mail_managers
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
@@ -1967,6 +1967,10 @@ def factory2(request, factory):
             if f.version != data['version']:
                 f.version = data['version']
                 f.save() 
+        else:
+            mail_managers('Factory created: %s' % factory,
+                      'Factory created: %s' % factory,
+                      fail_silently=False)
 
         f = Factory.objects.filter(name=factory).values()
 
