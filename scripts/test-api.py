@@ -41,6 +41,8 @@ class APFmonTestCase(unittest.TestCase):
             url = apfmon('jobs',jid)
             r = requests.delete(url)
         del self.jobs
+        url = apfmon('factories','dev-unittest')
+        r = requests.delete(url)
 
     def test_assertion(self):
         assert 1
@@ -49,22 +51,13 @@ class APFmonTestCase(unittest.TestCase):
 #        r = requests.head(apfmon('get'))
 #        self.assertEqual(r.status_code, 200)
 
-#    def test_JOBS_200_OK_PUT(self):
-#        payload = json.dumps(self.jobs)
-#        url = apfmon('jobs')
-#        r = requests.put(url, data=payload)
-#        self.assertEqual(r.status_code, 200)
-        
     def test_JOBS_200_OK_GET(self):
-#        # create jobs again
-#        payload = json.dumps(self.jobs)
-#        url = apfmon('jobs')
-#        r = requests.put(url, data=payload)
-
+        """GET a single job"""
         for job in self.jobs:
             jid = ':'.join((job['factory'], job['cid']))
             url = apfmon('jobs',jid)
             r = requests.put(url)
+            print r.text
             self.assertEqual(r.status_code, 200)
 
     def test_JOBS_200_OK_GET_WITH_PARAMS(self):
@@ -127,6 +120,17 @@ class APFmonTestCase(unittest.TestCase):
             payload = {'state' : 'exiting'}
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 400)
+
+    def test_LABELS_200_OK_GET(self):
+        """GET a single label with associated attributes"""
+        for job in self.jobs:
+            label = job['label']
+            url = apfmon('labels',label)
+            r = requests.get(url)
+            print r.text
+            self.assertEqual(r.status_code, 200)
+        
+        
 
 if __name__ == '__main__':
     unittest.main()
