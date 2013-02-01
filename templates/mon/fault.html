@@ -1,4 +1,5 @@
 {% extends "mon/base.html" %}
+{% load url from future %}
 {% load timesince_human %}
 
 {% block content %}
@@ -11,18 +12,18 @@
 <tr>
 <th title="Label name, unique to each factory">Label
 <th title="Factory name">factory
-<th title="Fraction of jobs flagged">% flagged
-<th title="Fraction of jobs in FAULT state">% fault
-<th title="Fraction of jobs in FAULT state">total job count
+<th class=num title="Fraction of jobs flagged">% flagged
+<th class=num title="Fraction of jobs in FAULT state">% fault
+<th class=num title="Fraction of jobs in FAULT state">total job count
 </tr>
 {% for row in rows %}
 
 <tr class="{% cycle odd,even %}">
-  <td nowrap><a href="{% url atl.mon.views.label row.label.id %}">{{ row.label }}</a>
+  <td nowrap><a href="{% url 'atl.mon.views.label' row.label.id %}">{{ row.label }}</a>
   <td>{{ row.label.fid }}
-  <td>{{ row.flagfrac }}
-  <td><a href="{% url atl.mon.views.jobs row.label.id 'FAULT' %}">{{ row.faultfrac }}</a>
-  <td>{{ row.totjob }}
+  <td class=num>{{ row.flagfrac }}
+  <td class=num><a href="{% url 'atl.mon.views.jobs1' row.label.id 'FAULT' %}">{{ row.faultfrac }}</a>
+  <td class=num>{{ row.totjob }}
 {% comment %}
   <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
 </tr>
@@ -43,11 +44,11 @@
 <table class="table table-compact">
 <tr>
 <th title="Panda queue">Panda queue
-<th title="Factory count">Factory count
+<th class=num title="Factory count">Factory count
 {% for solo in sololist %}
 <tr class="{% cycle odd,even %}">
-  <td nowrap><a href="{% url atl.mon.views.pandaq solo.pandaq__id %}">{{ solo.pandaq__name }}
-  <td>{{ solo.n }}
+  <td nowrap><a href="{% url 'atl.mon.views.pandaq' solo.pandaq__id %}">{{ solo.pandaq__name }}
+  <td class=num>{{ solo.n }}
 {% endfor %}
 
 </table>

@@ -1,38 +1,42 @@
 {% extends "mon/base.html" %}
+{% load url from future %}
 {% load timesince_human %}
 
 {% block content %}
 
 <h2>Cloud view - {{ cloud }}</h2>
 
+<h4>Active factories serving this cloud</h3>
 <p>
 <ul style=list-style-type:none>
-<li>Active factories serving this cloud:
 {% for f in factive %}
-  <li><a href="{% url atl.mon.views.factory f.id %}">{{ f }}</a>
+  <li><a href="{% url 'atl.mon.views.factory' f.id %}">{{ f }}</a>
 {% endfor %}
 </ul>
+</p>
 
+<h4>Inactive factories serving this cloud</h3>
+<p>
 {% if finactive %}
 <ul style=list-style-type:none>
 <li>Inactive factories serving this cloud:
 {% for f in finactive %}
-  <li><a href="{% url atl.mon.views.factory f.id %}">{{ f }}</a>
+  <li><a href="{% url 'atl.mon.views.factory' f.id %}">{{ f }}</a>
 {% endfor %}
 </ul>
 {% endif %}
 </p>
 
-<table class=text>
+<table class="table table-compact table-hover">
 <tr>
 <th class=colhdr title="Site name">Site
 <th title="Panda queue, links to schedconfig">panda queue
 <th title="Panda queue status">state
-<th class=numeric title="nJobs running, all factories">running
+<th title="When last active">activity
 <th title="Schedconfig comment">comment</tr>
 {% for site in sites %}
   <tr>
-    <td class=colhdr><a href="{% url atl.mon.views.site site.id %}">{{ site }}</a>
+    <td class=colhdr><a href="{% url 'atl.mon.views.site' site.id %}">{{ site }}</a>
   </tr>
 
   {% for row in rows %}
@@ -40,10 +44,10 @@
   <tr class="{{ row.class }} {% cycle odd,even %}">
     <td style=background:white>
     <td class="{{ row.class }}" title="{{ row.pandaq.type }}">
-      <a href="{% url atl.mon.views.pandaq row.pandaq.id %}">{{ row.pandaq }}</a>
+      <a href="{% url 'atl.mon.views.pandaq' row.pandaq.id %}">{{ row.pandaq }}</a>
       (<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">p</a>)
     <td class="{{ row.class }}">{{ row.pandaq.state }}
-    <td class="numeric -text">{{ row.running }}
+    <td class="muted">{{ row.pandaq.last_modified|timesince_human }}
     {% if row.url %}
       <td class="note {{ row.class }}"
           title="{{ row.pandaq.last_modified|timesince_human }}">
