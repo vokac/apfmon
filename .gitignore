@@ -6,3 +6,5 @@ develop-eggs/
 eggs/
 env/
 parts/
+settings/security*
+settings/env.py
