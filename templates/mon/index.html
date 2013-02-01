@@ -26,19 +26,19 @@
 <table class="table table-compact table-striped"> 
 <tr>
 <th title="factory name">Factory
-<th title="jobs created in last cycle">activity
-<th title="age of last modification">when
-<th title="factory version">version
+<th class=num title="jobs created in last cycle">activity
+<th class=num title="age of last modification">when
+<th class=num title="factory version">version
 </tr>
 {% for row in frows %}
 <tr>
   <td><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
-  <td class="{{ row.activity }}">{{ row.factory.last_ncreated }}
-  <td class="{{ row.active }}">{{ row.factory.last_modified|timesince_human }}
+  <td class="num {{ row.activity }}">{{ row.factory.last_ncreated }}
+  <td class="num {{ row.active }}">{{ row.factory.last_modified|timesince_human }}
   {% if row.factory.version %}
-    <td>{{ row.factory.version }}
+    <td class=num>{{ row.factory.version }}
   {% else %}
-    <td>-
+    <td class=num>-
   {% endif %}
 </tr>
 {% endfor %}
