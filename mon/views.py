@@ -1469,7 +1469,7 @@ def cloud(request, name):
                 url = SAVANNAHURL % suffix
 
             jobs = Job.objects.filter(pandaq=pandaq)
-            nrunning = jobs.filter(state=rstate).count()
+#            nrunning = jobs.filter(state=rstate).count()
 
             cssclass = pandaq.state 
             if pandaq.type in ['SPECIAL_QUEUE']:
@@ -1481,7 +1481,7 @@ def cloud(request, name):
                     'prefix' : prefix,
                     'suffix' : suffix,
                     'pandaq' : pandaq,
-                    'running' : nrunning,
+#                    'running' : nrunning,
                     'class' : cssclass,
                     }
             rows.append(row)
@@ -1907,17 +1907,16 @@ def factory2(request, factory):
         + email
         + url
         + version
+
+    DELETE:
+    Delete a factory, restricted to localhost
     """
 
     ip = request.META['REMOTE_ADDR']
     dt = datetime.now(pytz.utc) - timedelta(days=10)
 
     if request.method == 'GET':
-        try:
-            f = get_object_or_404(Factory, name=factory)
-
-        except Factory.DoesNotExist:
-            raise Http404
+        f = get_object_or_404(Factory, name=factory)
 
         labels = Label.objects.filter(fid__name=factory).values(
                                'name', 'msg', 'last_modified', 'pandaq__name')
@@ -1955,18 +1954,24 @@ def factory2(request, factory):
 
         status = 201 if created else 200
 
-        if not created:
-            if f.email != data['email']:
-                f.email = data['email']
-                f.save() 
+        if f.email != data['email']:
+            f.email = data['email']
+            f.save() 
 
-            if f.url != data['url']:
-                f.url = data['url']
-                f.save() 
+        if f.url != data['url']:
+            f.url = data['url']
+            f.save() 
 
-            if f.version != data['version']:
-                f.version = data['version']
-                f.save() 
+        if f.version != data['version']:
+            f.version = data['version']
+            f.save() 
+
+        if f.ip != ip:
+            f.ip = ip
+            f.save() 
+
+        f.last_startup = datetime.now(pytz.utc)
+        f.save()
 
         f = Factory.objects.filter(name=factory).values()
 
@@ -1976,6 +1981,15 @@ def factory2(request, factory):
                             indent=2),
                             status=status,
                             mimetype="application/json")
+
+    if request.method == 'DELETE':
+        if ip == '127.0.0.1':
+            f = get_object_or_404(Factory, name=factory)
+            f.delete()
+            return HttpResponse(mimetype="text/plain")
+        else: 
+            context = "Remote deletion is forbidden"
+            return HttpResponseForbidden(context, mimetype="text/plain")
 
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, mimetype="text/plain")
