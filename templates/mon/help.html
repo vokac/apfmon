@@ -2,19 +2,6 @@
 
 {% block content %}
 
-<h2>Resources</h2>
-
-<dl>
-  <dt>Factory
-  <dd>A single instance of AutoPyFactory.
-  <dt>Job
-  <dd>A single pilot job. Each submitted wrapper gets to be one of these.
-  <dt>Site
-  <dd>A site as defined by OIM/GOCDB and listed in <a href="http://atlas-agis.cern.ch/agis/atlassite/table_view/">AGIS</a>
-  <dt>Label
-  <dd>Unique name within a factory for each [queue] defined in the factory config
-</dl>
-
 <h2>Job states</h2>
 
 <p>
@@ -28,6 +15,19 @@
 </p>
 
 <h2>APIv2</h2>
+
+<h3>Resources</h3>
+
+<dl>
+  <dt>Factory
+  <dd>A single instance of AutoPyFactory.
+  <dt>Job
+  <dd>A single pilot job. Each submitted wrapper gets to be one of these.
+  <dt>Site
+  <dd>A site as defined by OIM/GOCDB and listed in <a href="http://atlas-agis.cern.ch/agis/atlassite/table_view/">AGIS</a>
+  <dt>Label
+  <dd>Unique name within a factory for each [queue] defined in the factory config
+</dl>
 
 <h3>Summary</h3>
 
@@ -50,7 +50,7 @@
   <td class=muted>delete a factory (restricted)
 <tr>
   <td>/factories/foo-factory
-  <td>show factory with list of labels
+  <td>return a specific factory
   <td>create or update factory
   <td>-
   <td>-
@@ -80,18 +80,17 @@
   <td>-
 <tr>
   <td>/labels
-  <td>return collection of labels (filtered)
+  <td>get collection of labels (filtered)
   <td class=muted>update a collection of labels
   <td>-
   <td>-
 <tr>
-  <td>/labels/foo-label
-  <td class=muted>return specific label
-  <td class=muted>update a specific label
+  <td>/labels/{id}
+  <td>get specific labels
   <td>-
+  <td>update specific label with status message
   <td>-
 
-{% comment %}
 others:
 /clouds
 Also add/replace /stats...it's slow!

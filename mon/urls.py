@@ -34,8 +34,8 @@ urlpatterns = patterns('atl.mon.views',
     (r'^factories/(?P<factory>\S*)$', 'factory2'),
     (r'^jobs$', 'jobs'),
     (r'^jobs/(?P<jid>\S*)$', 'job'),
-#    (r'^labels2$', 'labels2'),
-#    (r'^labels2/(?P<jid>\S*)$', 'labels2'),
+    (r'^labels2$', 'labels2'),
+    (r'^labels2/(?P<lid>\S*)$', 'label2'),
 
 # non-rendered views
     (r'^c/$', 'cr'),

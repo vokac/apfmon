@@ -8,7 +8,7 @@ import requests
 import unittest
 
 
-APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:80/api/')
+APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:8000/api/')
 
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
@@ -26,7 +26,7 @@ class APFmonTestCase(unittest.TestCase):
             job = {
                   'cid'     : 'dev' + cid,
                   'nick'    : 'dev-nick',
-                  'factory' : 'dev-unittest',
+                  'factory' : 'dev-factory',
                   'label'   : 'dev-label',
                 }
             self.jobs.append(job)
@@ -41,22 +41,22 @@ class APFmonTestCase(unittest.TestCase):
             url = apfmon('jobs',jid)
             r = requests.delete(url)
         del self.jobs
-        url = apfmon('factories','dev-unittest')
+        url = apfmon('factories','dev-factory')
         r = requests.delete(url)
 
-    def test_assertion(self):
-        assert 1
-
-#    def test_HTTP_200_OK_HEAD(self):
-#        r = requests.head(apfmon('get'))
-#        self.assertEqual(r.status_code, 200)
+#    def test_assertion(self):
+#        assert 1
+#
+##    def test_HTTP_200_OK_HEAD(self):
+##        r = requests.head(apfmon('get'))
+##        self.assertEqual(r.status_code, 200)
 
     def test_JOBS_200_OK_GET(self):
         """GET a single job"""
         for job in self.jobs:
             jid = ':'.join((job['factory'], job['cid']))
             url = apfmon('jobs',jid)
-            r = requests.put(url)
+            r = requests.get(url)
             print r.text
             self.assertEqual(r.status_code, 200)
 
@@ -89,7 +89,6 @@ class APFmonTestCase(unittest.TestCase):
         r = requests.get(url)
         self.assertEqual(r.status_code, 404)
 
-
     def test_FACTORIES_201_CREATED_PUT_NEW_FACTORY(self):
         """PUT a new factory"""
         factory = '-'.join(('new',str(random.randint(100,999))))
@@ -112,8 +111,8 @@ class APFmonTestCase(unittest.TestCase):
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 200)
 
-    def test_JOBS_200_OK_UPDATE_INVALID_STATE(self):
-        """POST update the job status via query params"""
+    def test_JOBS_400_UPDATE_INVALID_TRANSITION(self):
+        """POST update the job status with invalid state transition"""
         for job in self.jobs:
             jid = ':'.join((job['factory'],job['cid']))
             url = apfmon('jobs',jid)
@@ -121,16 +120,43 @@ class APFmonTestCase(unittest.TestCase):
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 400)
 
-    def test_LABELS_200_OK_GET(self):
+    def test_JOBS_400_UPDATE_INVALID_STATE(self):
+        """POST update the job status with invalid state name"""
+        for job in self.jobs:
+            jid = ':'.join((job['factory'],job['cid']))
+            url = apfmon('jobs',jid)
+            payload = {'state' : 'bad'}
+            r = requests.post(url, data=payload)
+            self.assertEqual(r.status_code, 400)
+
+    def test_LABELS_200_OK_GET_SINGLE(self):
         """GET a single label with associated attributes"""
         for job in self.jobs:
-            label = job['label']
-            url = apfmon('labels',label)
+            lid = ':'.join((job['factory'],job['label']))
+            url = apfmon('labels2',lid)
             r = requests.get(url)
-            print r.text
             self.assertEqual(r.status_code, 200)
         
+    def test_LABELS_200_OK_GET_WITH_PARAMS(self):
+        """GET labels using parameters"""
+        factory = self.jobs[0]['factory']
+        url = apfmon('labels2')
+        r = requests.get(url)
+        payload = {
+                'factory' : factory,
+                }
+        r = requests.get(url, params=payload)
+        self.assertEqual(r.status_code, 200)
         
+    def test_LABELS_200_OK_UPDATE_STATUS(self):
+        """POST update the label status via query params"""
+        for job in self.jobs:
+            lid = ':'.join((job['factory'],job['label']))
+            url = apfmon('labels2',lid)
+            msg = 'Lorem ipsum dolor sit amet'
+            payload = {'status' : msg}
+            r = requests.post(url, data=payload)
+            self.assertEqual(r.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()

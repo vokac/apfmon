@@ -1674,10 +1674,10 @@ def job(request, jid):
         messages = Message.objects.filter(job=job).values('client',
                                    'msg', 'received')
 
-        jobargs = ('jid', 'cid', 'fid__name', 'created', 'flag',
+        jobfields = ('jid', 'cid', 'fid__name', 'created', 'flag',
                    'label__name', 'last_modified', 'pandaq__name',
                    'result', 'state__name')
-        j = Job.objects.filter(jid=jid).values(*jobargs)[0]
+        j = Job.objects.filter(jid=jid).values(*jobfields)[0]
 
         j['messages'] = list(messages)
 
@@ -1856,6 +1856,180 @@ def jobs(request):
 # limit
 # offset
         return HttpResponse(json.dumps(list(jobs.values('jid','state__name')), 
+                            cls=DjangoJSONEncoder,
+                            sort_keys=True,
+                            indent=2),
+                            mimetype="application/json")
+
+    context = 'HTTP method not supported: %s' % request.method
+    return HttpResponse(context, status=405, mimetype="text/plain")
+
+def label2(request, lid):
+    """
+    Handle requests for the /labels/{lid} resource 
+
+    GET:
+    Return a label identified by {lid} where lid = factory:labelname
+
+    POST:
+    status : message from factory updating status of [queue]
+           : truncated to 140 chars
+    """
+
+    ip = request.META['REMOTE_ADDR']
+
+    factory, name = lid.split(':')
+    label = get_object_or_404(Label, name=name, fid__name=factory)
+
+    if request.method == 'GET':
+        fields = ('id','name','fid__name','msg','last_modified')
+
+        l = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
+        data = list(l)
+
+        return HttpResponse(json.dumps(data,
+                            cls=DjangoJSONEncoder,
+                            sort_keys=True,
+                            indent=2),
+                            mimetype="application/json")
+
+    if request.method == 'POST':
+        status = request.POST.get('status', None)
+        if not status:
+            msg = "Invalid data: %s" % dict(request.POST)
+            return HttpResponseBadRequest(msg, mimetype="text/plain")
+
+        label.msg = status[:140]
+        label.save()
+        response = HttpResponse(mimetype="text/plain")
+        location = "/api/labels/%s" % ':'.join((factory,name))
+        response['Location'] = location
+        return response
+
+    context = "HTTP method not supported: %s" % request.method
+    return HttpResponse(context, status=405, mimetype="text/plain")
+
+
+def labels2(request):
+    """
+    Handle requests for the /labels resource 
+
+    GET:
+    Return a list of all labels
+
+    POST:
+    factory :
+    label :
+    status : 
+    localqueue : local queue at the endpoint
+ 
+    """
+
+    ip = request.META['REMOTE_ADDR']
+
+#    if request.method == 'PUT':
+#
+#        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
+#        logging.debug(msg)
+#
+#        try:
+#            jobs = json.loads(request.body)
+#        except ValueError, e:
+#            msg = str(e)
+#            return HttpResponseBadRequest(msg, mimetype="text/plain")
+#
+#        msg = "Number of jobs in JSON data: %d (%s)" % (len(jobs), ip)
+#        logging.debug(msg)
+#
+#        nfailed = 0
+#        ncreated = 0
+#        for job in jobs:
+#            nick = job['nick']
+#            factory = job['factory']
+#            label = job['label']
+#            cid = job['cid']
+#
+#            pq, created = PandaQueue.objects.get_or_create(name=nick)
+#            if created:
+#                msg = 'PandaQueue auto-created: %s (%s)' % (nick,factory)
+#                logging.warn(msg)
+#                pq.save()
+#    
+#            f, created = Factory.objects.get_or_create(name=factory, defaults={'ip':ip})
+#            if created:
+#                msg = "Factory auto-created: %s" % factory
+#                logging.warn(msg)
+#            f.last_ncreated = len(jobs)
+#            f.save()
+#    
+#            try: 
+#                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+#            except MultipleObjectsReturned,e:
+#                msg = "Multiple objects - apfv2 issue?"
+#                logging.warn(msg)
+#                msg = "Multiple objects error"
+#                return HttpResponseBadRequest(msg, mimetype="text/plain")
+#            if created:
+#                msg = "Label auto-created: %s" % label
+#                logging.debug(msg)
+#    
+#            try:
+#                state = State.objects.get(name='CREATED')
+#                jid = ':'.join((f.name,cid))
+#                j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=l)
+#                j.save()
+#                ncreated += 1
+#
+#                key = "fcr%d" % f.id
+#                try:
+#                    val = cache.incr(key)
+#                except ValueError:
+#                    msg = "MISS key: %s" % key
+#                    logging.warn(msg)
+#                    # key not known so set to current count
+#                    val = Job.objects.filter(fid=f, state=state).count()
+#                    added = cache.add(key, val)
+#                    if added:
+#                        msg = "Added DB count for key %s : %d" % (key, val)
+#                        #logging.warn(msg)
+#                    else:
+#                        msg = "Failed to incr key: %s" % key
+#                        logging.warn(msg)
+#
+##                if not val % 1000:
+#                msg = "memcached key:%s val:%d" % (key, val)
+#                logging.warn(msg)
+#            except Exception, e:
+#                msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,jid,state,pq,l)
+#                logging.error(msg)
+#                logging.error(e)
+#                nfailed += 1
+#
+#        txt = 'job' if len(jobs) == 1 else 'jobs'
+#        context = 'Created %d/%d %s, %d not created' % (ncreated, len(jobs), txt, nfailed)
+#        status = 201 if ncreated else 200
+#        return HttpResponse(context, status=status, mimetype="text/plain")
+
+    if request.method == 'GET':
+        labels = Label.objects.all()
+
+        factory = request.GET.get('factory', None)
+        name = request.GET.get('name', None)
+        pandaq = request.GET.get('pandaq', None)
+        
+        if factory:
+            labels = labels.filter(fid__name=factory)
+
+        if name:
+            jobs = jobs.filter(name=name)
+
+        if pandaq:
+            jobs = jobs.filter(pandaq__name=pandaq)
+
+# limit
+# offset
+        data = list(labels.values('id','name','fid__name','msg','last_modified'))
+        return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
