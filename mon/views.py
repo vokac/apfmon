@@ -2378,9 +2378,10 @@ def msg(request):
             try:
                 l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
             except MultipleObjectsReturned, e:
-                msg = "Multiple objects - apfv2 issue?"
+                msg = "Multiple objects apfv2 error %s %s" %(ip, dict(request.POST))
                 logging.warn(msg)
-                msg = "Multiple objects error"
+                logging.warn(str(e))
+                msg = "Multiple objects error %s %s" %(ip, dict(request.POST))
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             if created:
