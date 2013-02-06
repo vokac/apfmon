@@ -57,7 +57,6 @@ class APFmonTestCase(unittest.TestCase):
             jid = ':'.join((job['factory'], job['cid']))
             url = apfmon('jobs',jid)
             r = requests.get(url)
-            print r.text
             self.assertEqual(r.status_code, 200)
 
     def test_JOBS_200_OK_GET_WITH_PARAMS(self):
@@ -133,14 +132,14 @@ class APFmonTestCase(unittest.TestCase):
         """GET a single label with associated attributes"""
         for job in self.jobs:
             lid = ':'.join((job['factory'],job['label']))
-            url = apfmon('labels2',lid)
+            url = apfmon('labels',lid)
             r = requests.get(url)
             self.assertEqual(r.status_code, 200)
         
     def test_LABELS_200_OK_GET_WITH_PARAMS(self):
         """GET labels using parameters"""
         factory = self.jobs[0]['factory']
-        url = apfmon('labels2')
+        url = apfmon('labels')
         r = requests.get(url)
         payload = {
                 'factory' : factory,
@@ -152,7 +151,7 @@ class APFmonTestCase(unittest.TestCase):
         """POST update the label status via query params"""
         for job in self.jobs:
             lid = ':'.join((job['factory'],job['label']))
-            url = apfmon('labels2',lid)
+            url = apfmon('labels',lid)
             msg = 'Lorem ipsum dolor sit amet'
             payload = {'status' : msg}
             r = requests.post(url, data=payload)

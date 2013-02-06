@@ -49,7 +49,7 @@
   <td>-
   <td class=muted>delete a factory (restricted)
 <tr>
-  <td>/factories/foo-factory
+  <td>/factories/{id}
   <td>return a specific factory
   <td>create or update factory
   <td>-
@@ -61,7 +61,7 @@
   <td>-
   <td>-
 <tr>
-  <td>/jobs/foo-jobid
+  <td>/jobs/{id}
   <td>return specific job
   <td>-
   <td>update a specific job
@@ -73,7 +73,7 @@
   <td>-
   <td>-
 <tr>
-  <td class=muted>/sites/foo-site
+  <td class=muted>/sites/{site}
   <td class=muted>return specific site
   <td>-
   <td>-
@@ -177,7 +177,7 @@ print r.text
 
 
 
-<h4><code>POST /jobs/foo-jobid</code></h4>
+<h4><code>POST /jobs/{id}</code></h4>
 <dl class="dl-horizontal">
   <dt>Description
   <dd>Updates the state of an existing job using query string parameters. Primary scenario is for wrapper scripts to notify monitoring when entering 'running' and 'exiting' state.
@@ -194,7 +194,29 @@ curl -d "state=running" $url
   <dt>Errors
   <dd>400 Bad Request, some detail in response body as Content-type: text/plain
   <dt>Notes
-  <dd>The example job ID 'foo-jobid' is a constructed from colon separated factory name and jobid. eg. foo-factory:123456.0
+  <dd>The {id} is constructed from colon separated factory name and jobid.
+</dl>
+
+<h4><code>POST /labels/{id}</code></h4>
+<dl class="dl-horizontal">
+  <dt>Description
+  <dd>Updates the status message of a Label. Primary scenario is for factories to notify monitoring of it's internal state for a particular [queue].
+  <dt>Example
+  <dd>
+<pre>
+url = "http://apfmon.lancs.ac.uk/api/labels/foo-factory:UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf"
+msg = "Attempt to submit 50 pilots for queue UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf"
+payload = {'status' : msg}
+r = requests.post(url, data=payload)
+</pre>
+  <dt>Parameters
+  <dd><em>status</em>: truncated to 140 characters
+  <dt>Returns
+  <dd>200 OK if Label is successfully updated plus Location header linking to the Label resource
+  <dt>Errors
+  <dd>400 Bad Request, some detail in response body as Content-type: text/plain
+  <dt>Notes
+  <dd>The {id} is constructed from colon separated factory name and Label name. 
 </dl>
 </div>
 
