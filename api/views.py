@@ -416,10 +416,8 @@ def labels(request):
         
         if factory:
             labels = labels.filter(fid__name=factory)
-
         if name:
             jobs = jobs.filter(name=name)
-
         if pandaq:
             jobs = jobs.filter(pandaq__name=pandaq)
 
@@ -428,6 +426,18 @@ def labels(request):
         fields = ('id','name','fid__name','msg','last_modified','queue', 'localqueue')
 
         data = list(labels.values(*fields))
+
+        for d in data:
+            jobs = Job.objects.filter(label=d['id'])
+            d['ncreated'] = jobs.filter(state__name='CREATED').count()
+            d['nrunning'] = jobs.filter(state__name='RUNNING').count()
+            d['nexiting'] = jobs.filter(state__name='EXITING').count()
+            d['ndone'] = jobs.filter(state__name='DONE').count()
+            d['nfault'] = jobs.filter(state__name='FAULT').count()
+            d['factory'] = d['fid__name']
+            del d['fid__name']
+            
+
 
         return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,
