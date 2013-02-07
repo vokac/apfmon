@@ -162,7 +162,9 @@ def jobs(request):
             factory = job['factory']
             label = job['label']
             cid = job['cid']
-
+            queue = job.get('queue', None)
+            localqueue = job.get('localqueue', None)
+            
             pq, created = PandaQueue.objects.get_or_create(name=nick)
             if created:
                 msg = 'PandaQueue auto-created: %s (%s)' % (nick,factory)
@@ -177,7 +179,7 @@ def jobs(request):
             f.save()
     
             try: 
-                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+                lab, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
             except MultipleObjectsReturned,e:
                 msg = "Multiple objects - apfv2 issue?"
                 logging.warn(msg)
@@ -187,10 +189,17 @@ def jobs(request):
                 msg = "Label auto-created: %s" % label
                 logging.debug(msg)
     
+            if lab.queue != queue:
+                lab.queue = queue
+                lab.save()
+            if lab.localqueue != localqueue:
+                lab.queue = localqueue
+                lab.save()
+
             try:
                 state = State.objects.get(name='CREATED')
                 jid = ':'.join((f.name,cid))
-                j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=l)
+                j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=lab)
                 j.save()
                 ncreated += 1
 
@@ -214,7 +223,7 @@ def jobs(request):
                 msg = "memcached key:%s val:%d" % (key, val)
                 logging.warn(msg)
             except Exception, e:
-                msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,jid,state,pq,l)
+                msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,jid,state,pq,lab)
                 logging.error(msg)
                 logging.error(e)
                 nfailed += 1
@@ -270,7 +279,7 @@ def label(request, id):
     label = get_object_or_404(Label, name=name, fid__name=factory)
 
     if request.method == 'GET':
-        fields = ('id','name','fid__name','msg','last_modified')
+        fields = ('id','name','fid__name','msg','last_modified','queue', 'localqueue')
 
         l = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
         data = list(l)
@@ -416,7 +425,10 @@ def labels(request):
 
 # limit
 # offset
-        data = list(labels.values('id','name','fid__name','msg','last_modified'))
+        fields = ('id','name','fid__name','msg','last_modified','queue', 'localqueue')
+
+        data = list(labels.values(*fields))
+
         return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,
                             sort_keys=True,

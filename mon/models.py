@@ -93,6 +93,8 @@ class Label(models.Model):
     pandaq = models.ForeignKey(PandaQueue)
     msg = models.CharField(max_length=140, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
+    queue = models.CharField(max_length=128, blank=True)
+    localqueue = models.CharField(max_length=32, blank=True)
     def __unicode__(self):
         return self.name
     class Meta:
