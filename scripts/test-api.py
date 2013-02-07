@@ -8,7 +8,7 @@ import requests
 import unittest
 
 
-APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:8000/api/')
+APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:80/api/')
 
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
@@ -64,7 +64,7 @@ class APFmonTestCase(unittest.TestCase):
         for job in self.jobs:
             url = apfmon('jobs')
             payload = {
-                    'factory' : 'dev-unittest',
+                    'factory' : 'dev-factory',
                     'state'   : 'created',
                     }
             r = requests.get(url, params=payload)
@@ -78,7 +78,7 @@ class APFmonTestCase(unittest.TestCase):
 
     def test_FACTORIES_200_OK_GET_SINGLE(self):
         """GET a single factory"""
-        url = apfmon('factories', 'dev-unittest')
+        url = apfmon('factories', 'dev-factory')
         r = requests.get(url)
         self.assertEqual(r.status_code, 200)
         

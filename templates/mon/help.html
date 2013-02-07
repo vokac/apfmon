@@ -4,7 +4,8 @@
 
 <h2>Job states</h2>
 
-<p>
+<img src="/static/img/apfmon-states.png">
+
 <ul>
 <li><dfn>CREATED: condor_submit executed, condor_id returned
 <li><dfn>RUNNING: pilot wrapper has started on Worker Node
@@ -12,7 +13,6 @@
 <li><dfn>DONE: condor jobstate is Completed (or Removed)
 <li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
 </ul>
-</p>
 
 <h2>APIv2</h2>
 
@@ -67,18 +67,6 @@
   <td>update a specific job
   <td class=muted>delete a job (restricted)
 <tr>
-  <td>/sites
-  <td class=muted>return collection of sites
-  <td>-
-  <td>-
-  <td>-
-<tr>
-  <td class=muted>/sites/{site}
-  <td class=muted>return specific site
-  <td>-
-  <td>-
-  <td>-
-<tr>
   <td>/labels
   <td>get collection of labels (filtered)
   <td class=muted>update a collection of labels
@@ -88,7 +76,19 @@
   <td>/labels/{id}
   <td>get specific labels
   <td>-
-  <td>update specific label with status message
+  <td>update specific label
+  <td>-
+<tr>
+  <td class=muted>/sites
+  <td class=muted>return collection of sites
+  <td>-
+  <td>-
+  <td>-
+<tr>
+  <td class=muted>/sites/{site}
+  <td class=muted>return specific site
+  <td>-
+  <td>-
   <td>-
 
 {% comment %}
@@ -110,7 +110,7 @@ http://code.google.com/p/google-code-prettify/
 {% endcomment %} 
 
 <div class=row-fluid>
-<h4><code>PUT /factories/foo-factory</code></h4>
+<h4><code>PUT /factories/{id}</code></h4>
 <dl class="dl-horizontal">
   <dt>Description
   <dd>Creates or updates Factory with name foo-factory and expects JSON-encoded hash. Factories should send this at startup.
@@ -205,7 +205,7 @@ curl -d "state=running" $url
   <dd>
 <pre>
 url = "http://apfmon.lancs.ac.uk/api/labels/foo-factory:UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf"
-msg = "Attempt to submit 50 pilots for queue UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf"
+msg = "Attempt to submit 50 pilots"
 payload = {'status' : msg}
 r = requests.post(url, data=payload)
 </pre>
