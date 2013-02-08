@@ -261,7 +261,7 @@ def jobs(request):
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, status=405, mimetype="text/plain")
 
-def label(request, id):
+def label(request, id=None):
     """
     Handle requests for the /labels/{id} resource 
 
@@ -275,16 +275,20 @@ def label(request, id):
 
     ip = request.META['REMOTE_ADDR']
 
-    factory, name = id.split(':')
+    try:
+        factory, name = id.split(':')
+    except ValueError:
+        msg = "Invalid %s request" % request.method
+        return HttpResponseBadRequest(msg, mimetype="text/plain")
+        
     label = get_object_or_404(Label, name=name, fid__name=factory)
 
     if request.method == 'GET':
         fields = ('id','name','fid__name','msg','last_modified','queue', 'localqueue')
 
-        l = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
-        data = list(l)
+        lab = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
 
-        return HttpResponse(json.dumps(data,
+        return HttpResponse(json.dumps(lab,
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
@@ -314,21 +318,26 @@ def labels(request):
     GET:
     Return a list of all labels
 
-    POST:
-    factory :
-    label :
-    status : 
-    localqueue : local queue at the endpoint
- 
+    PUT:
+    Create or update a collection of Labels. Accepts a JSON encoded list of qcl
     """
 
     ip = request.META['REMOTE_ADDR']
 
-#    if request.method == 'PUT':
-#
-#        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
-#        logging.debug(msg)
-#
+    if request.method == 'PUT':
+
+        msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
+        logging.debug(msg)
+
+        mail_managers('PUT /api/labels from: %s' % ip,
+                      'PUT /api/labels from: %s' % ip,
+                      fail_silently=False)
+
+        context = "HTTP method not supported: %s" % request.method
+        return HttpResponse(context, status=405, mimetype="text/plain")
+
+
+
 #        try:
 #            jobs = json.loads(request.body)
 #        except ValueError, e:
