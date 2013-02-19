@@ -2223,12 +2223,20 @@ def cr(request):
         f.save()
     
         try: 
-            l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
-        except MultipleObjectsReturned,e:
-            msg = "Multiple objects - apfv2 issue?"
+            l = Label.objects.get(name=label, fid=f, pandaq=pq)
+        except:
+            msg = 'PAL except:'
             logging.error(msg)
-            msg = "Multiple objects error"
-            return HttpResponseBadRequest(msg, mimetype="text/plain")
+            l = Label(name=label, fid=f, pandaq=pq)
+            created = True
+            
+#        try:
+#            l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+#        except MultipleObjectsReturned,e:
+#            msg = "Multiple objects - apfv2 issue?"
+#            logging.error(msg)
+#            msg = "Multiple objects error"
+#            return HttpResponseBadRequest(msg, mimetype="text/plain")
 
         if created:
             msg = "Label auto-created: %s" % label
@@ -2375,14 +2383,23 @@ def msg(request):
                 f.last_cycle = cycle
             f.save()
         
+
             try:
-                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
-            except MultipleObjectsReturned, e:
-                msg = "Multiple objects apfv2 error %s %s" %(ip, dict(request.POST))
-                logging.warn(msg)
-                logging.warn(str(e))
-                msg = "Multiple objects error %s %s" %(ip, dict(request.POST))
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
+                l = Label.objects.get(name=label, fid=f, pandaq=pq)
+            except:
+                msg = 'PAL except msg()'
+                logging.error(msg)
+                l = Label(name=label, fid=f, pandaq=pq)
+                created = True
+
+#            try:
+#                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+#            except MultipleObjectsReturned, e:
+#                msg = "Multiple objects apfv2 error %s %s" %(ip, dict(request.POST))
+#                logging.warn(msg)
+#                logging.warn(str(e))
+#                msg = "Multiple objects error %s %s" %(ip, dict(request.POST))
+#                return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             if created:
                 msg = "Label auto-created: %s" % label
@@ -2394,7 +2411,6 @@ def msg(request):
                 l.save()
             except Exception, e:
                 msg = "Failed to update label: %s" % l
-                print msg, e
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
     return HttpResponse("OK", mimetype="text/plain")
