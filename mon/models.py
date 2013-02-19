@@ -89,6 +89,7 @@ class Label(models.Model):
     Represents a factory queue
     """
     name = models.CharField(max_length=64, blank=True)
+    created = models.DateTimeField(auto_now_add=True, editable=False)
     fid = models.ForeignKey(Factory)
     pandaq = models.ForeignKey(PandaQueue)
     msg = models.CharField(max_length=140, blank=True)
@@ -100,6 +101,7 @@ class Label(models.Model):
     class Meta:
         get_latest_by = 'last_modified'
         ordering = ('name',)
+        unique_together = ('fid', 'name',)
 
 class Job(models.Model):
     """
