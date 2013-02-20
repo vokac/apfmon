@@ -28,6 +28,7 @@ from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
+from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.mail import mail_managers
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
@@ -48,7 +49,7 @@ ELOGURL = 'https://atlas-logbook.cern.ch/elog/ATLAS+Computer+Operations+Logbook/
 GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
 SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
 
-ss = statsd.StatsClient(host='py-heimdallr', port=8125)
+ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 
 # Flows
 # 1. CREATED <- condor_id (Entry)

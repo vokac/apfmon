@@ -8,6 +8,7 @@ sys.path.append('/var/local/django')
 
 from atl.mon.models import Job
 from datetime import timedelta, datetime
+from django.conf import settings
 from django.core.cache import cache
 
 """
@@ -71,7 +72,8 @@ def main():
 #    print 'FAULT:',fjobs.count()
 
 if __name__ == "__main__":
-    c = statsd.StatsClient(host='py-heimdallr', port=8125)
+    c = statsd.StatsClient(settings.GRAPHITE['host'],
+                           settings.GRAPHITE['port'])
     stat = 'apfmon.monclean'
     start = time()
     rc = main()
