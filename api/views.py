@@ -508,6 +508,9 @@ def factory(request, id):
                 'version' : data['version'],
                 'ip'      : ip,
                 }
+
+        if data.has_key('type'):
+            defaults['factory_type'] = data['type']
                 
         try:
             f, created = Factory.objects.get_or_create(name=id,
@@ -517,6 +520,10 @@ def factory(request, id):
             return HttpResponseBadRequest(content, mimetype="text/plain")
 
         status = 201 if created else 200
+
+        if f.factory_type != data['type']:
+            f.factory_type = data['type']
+            f.save()
 
         if f.email != data['email']:
             f.email = data['email']

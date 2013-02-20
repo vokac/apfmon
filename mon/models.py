@@ -55,6 +55,11 @@ STATES = (
         ('FAULT', 'FAULT'),
         )
 
+FACTORYTYPES = (
+    ('AutoPyFactory', 'AutoPyFactory'),
+    ('glideinWMS', 'glideinWMS'),
+    )
+
 # this provides the base URL pointing to pilot logs
 # todo: set this automatically by sending factory config
 # to webservice when factory starts up
@@ -77,6 +82,7 @@ class Factory(models.Model):
     email = models.EmailField(blank=True)
     url = models.URLField(blank=True, verify_exists=False, default=DEFAULTURL)
     version = models.CharField(max_length=64, blank=True)
+    factory_type = models.CharField(max_length=20, choices=FACTORYTYPES, default='AutoPyFactory')
     last_modified = models.DateTimeField(auto_now=True, editable=False)
     last_startup = models.DateTimeField(editable=True, null=True)
     last_cycle = models.PositiveIntegerField(default=0)
