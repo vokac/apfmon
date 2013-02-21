@@ -2434,7 +2434,7 @@ def search(request):
     logging.debug(url)
     return HttpResponseRedirect(url)
 
-def query(request, q):
+def query(request, q=None):
     """
     Search for a string in pandaq
     """
