@@ -147,7 +147,7 @@ LOGGING = {
 }
 
 GRAPHITE = {
-    'host': 'py-heimdall',
+    'host': 'localhost',
     'port': 8125
 }
 
