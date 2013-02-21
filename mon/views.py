@@ -2411,6 +2411,8 @@ def msg(request):
                 l.save()
             except Exception, e:
                 msg = "Failed to update label: %s" % l
+                logging.error(msg)
+                logging.error(e)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
     return HttpResponse("OK", mimetype="text/plain")
