@@ -47,7 +47,7 @@ urlpatterns = patterns('atl.mon.views',
     (r'^awol/$', 'awol'),
     (r'^stale/$', 'stale'),
     (r'^search/$', 'search'),
-    (r'^query/(?P<q>.+)/$', 'query'),
+    (r'^query/(?P<q>.*)/$', 'query'),
 
 )
 
