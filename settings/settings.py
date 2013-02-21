@@ -145,3 +145,13 @@ LOGGING = {
         },
     }
 }
+
+GRAPHITE = {
+    'host': 'py-heimdall',
+    'port': 8125
+}
+
+try:
+    from settings_local import *
+except ImportError:
+    pass

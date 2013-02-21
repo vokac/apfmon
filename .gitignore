@@ -7,3 +7,4 @@ env/
 parts/
 settings/security*
 settings/env.py
+settings/settings_local.py
