@@ -28,15 +28,16 @@
   <td>{{ job.state }}
 <tr>
   <td>PAYLOAD?
-  {% ifequal job.result 20 %}
+  {% if job.result == 20 %}
     <td>miss
-  {% endifequal %}
-  {% ifequal job.result 0 %}
-    <td>yes
-  {% endifequal %}
-  {% ifequal job.result -1 %}
+  {% elif job.result == -1 %}
     <td>-
-  {% endifequal %}
+  {% elif job.result == 0 %}
+    <td>yes
+  {% else %}
+    <td>\o/
+  {% endif %}
+
 <tr>
   <td>PILOTCODE
   {% ifequal job.result -1 %}

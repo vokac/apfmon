@@ -135,11 +135,11 @@ def job1(request, fid, cid):
     logurl = log % (f.url, date, dir, job.cid)
 
     context = {
-                'outurl' : outurl,
-                'errurl' : errurl,
-                'logurl' : logurl,
-                'job' : job,
-                'msgs' : msgs,
+                'outurl'  : outurl,
+                'errurl'  : errurl,
+                'logurl'  : logurl,
+                'job'     : job,
+                'msgs'    : msgs,
 #                'pids' : pids,
                 }
 
