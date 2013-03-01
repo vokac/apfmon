@@ -9,6 +9,7 @@ from time import time
 sys.path.append('/var/local/django')
 
 from atl.mon.models import Job
+from django.conf import settings
 from django.core.cache import cache
 
 """
@@ -28,13 +29,13 @@ than the specified number of hours
                        type="int",
                        help="Set number of hours for cleaning threshold [default 24]")
     parser.add_option("-q", "--quiet",
-                       dest="logLevel",
+                       dest="loglevel",
                        default=logging.WARNING,
                        action="store_const",
                        const=logging.WARNING,
                        help="Set logging level to WARNING [default]")
     parser.add_option("-v", "--info",
-                       dest="logLevel",
+                       dest="loglevel",
                        default=logging.WARNING,
                        action="store_const",
                        const=logging.INFO,
@@ -42,6 +43,15 @@ than the specified number of hours
 
     (options, args) = parser.parse_args()
 
+    logger = logging.getLogger()
+    logger.setLevel(options.loglevel)
+    fmt = '[APFMON:%(levelname)s %(asctime)s] %(message)s'
+    formatter = logging.Formatter(fmt, '%T')
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    logger.handlers = []
+    logger.addHandler(handler)
+    
     dt = datetime.now(pytz.utc) - timedelta(hours=options.t)
     djobs = Job.objects.filter(state__name='DONE', last_modified__lt=dt)
     fjobs = Job.objects.filter(state__name='FAULT', last_modified__lt=dt)
@@ -103,7 +113,8 @@ than the specified number of hours
 #    print 'FAULT:',fjobs.count()
 
 if __name__ == "__main__":
-    c = statsd.StatsClient(host='py-heimdallr', port=8125)
+    c = statsd.StatsClient(settings.GRAPHITE['host'],
+                           settings.GRAPHITE['port'])
     stat = 'apfmon.monclean'
     start = time()
     rc = main(c)

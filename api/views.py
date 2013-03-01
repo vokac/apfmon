@@ -26,6 +26,7 @@ from django.shortcuts import redirect, render_to_response, get_object_or_404
 #from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
+from django.conf import settings
 from django.core.cache import cache
 #from django.views.decorators.cache import cache_page
 from django.core.mail import mail_managers
@@ -40,7 +41,7 @@ except ImportError, err:
     logging.error('Cannot import json, using simplejson')
     import simplejson as json
 
-ss = statsd.StatsClient(host='py-heimdallr', port=8125)
+ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 
 def job(request, id):
     """
@@ -508,6 +509,9 @@ def factory(request, id):
                 'version' : data['version'],
                 'ip'      : ip,
                 }
+
+        if data.has_key('type'):
+            defaults['factory_type'] = data['type']
                 
         try:
             f, created = Factory.objects.get_or_create(name=id,
@@ -517,6 +521,10 @@ def factory(request, id):
             return HttpResponseBadRequest(content, mimetype="text/plain")
 
         status = 201 if created else 200
+
+        if f.factory_type != data['type']:
+            f.factory_type = data['type']
+            f.save()
 
         if f.email != data['email']:
             f.email = data['email']

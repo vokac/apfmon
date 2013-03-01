@@ -1,7 +1,6 @@
 SERVER_EMAIL = 'atl@py-prod.lancs.ac.uk'
 
 ADMINS = (
-#    ('Peter Love', 'p.love@lancaster.ac.uk'),
     ('Peter Love', 'atl@py-prod.lancs.ac.uk'),
 )
 
@@ -27,3 +26,7 @@ CACHES = {
 }
 
 
+GRAPHITE = {
+    'host': 'py-heimdallr',
+    'port': 8125
+}

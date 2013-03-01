@@ -33,6 +33,7 @@ from atl.mon.models import Job
 from atl.mon.models import Message
 from atl.mon.models import State
 #from atl.mon.models import Factory
+from django.conf import settings
 from django.core.cache import cache
 
 def main():
@@ -214,7 +215,8 @@ def main():
 if __name__ == "__main__":
 #    connection = Connection('py-stor', 27017)
 #    db = connection.jobdb
-    c = statsd.StatsClient(host='py-heimdallr', port=8125)
+    c = statsd.StatsClient(settings.GRAPHITE['host'],
+                           settings.GRAPHITE['port'])
     stat = 'apfmon.monexpire'
     start = time()
     rc = main()

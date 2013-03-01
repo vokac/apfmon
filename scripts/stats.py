@@ -9,6 +9,7 @@ from atl.mon.models import Job
 from atl.mon.models import Label
 from atl.mon.models import Message
 #from atl.mon.models import Pandaid
+from django.conf import settings
 from django.db.models import Count
 
 """
@@ -16,7 +17,7 @@ Get info about DB and print or publish to statsd
 """
 
 # http://statsd.readthedocs.org/en/latest/index.html
-c = statsd.StatsClient(host='py-heimdallr', port=8125)
+c = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 
 jobcount = Job.objects.count()
 flagcount = Job.objects.filter(flag=True).count()

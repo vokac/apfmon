@@ -3,7 +3,7 @@ DEBUG = True
 SERVER_EMAIL = 'atl@py-dev.lancs.ac.uk'
 
 ADMINS = (
-    ('Peter Love', 'p.love@lancaster.ac.uk'),
+    ('Peter Love', 'atl@py-dev.lancs.ac.uk'),
 )
 
 MANAGERS = ADMINS
@@ -27,4 +27,7 @@ CACHES = {
     }
 }
 
-
+GRAPHITE = {
+    'host': 'py-heimdallr',
+    'port': 8125
+}
