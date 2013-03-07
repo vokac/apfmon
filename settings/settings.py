@@ -136,6 +136,11 @@ LOGGING = {
             'class': 'logging.StreamHandler',
 #            'formatter': 'simple'
         },
+        'stderr': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+#            'formatter': 'simple',
+        },
     },
     'loggers': {
         'django.request': {
@@ -148,7 +153,17 @@ LOGGING = {
 
 GRAPHITE = {
     'host': 'localhost',
-    'port': 8125
+    'port': 8125,
+}
+
+MEMCACHED = {
+    'host': 'localhost',
+    'port': 11211,
+}
+
+REDIS = {
+    'host': 'localhost',
+    'port': 6379,
 }
 
 try:
