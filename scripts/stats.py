@@ -37,10 +37,10 @@ print 'Total factory count : ', factorycount
 c.gauge('apfmon.nfactory', factorycount)
 
 
-counts = Job.objects.values('state__name').annotate(count=Count('id'))
-
-for count in counts:
-  print count['state__name'], ':', count['count']
+## this is a slow query
+#counts = Job.objects.values('state__name').annotate(count=Count('id'))
+#for count in counts:
+#  print count['state__name'], ':', count['count']
 
 vers = list(Factory.objects.values_list('version', flat=True))
 for v in set(vers): 
