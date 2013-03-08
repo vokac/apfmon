@@ -65,7 +65,7 @@
 </tr>
 {% for m in msgs %}
 <tr class="{% cycle even,odd %}">
-<td>{{ m.received|date:"Y-m-d H:m:s" }}
+<td>{{ m.received|date:"Y-m-d H:i:s" }}
 <td>{{ m.client }}
 <td>{{ m.msg }}
 </tr>
