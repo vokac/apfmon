@@ -19,10 +19,10 @@
   <td><a href="{% url 'atl.mon.views.pandaq' job.pandaq.id %}">{{ job.pandaq }}</a>
 <tr>
   <td>CREATED
-  <td>{{ job.created|date:"Y-m-d H:m:s" }} ({{ job.created|timesince }} ago)
+  <td>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
 <tr>
   <td>LAST MODIFIED
-  <td> {{ job.last_modified|date:"Y-m-d H:m:s" }} ({{ job.last_modified|timesince }} ago)
+  <td> {{ job.last_modified|date:"Y-m-d H:i:s" }} ({{ job.last_modified|timesince }} ago)
 <tr>
   <td>STATE
   <td>{{ job.state }}
@@ -59,7 +59,7 @@
 <div class=span6>
 <table class="table table-compact table-striped">
 <tr class=odd>
-<td>{{ job.created|date:"Y-m-d H:m:s" }}
+<td>{{ job.created|date:"Y-m-d H:i:s" }}
 <td>{{ job.fid.ip }}
 <td>CREATED
 </tr>
