@@ -69,7 +69,7 @@
 <tr>
   <td>/labels
   <td>get collection of labels (filtered)
-  <td class=muted>update a collection of labels
+  <td>update a collection of labels
   <td>-
   <td>-
 <tr>
@@ -145,17 +145,17 @@ print r.status_code
 # using requests library, HTTP for humans
 url = baseurl + '/jobs'
 jobs = [
-        {
+    {
          'cid'        : '123456.0',
          'factory'    : 'foo-factory',
-         'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_FOOBAR',
-         },
-        {
+         'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_1224',
+    },
+    {
          'cid'        : '123456.1',
          'factory'    : 'foo-factory',
-         'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_FOOBAR',
-         },
-        ]
+         'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_1224',
+    },
+]
 
 payload = json.dumps(jobs)
 r = requests.put(url, data=payload)
@@ -191,15 +191,15 @@ curl -d "state=running" $url
   <dd>The {id} is constructed from colon separated factory name and jobid.
 </dl>
 
-<h4><code>POST /labels</code></h4>
+<h4><code>PUT /labels</code></h4>
 <dl class="dl-horizontal">
   <dt>Description
   <dd>Creates or updates a collection of Labels. Primary scenario is for factories to notify monitoring of it's list of configured queues.
   <dt>Example
   <dd>
 <pre>
-url = "http://apfmon.lancs.ac.uk/api/labels"
-payload = [
+url = baseurl + '/labels'
+labels = [
     {
         'name'         : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_1224',
         'factory'      : 'foo-factory',
@@ -217,7 +217,7 @@ payload = [
         'localqueue'   : 'q',
     }
 ]
-
+payload = json.dumps(labels)
 r = requests.put(url, data=payload)
 </pre>
   <dt>Returns
@@ -236,7 +236,7 @@ r = requests.put(url, data=payload)
   <dt>Example
   <dd>
 <pre>
-url = "http://apfmon.lancs.ac.uk/api/labels/foo-factory:UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf"
+url = baseurl + '/labels/foo-factory:UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_1224'
 msg = "Attempt to submit 50 pilots"
 payload = {'status' : msg}
 r = requests.post(url, data=payload)
