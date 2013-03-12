@@ -3,13 +3,11 @@
 
 {% block content %}
 
+<div class="alert alert-info">
+  <strong>Note:</strong> some factories are not monitored pending move to APFv2
+</div>
+
 <h2>ATLAS pilot factory monitor</h2>
-
-{% comment %}
-<p>Service degraded due to IO problem with our hosting service. They are working on it.  -Thurs. Jan 12th</p>
-  <label for="q"></label>
-{% endcomment %}
-
 
 <div class="row">
   <div class="span6">
@@ -30,7 +28,7 @@
 <th class=num title="age of last modification">when
 <th class=num title="factory version">version
 </tr>
-{% for row in frows %}
+{% for row in rows %}
 <tr>
   <td><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
   <td class="num {{ row.activity }}">{{ row.factory.last_ncreated }}

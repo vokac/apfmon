@@ -2,7 +2,7 @@ from atl.kit.models import Cloud
 from atl.kit.models import Tag
 from atl.kit.models import Site
 from atl.kit.models import PandaSite
-from atl.kit.models import PandaQueue
+from atl.kit.models import BatchQueue
 
 import csv
 import logging
@@ -24,7 +24,7 @@ def pandaqueues(request):
     Return list of panda queues
     """
 
-    qs = PandaQueue.objects.all()
+    qs = BatchQueue.objects.all()
 
     response = HttpResponse(mimetype='text/plain')
     writer = csv.writer(response)
@@ -42,7 +42,7 @@ def pandasites(request):
 
     queues = []
     for site in sites:
-        qs = PandaQueue.objects.filter(site=site)
+        qs = BatchQueue.objects.filter(site=site)
         queues += qs
 
     response = HttpResponse(mimetype='text/plain')
@@ -96,7 +96,7 @@ def update(request):
         d = jdict[pq]
         if not d: continue
 
-        msg = 'Updating AGIS PandaQueue: %s' % pq
+        msg = 'Updating AGIS BatchQueue: %s' % pq
         logging.debug(msg)
         try:
             cloud, created = Cloud.objects.get_or_create(name=d['cloud'])
@@ -127,9 +127,9 @@ def update(request):
             defaults = {'name' : d['nickname'],
                         'pandasite' : pandasite,
                         }
-            pandaq, created = PandaQueue.objects.get_or_create(name=d['nickname'], defaults=defaults)
+            pandaq, created = BatchQueue.objects.get_or_create(name=d['nickname'], defaults=defaults)
             if created:
-                msg = "PandaQueue auto-created: %s" % pandaq
+                msg = "BatchQueue auto-created: %s" % pandaq
                 print msg
                 logging.warn(msg)
 

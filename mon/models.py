@@ -1,5 +1,5 @@
 from django.db import models
-from atl.kit.models import PandaQueue
+from atl.kit.models import BatchQueue
 
 # Pilotjob STATE
 # 
@@ -97,10 +97,10 @@ class Label(models.Model):
     name = models.CharField(max_length=64, blank=True)
     created = models.DateTimeField(auto_now_add=True, editable=False)
     fid = models.ForeignKey(Factory)
-    pandaq = models.ForeignKey(PandaQueue)
+    batchqueue = models.ForeignKey(BatchQueue)   # aka pandaqueue
     msg = models.CharField(max_length=140, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
-    queue = models.CharField(max_length=128, blank=True)
+    resource = models.CharField(max_length=128, blank=True)
     localqueue = models.CharField(max_length=32, blank=True)
     def __unicode__(self):
         return self.name
@@ -114,13 +114,11 @@ class Job(models.Model):
     Represent a condor pilot job
     """
     jid = models.CharField(max_length=64, blank=False, unique=True)
-    created = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
     cid = models.CharField(max_length=16, unique=False, blank=False)
-    fid = models.ForeignKey(Factory)
-    last_modified = models.DateTimeField(auto_now=True, editable=False, db_index=True)
-    state = models.ForeignKey(State)
-    pandaq = models.ForeignKey(PandaQueue, db_index=True)
     label = models.ForeignKey(Label)
+    state = models.CharField(max_length=16, choices=STATES, default='CREATED')
+    created = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
+    last_modified = models.DateTimeField(auto_now=True, editable=False, db_index=True)
     result = models.SmallIntegerField(blank=True, default=-1)
     flag = models.BooleanField(default=False)
     class Meta:
@@ -136,19 +134,6 @@ class Job(models.Model):
 #    job = models.ForeignKey(Job)
 #    def __unicode__(self):
 #        return str(self.pid)
-
-class Message(models.Model):
-    """
-    Record messages like state changes
-    """
-    job = models.ForeignKey(Job, editable=False)
-    received = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
-    msg = models.CharField(max_length=140, blank=True)
-    client = models.IPAddressField(editable=False)
-    class Meta:
-        get_latest_by = 'received'
-    def __unicode__(self):
-        return str(self.msg[:23])
 
 #class StateHistory(models.Model):
 #    """

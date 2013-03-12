@@ -13,6 +13,7 @@ CLOUDS = (
         ('IT', 'IT'),
         ('ND', 'ND'),
         ('NL', 'NL'),
+        ('RU', 'RU'),
         ('TW', 'TW'),
         ('UK', 'UK'),
         ('US', 'US'),
@@ -71,7 +72,7 @@ class PandaSite(models.Model):
     class Meta:
         ordering = ['name']
 
-class PandaQueue(models.Model):
+class BatchQueue(models.Model):
     """
     Represents a Panda queue (nickname)
     """

@@ -2,6 +2,7 @@ from datetime import timedelta, datetime
 import logging
 from optparse import OptionParser
 import pytz
+import redis
 import statsd
 import sys
 from time import time
@@ -11,6 +12,8 @@ sys.path.append('/var/local/django')
 from atl.mon.models import Job
 from django.conf import settings
 from django.core.cache import cache
+
+r = redis.StrictRedis(host=settings.REDIS['host'], port=6379, db=0)
 
 """
 Remove jobs from DB which have been in DONE/FAULT state for
@@ -64,6 +67,12 @@ than the specified number of hours
     c.gauge('apfmon.fclean',fjobs.count())
     djobs.delete()
     fjobs.delete()
+
+    # remove messages from redis
+    jobids = djobs.values_list('jid', flat=True)
+    r.delete(jobids)
+    jobids = fjobs.values_list('jid', flat=True)
+    r.delete(jobids)
 
 # commented with suspicion of slow query
 

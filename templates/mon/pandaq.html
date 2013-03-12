@@ -80,8 +80,8 @@
 </tr>
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td class=colhdr>{{ j.fid }}
-  <td><a href={% url 'atl.mon.views.job1' j.fid.id j.cid %}>{{ j.cid }}</a>
+  <td class=colhdr>{{ j.label.fid }}
+  <td><a href={% url 'atl.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% if j.result == 20 %}
     <td>miss

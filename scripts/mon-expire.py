@@ -3,25 +3,13 @@ import pytz
 import redis
 import statsd
 import sys
+import time
 from datetime import timedelta, datetime
 from optparse import OptionParser
 from pymongo import Connection
-from time import time
+from django.conf import settings
 
-
-r = redis.StrictRedis(host='localhost', port=6379, db=0)
-
-#
-##collection = db.jobs
-#
-#job = {'name' : 'some-job-id',
-#       'msgs' : [ {'received' : 'somedate', 'msg' : 'some message', 'client' : 'some IP'},
-#                  {'received' : 'somedate', 'msg' : 'some message', 'client' : 'some IP'},
-#                ]
-#}
-#
-#db.jobs.insert(job);
-#
+r = redis.StrictRedis(host=settings.REDIS['host'], port=6379, db=0)
 
 """
 Enforce various timeouts by moving jobs to FAULT state
@@ -32,30 +20,29 @@ sys.path.append('/var/local/django')
 from atl.mon.models import Job
 from atl.mon.models import Message
 from atl.mon.models import State
-#from atl.mon.models import Factory
 from django.conf import settings
 from django.core.cache import cache
 
 def main():
     usage = "usage: %prog [options]"
     parser = OptionParser(usage=usage)
-    parser.add_option("-q", action="store_true", default=False,
-                      help="quiet mode", dest="quiet")
-    parser.add_option("-d", action="store_true", default=False,
-                      help="debug mode", dest="debug")
+    parser.add_option("-q", "--quiet",
+                       dest="loglevel",
+                       default=logging.WARNING,
+                       action="store_const",
+                       const=logging.WARNING,
+                       help="Set logging level to WARNING [default]")
+    parser.add_option("-v", "--info",
+                       dest="loglevel",
+                       default=logging.WARNING,
+                       action="store_const",
+                       const=logging.INFO,
+                       help="Set logging level to INFO [default WARNING]")
     (options, args) = parser.parse_args()
-    if len(args) != 0:
-        parser.error("incorrect number of arguments")
-        return 1
-    loglevel = 'INFO'
-    if options.quiet:
-        loglevel = 'WARNING'
-    if options.debug:
-        loglevel = 'DEBUG'
 
     logger = logging.getLogger()
-    logger.setLevel(logging._levelNames[loglevel])
-    fmt = '[MON:%(levelname)s %(asctime)s] %(message)s'
+    logger.setLevel(options.loglevel)
+    fmt = '[APFMON:%(levelname)s %(asctime)s] %(message)s'
     formatter = logging.Formatter(fmt, '%T')
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
@@ -75,7 +62,6 @@ def main():
 
     # created state
     deltat = datetime.now(pytz.utc) - timedelta(hours=ctimeout)
-#    cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat)
     cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat, flag=False)
     logging.info("Stale created: %d" % cjobs.count())
     
@@ -98,85 +84,39 @@ def main():
             'RUNNING' : 'frn',
             'EXITING' : 'fex',
             }
-################
 
     for j in cjobs:
         # flag stale created jobs
         if j.flag: continue
-        # PAL commented to reduce mon_message table
-        #msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
-        #m = Message(job=j, msg=msg, client="127.0.0.1")
-        #m.save()
-#        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
-# redis here....
+        logging.info(j.jid)
+        msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
+        element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+        r.rpush(j.jid, element)
         j.flag = True
         j.save()
 
     for j in rjobs:
         # flag stale running jobs
         if j.flag: continue
-        # PAL commented to reduce mon_message table
-        #msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
-        #m = Message(job=j, msg=msg, client="127.0.0.1")
-        #m.save()
-#        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
+        msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
+        element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+        r.rpush(j.jid, element)
         j.flag = True
         j.save()
 
     for j in fjobs:
         # move flagged jobs to FAULT state
         msg = "Job flagged for >%dhrs so setting state to FAULT" % ftimeout
-        m = Message(job=j, msg=msg, client="127.0.0.1")
-        m.save()
-#        db.jobs.update({'name': j.id},{ '$push' : { 'msgs' : msg} }, upsert=True)
-        msg = "%s_%s: %s -> FAULT, stale job" % (j.fid.name, j.cid, j.state)
-        logging.debug(msg)
+        element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+        r.rpush(j.jid, element)
         j.state = fstate
         j.save()
-
-################
-
-#        prefix = skey[statenow.name]
-#        key = "%s%d" % (prefix, j.fid.id)
-#        try:
-#            val = cache.decr(key)
-#        except ValueError:
-#            # key not known so set to current count
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            val = Job.objects.filter(fid=j.fid, state=statenow).count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.debug(msg)
-#            else:
-#                msg = "Failed to decr key: %s" % key
-#                logging.debug(msg)
-#
-#        key = "fft%d" % j.fid.id
-#        try:
-#            val = cache.incr(key)
-#        except ValueError:
-#            # key not known so set to current count
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            val = Job.objects.filter(fid=j.fid, state=fstate).count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.debug(msg)
-#            else:
-#                msg = "Failed to incr key: %s" % key
-#                logging.debug(msg)
-
 
     for j in ejobs:
         # move EXITING jobs to DONE state
         msg = "%s -> DONE" % j.state
-        m = Message(job=j, msg=msg, client="127.0.0.1")
-        m.save()
-        msg = "%s_%s: %s -> DONE" % (j.fid.name, j.cid, j.state)
-        logging.debug(msg)
+        element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+        r.rpush(j.jid, element)
         j.state = dstate
         j.save()
 
@@ -218,8 +158,8 @@ if __name__ == "__main__":
     c = statsd.StatsClient(settings.GRAPHITE['host'],
                            settings.GRAPHITE['port'])
     stat = 'apfmon.monexpire'
-    start = time()
+    start = time.time()
     rc = main()
-    elapsed = time() - start
+    elapsed = time.time() - start
     c.timing(stat,int(elapsed))
     sys.exit(rc)

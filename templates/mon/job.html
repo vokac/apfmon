@@ -10,19 +10,19 @@
 <table class="table table-compact">
 <tr>
   <td>FACTORY
-  <td><a href="{% url 'atl.mon.views.factory' job.fid.id %}">{{ job.fid }}</a>
+  <td><a href="{% url 'atl.mon.views.factory' factory.id %}">{{ factory }}</a>
 <tr>
   <td>JOB_ID
   <td> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
 <tr>
   <td>PANDAQ
-  <td><a href="{% url 'atl.mon.views.pandaq' job.pandaq.id %}">{{ job.pandaq }}</a>
+  <td><a href="{% url 'atl.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
 <tr>
   <td>CREATED
-  <td>{{ job.created|date:"Y-m-d H:m:s" }} ({{ job.created|timesince }} ago)
+  <td>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
 <tr>
   <td>LAST MODIFIED
-  <td> {{ job.last_modified|date:"Y-m-d H:m:s" }} ({{ job.last_modified|timesince }} ago)
+  <td> {{ job.last_modified|date:"Y-m-d H:i:s" }} ({{ job.last_modified|timesince }} ago)
 <tr>
   <td>STATE
   <td>{{ job.state }}
@@ -59,13 +59,13 @@
 <div class=span6>
 <table class="table table-compact table-striped">
 <tr class=odd>
-<td>{{ job.created|date:"Y-m-d H:m:s" }}
-<td>{{ job.fid.ip }}
+<td>{{ job.created|date:"Y-m-d H:i:s" }}
+<td>{{ factory.ip }}
 <td>CREATED
 </tr>
 {% for m in msgs %}
 <tr class="{% cycle even,odd %}">
-<td>{{ m.received|date:"Y-m-d H:m:s" }}
+<td>{{ m.received|date:"Y-m-d H:i:s" }}
 <td>{{ m.client }}
 <td>{{ m.msg }}
 </tr>

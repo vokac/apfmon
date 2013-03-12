@@ -7,7 +7,6 @@ import random
 import requests
 import unittest
 
-
 APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:80/api/')
 
 def apfmon(*suffix):
@@ -44,10 +43,10 @@ class APFmonTestCase(unittest.TestCase):
         url = apfmon('factories','dev-factory')
         r = requests.delete(url)
 
-#    def test_assertion(self):
-#        assert 1
-#
-##    def test_HTTP_200_OK_HEAD(self):
+    def test_assertion(self):
+        assert 1
+
+#    def test_HTTP_200_OK_HEAD(self):
 ##        r = requests.head(apfmon('get'))
 ##        self.assertEqual(r.status_code, 200)
 
@@ -148,6 +147,16 @@ class APFmonTestCase(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         
     def test_LABELS_200_OK_UPDATE_STATUS(self):
+        """POST update the label status via query params"""
+        for job in self.jobs:
+            lid = ':'.join((job['factory'],job['label']))
+            url = apfmon('labels',lid)
+            msg = 'Lorem ipsum dolor sit amet'
+            payload = {'status' : msg}
+            r = requests.post(url, data=payload)
+            self.assertEqual(r.status_code, 200)
+
+    def xtest_LABELS_200_OK_UPDATE_STATUS(self):
         """POST update the label status via query params"""
         for job in self.jobs:
             lid = ':'.join((job['factory'],job['label']))

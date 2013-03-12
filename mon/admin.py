@@ -1,28 +1,18 @@
 from django.contrib import admin
 
-from atl.mon.models import State
 from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
-#from atl.mon.models import Pandaid
-from atl.mon.models import Message
 
 class JobAdmin(admin.ModelAdmin):
     list_display = (
                     'cid',
+                    'created',
                     'last_modified',
-                    'fid',
+                    'label',
                     'state',
                     'result',
-                    'pandaq',
-                   )
-
-class MessageAdmin(admin.ModelAdmin):
-    list_display = (
-                    'job',
-                    'received',
-                    'client',
-                    'msg',
+                    'flag',
                    )
 
 class LabelAdmin(admin.ModelAdmin):
@@ -31,6 +21,9 @@ class LabelAdmin(admin.ModelAdmin):
                     'fid',
                     'msg',
                     'last_modified',
+                    'resource',
+                    'localqueue',
+                    'batchqueue',
                    )
 
 class FactoryAdmin(admin.ModelAdmin):
@@ -42,9 +35,6 @@ class FactoryAdmin(admin.ModelAdmin):
                     'last_modified',
                    )
 
-admin.site.register(State)
-admin.site.register(Factory, FactoryAdmin)
 admin.site.register(Job, JobAdmin)
-#admin.site.register(Pandaid)
-admin.site.register(Message, MessageAdmin)
 admin.site.register(Label, LabelAdmin)
+admin.site.register(Factory, FactoryAdmin)

@@ -1,24 +1,22 @@
-from atl.mon.models import State
 from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
-from atl.mon.models import Message
-#from atl.mon.models import Pandaid
 
 from atl.kit.models import Cloud
 from atl.kit.models import Tag
 from atl.kit.models import Site
-from atl.kit.models import PandaQueue
+from atl.kit.models import BatchQueue
 from atl.kit.models import PandaSite
 
 import csv
 import logging
 import pytz
 import re
+import redis
 import statsd
 import string
 import sys
-from time import time
+import time
 from operator import itemgetter
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
@@ -50,6 +48,7 @@ GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
 SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
+r = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 
 # Flows
 # 1. CREATED <- condor_id (Entry)
@@ -62,26 +61,10 @@ def jobs1(request, lid, state, p=1):
     Rendered view of a set of Jobs for particular Label and optional State
     """
 
-    l = get_object_or_404(Label, id=int(lid))
-    if state == 'ACTIVE':
-        s = None
-        states = ['CREATED','RUNNING','EXITING']
-    else:
-        s = get_object_or_404(State, name=state)
-        states = [s.name]
+    lab = get_object_or_404(Label, id=int(lid))
 
-    jobs = Job.objects.filter(label=l).order_by('-last_modified')
-
-    dt = datetime.now(pytz.utc) - timedelta(hours=1)
-    if s:
-        if s.name in ['DONE', 'FAULT']:
-            #jobs = jobs.filter(state=s, last_modified__gt=dt)
-            jobs = jobs.filter(state=s)
-        else:
-            jobs = jobs.filter(state=s)
-    else:
-        jobs = jobs.filter(state__name__in=['CREATED','RUNNING','EXITING'])
-
+    jobs = Job.objects.filter(label=lab,state=state)
+    jobs = jobs.order_by('-last_modified')
     pages = Paginator(jobs, 100)
 
     try:
@@ -90,17 +73,15 @@ def jobs1(request, lid, state, p=1):
         page = pages.page(pages.num_pages)
 
     context = {
-                'label' : l,
-                'name' : l.name,
-                'factoryname' : l.fid.name,
-                'fid' : l.fid.id,
-                'pandaq' : l.pandaq,
+                'label' : lab,
+                'name' : lab.name,
+                'factoryname' : lab.fid.name,
+                'fid' : lab.fid.id,
+                'pandaq' : lab.batchqueue,
                 'statename' : state,
-                'states' : states,
                 'jobs' : jobs,
                 'pages' : pages,
                 'page' : page,
-                'dt' : dt,
                 }
 
     return render_to_response('mon/jobs.html', context)
@@ -111,17 +92,29 @@ def job1(request, fid, cid):
     Rendered view of job information
     """
 
-    # handle Factory id and name
+    # handle both Factory id and name
     try:
         id = int(fid)
         f = get_object_or_404(Factory, id=id)
     except ValueError:
         f = get_object_or_404(Factory, name=fid)
         
-    job = get_object_or_404(Job, fid=f, cid=cid)
+    jid = ':'.join((f.name,cid))
+    job = get_object_or_404(Job, jid=jid)
 
-#    pids = Pandaid.objects.filter(job=job)
-    msgs = Message.objects.filter(job=job).order_by('received')
+    msglist = r.lrange(job.jid, 0, -1)
+
+    msgs = []
+    for msg in msglist:
+        # msg is a string with format:
+        # "<epoch_time> <client_ip> <some message with spaces>"
+        (t, ip, txt) = msg.split(' ',2)
+        msg = {'received' : datetime.fromtimestamp(float(t)),
+               'client'   : ip,
+               'msg'      : txt, 
+             }
+ 
+        msgs.append(msg)
 
     date = ''
     if f.factory_type != 'glideinWMS':
@@ -137,10 +130,13 @@ def job1(request, fid, cid):
     errurl = err % (f.url, date, dir, job.cid)
     logurl = log % (f.url, date, dir, job.cid)
 
+    
+    # datetime.fromtimestamp(time.time())
     context = {
                 'outurl'  : outurl,
                 'errurl'  : errurl,
                 'logurl'  : logurl,
+                'factory' : f,
                 'job'     : job,
                 'msgs'    : msgs,
 #                'pids' : pids,
@@ -202,17 +198,11 @@ def factory(request, fid):
         raise Http404
 
     f = get_object_or_404(Factory, id=id)
-    pandaqs = PandaQueue.objects.all()
+    pandaqs = BatchQueue.objects.all()
     labels = Label.objects.filter(fid=f)
-    jobs = Job.objects.filter(fid=f)
+    jobs = Job.objects.filter(label__fid=f)
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     dtlab = datetime.now(pytz.utc) - timedelta(weeks=3)
-
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
 
     lifetime = 300
     rows = []
@@ -233,7 +223,7 @@ def factory(request, fid):
             msg = "MISS key: %s" % key
             logging.debug(msg)
             # key not known so set to current count
-            val = jobs.filter(label=lab, state=cstate).count()
+            val = jobs.filter(label=lab, state='created').count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -249,7 +239,7 @@ def factory(request, fid):
             msg = "MISS key: %s" % key
             logging.debug(msg)
             # key not known so set to current count
-            val = jobs.filter(label=lab, state=rstate).count()
+            val = jobs.filter(label=lab, state='running').count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -265,7 +255,7 @@ def factory(request, fid):
             msg = "MISS key: %s" % key
             logging.debug(msg)
             # key not known so set to current count
-            val = jobs.filter(label=lab, state=estate).count()
+            val = jobs.filter(label=lab, state='exiting').count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -281,7 +271,7 @@ def factory(request, fid):
             msg = "MISS key: %s" % key
             logging.debug(msg)
             # key not known so set to current count
-            val = jobs.filter(label=lab, state=dstate).count()
+            val = jobs.filter(label=lab, state='done').count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -290,12 +280,6 @@ def factory(request, fid):
                 msg = "Failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
         ndone = val
-
-#        ncreated = jobs.filter(label=lab, state=cstate).count()
-#        nrunning = jobs.filter(label=lab, state=rstate).count()
-#        nexiting = jobs.filter(label=lab, state=estate).count()
-#        ndone = jobs.filter(label=lab, state=dstate, last_modified__gt=dt).count()
-#        nfault = jobs.filter(label=lab, state=fstate, last_modified__gt=dt).count()
 
         statcr = 'pass'
         if ncreated >= 500:
@@ -319,7 +303,7 @@ def factory(request, fid):
     
         row = {
             'label' : lab,
-            'pandaq' : lab.pandaq,
+            'pandaq' : lab.batchqueue,
 #            'graph' : url % q.id,
             'ncreated' : ncreated,
             'nrunning' : nrunning,
@@ -348,19 +332,13 @@ def pandaq(request, qid, p=1):
     Rendered view of panda queue for all factories
     """
 
-    q = get_object_or_404(PandaQueue, id=qid)
+    q = get_object_or_404(BatchQueue, id=qid)
 
-    labels = Label.objects.filter(pandaq=q)
+    labels = Label.objects.filter(batchqueue=q)
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     dtdead = datetime.now(pytz.utc) - timedelta(days=10)
-    # factories with labels serving selected pandaq
+    # factories with labels serving selected batchqueue
     fs = Factory.objects.filter(label__in=labels)
-
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
 
     rows = []
     for lab in labels:
@@ -373,15 +351,15 @@ def pandaq(request, qid, p=1):
         ndone = 0
         nfault = 0
         jobs = Job.objects.filter(label=lab)
-        ncreated = jobs.filter(state=cstate).count()
-        nrunning = jobs.filter(state=rstate).count()
-        nexiting = jobs.filter(state=estate).count()
-#        ndone = jobs.filter(state=dstate, last_modified__gt=dt).count()
-        ndone = jobs.filter(state=dstate).count()
-#        nfault = jobs.filter(state=fstate, last_modified__gt=dt).count()
-        nfault = jobs.filter(state=fstate).count()
-#        nmiss = jobs.filter(state=dstate, last_modified__gt=dt, result=20).count()
-        nmiss = jobs.filter(state=dstate, result=20).count()
+        ncreated = jobs.filter(state='created').count()
+        nrunning = jobs.filter(state='running').count()
+        nexiting = jobs.filter(state='exiting').count()
+#        ndone = jobs.filter(state='done', last_modified__gt=dt).count()
+        ndone = jobs.filter(state='done').count()
+#        nfault = jobs.filter(state='fault', last_modified__gt=dt).count()
+        nfault = jobs.filter(state='fault').count()
+#        nmiss = jobs.filter(state='done', last_modified__gt=dt, result=20).count()
+        nmiss = jobs.filter(state='done', result=20).count()
     
         row['jobcount'] = {
                 'created' : ncreated,
@@ -422,8 +400,8 @@ def pandaq(request, qid, p=1):
 
         rows.append(row)
 
-    pages = Paginator(Job.objects.filter(pandaq=qid).order_by('-last_modified'), 100)
-    jobs = Job.objects.filter(pandaq=qid).order_by('-last_modified')[:100]
+    pages = Paginator(Job.objects.filter(label__batchqueue=qid).order_by('-last_modified'), 100)
+    jobs = Job.objects.filter(label__batchqueue=qid).order_by('-last_modified')[:100]
 
     context = {
             'pandaq' : q,
@@ -445,12 +423,6 @@ def oldindex(request):
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     jobs = Job.objects.all()
 
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
-
     rows = []
     for f in factories:
         ncreated = 0
@@ -459,11 +431,11 @@ def oldindex(request):
         ndone = 0
         nfault = 0
         ntotal = jobs.count()
-        ncreated = jobs.filter(fid=f, state=cstate).count()
-        nrunning = jobs.filter(fid=f, state=rstate).count()
-        nexiting = jobs.filter(fid=f, state=estate).count()
-        ndone = jobs.filter(fid=f, state=dstate, last_modified__gt=dt).count()
-        nfault = jobs.filter(fid=f, state=fstate, last_modified__gt=dt).count()
+        ncreated = jobs.filter(fid=f, state='created').count()
+        nrunning = jobs.filter(fid=f, state='running').count()
+        nexiting = jobs.filter(fid=f, state='exiting').count()
+        ndone = jobs.filter(fid=f, state='done', last_modified__gt=dt).count()
+        nfault = jobs.filter(fid=f, state='fault', last_modified__gt=dt).count()
         statdone = 'pass'
         if nexiting == 0:
             statdone = 'fail'
@@ -515,8 +487,8 @@ def count(request, state=None, fid=None, qid=None):
     q = None
     if qid:
         try:
-            q = PandaQueue.objects.get(id=qid)
-        except PandaQueue.DoesNotExist:
+            q = BatchQueue.objects.get(id=qid)
+        except BatchQueue.DoesNotExist:
             if qid != '0':
                 msg = "Queue %s not found when counting" % qid
                 logging.debug(msg)
@@ -535,20 +507,20 @@ def count(request, state=None, fid=None, qid=None):
 
     if f:
         if q and s:
-            jobs = Job.objects.filter(fid=f, state=s, pandaq=q)
+            jobs = Job.objects.filter(fid=f, state=s, label__batchqueue=q)
         elif s:
             jobs = Job.objects.filter(fid=f, state=s)
         elif q:
-            jobs = Job.objects.filter(fid=f, pandaq=q)
+            jobs = Job.objects.filter(fid=f, label__batchqueue=q)
         else:
             jobs = Job.objects.filter(fid=f)
     else:
         if q and s:
-            jobs = Job.objects.filter(state=s, pandaq=q)
+            jobs = Job.objects.filter(state=s, label__batchqueue=q)
         elif s:
             jobs = Job.objects.filter(state=s)
         elif q:
-            jobs = Job.objects.filter(pandaq=q)
+            jobs = Job.objects.filter(label__batchqueue=q)
         else:
             jobs = Job.objects.all()
 
@@ -626,8 +598,8 @@ def st(request):
             j.save()
 
     if msg:
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        r.rpush(j.jid, element)
     else:
         msg = "HANDLE-THIS %s: Current:%s, js=%s, gs=%s" % (j.cid, j.state, js, gs)
         j.flag = True
@@ -724,8 +696,8 @@ def stale(request):
             j.save()
     
         if msg:
-            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-            m.save()
+            element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+            r.rpush(j.jid, element)
 
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -734,7 +706,7 @@ def rn(request, fid, cid):
     Handle 'rn' signal from a running job
     """
     stat = 'apfmon.rn'
-    start = time()
+    start = time.time()
 
     try:
         f = Factory.objects.get(name=fid)
@@ -745,7 +717,7 @@ def rn(request, fid, cid):
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
     try:
-        j = Job.objects.get(cid=cid, fid=f)
+        j = Job.objects.get(cid=cid, label__fid=f)
     except Job.DoesNotExist, e:
         msg = "RN unknown job: %s_%s" % (f, cid)
 #PAL - pending fix for apfv2        logging.warn(msg)
@@ -754,91 +726,93 @@ def rn(request, fid, cid):
 
     msg = None
 
-    if j.state.name == 'CREATED':
+    if j.state == 'created':
         msg = "%s -> RUNNING" % j.state
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
-        j.state = State.objects.get(name='RUNNING')
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        r.rpush(j.jid, element)
+
+        j.state = 'running'
         if j.flag:
             j.flag = False
             msg = "RUNNING now, flag cleared"
-            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-            m.save()
+            element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+            r.rpush(j.jid, element)
         j.save()
 
-        key = "fcr%d" % f.id
-        try:
-            val = cache.decr(key)
-        except ValueError:
-            # key not known so set to current count
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            val = Job.objects.filter(fid=f, state__name='CREATED').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-            else:
-                msg = "Failed to decr key: %s" % key
-                logging.warn(msg)
-
-        key = "frn%d" % f.id
-        try:
-            val = cache.incr(key)
-        except ValueError:
-            # key not known so set to current count
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
-            else:
-                msg = "Failed to incr key: %s" % key
-                logging.warn(msg)
-
-        key = "lcr%d" % j.label.id
-        try:
-            val = cache.decr(key)
-        except ValueError:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = Job.objects.filter(label=j.label, state__name='CREATED').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
-            else:
-                msg = "Failed to decr key: %s" % key
-                logging.warn(msg)
-
-        key = "lrn%d" % j.label.id
-        try:
-            val = cache.incr(key)
-        except ValueError:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = Job.objects.filter(label=j.label, state__name='RUNNING').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
-            else:
-                msg = "Failed to incr key: %s" % key
-                logging.warn(msg)
+#        key = "fcr%d" % f.id
+#        try:
+#            val = cache.decr(key)
+#        except ValueError:
+#            # key not known so set to current count
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            val = Job.objects.filter(fid=f, state__name='CREATED').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.warn(msg)
+#            else:
+#                msg = "Failed to decr key: %s" % key
+#                logging.warn(msg)
+#
+#        key = "frn%d" % f.id
+#        try:
+#            val = cache.incr(key)
+#        except ValueError:
+#            # key not known so set to current count
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.debug(msg)
+#            else:
+#                msg = "Failed to incr key: %s" % key
+#                logging.warn(msg)
+#
+#        key = "lcr%d" % j.label.id
+#        try:
+#            val = cache.decr(key)
+#        except ValueError:
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            # key not known so set to current count
+#            val = Job.objects.filter(label=j.label, state__name='CREATED').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.debug(msg)
+#            else:
+#                msg = "Failed to decr key: %s" % key
+#                logging.warn(msg)
+#
+#        key = "lrn%d" % j.label.id
+#        try:
+#            val = cache.incr(key)
+#        except ValueError:
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            # key not known so set to current count
+#            val = Job.objects.filter(label=j.label, state__name='RUNNING').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.debug(msg)
+#            else:
+#                msg = "Failed to incr key: %s" % key
+#                logging.warn(msg)
 
     else:
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
-        j.state = State.objects.get(name='RUNNING')
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        r.rpush(j.jid, element)
+
+        j.state = 'running'
         j.flag = True
         j.save()
 
-    elapsed = time() - start
+    elapsed = time.time() - start
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -847,7 +821,7 @@ def ex(request, fid, cid, sc=None):
     Handle 'ex' signal from exiting wrapper
     """
     stat = 'apfmon.ex'
-    start = time()
+    start = time.time()
     
     try:
         f = Factory.objects.get(name=fid)
@@ -857,80 +831,84 @@ def ex(request, fid, cid, sc=None):
         content = "Bad request"
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
+    jid = ':'.join((fid,cid))
     try:
-        j = Job.objects.get(fid=f, cid=cid)
+        j = Job.objects.get(jid=jid)
     except Job.DoesNotExist, e:
-        msg = "EX unknown Job: %s_%s" % (f, cid)
+        msg = "EX unknown Job: %s:%s" % (f, cid)
 #PAL - pending fix for apfv2        logging.warn(msg)
         return HttpResponseBadRequest('Fine', mimetype="text/plain")
     
     msg = None
 
-    if j.state.name in ['DONE', 'FAULT']:
+    if j.state in ['done', 'fault']:
         msg = "Terminal: %s, no state change allowed." % j.state
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        r.rpush(j.jid, element)
+
         j.flag = True
         j.save()
 
-    elif j.state.name == 'RUNNING':
+    elif j.state == 'running':
         msg = "%s -> EXITING statuscode: %s" % (j.state, sc)
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
-        j.state = State.objects.get(name='EXITING')
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        r.rpush(j.jid, element)
+
+        j.state = 'exiting'
         if sc:
             j.result = (sc)
         else:
             j.flag = True
         j.save()
 
-        key = "fex%d" % f.id
-        try:
-            val = cache.incr(key)
-        except ValueError:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = Job.objects.filter(fid=f, state__name='EXITING').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
-            else:
-                msg = "Failed to incr key: %s" % key
-                logging.warn(msg)
-
-        key = "frn%d" % f.id
-        try:
-            val = cache.decr(key)
-        except ValueError:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
-            else:
-                msg = "Failed to decr key: %s" % key
-                logging.warn(msg)
+#        key = "fex%d" % f.id
+#        try:
+#            val = cache.incr(key)
+#        except ValueError:
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            # key not known so set to current count
+#            val = Job.objects.filter(fid=f, state__name='EXITING').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.debug(msg)
+#            else:
+#                msg = "Failed to incr key: %s" % key
+#                logging.warn(msg)
+#
+#        key = "frn%d" % f.id
+#        try:
+#            val = cache.decr(key)
+#        except ValueError:
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            # key not known so set to current count
+#            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.debug(msg)
+#            else:
+#                msg = "Failed to decr key: %s" % key
+#                logging.warn(msg)
 
 
 
 
     else:
         msg = "%s -> EXITING STATUSCODE: %s (WARN: state not RUNNING)" % (j.state, sc)
-        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-        m.save()
-        j.state = State.objects.get(name='EXITING')
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        r.rpush(j.jid, element)
+
+        j.state = 'exiting'
         if sc:
             j.result = int(sc)
         j.flag = True
         j.save()
 
 
-    elapsed = time() - start
+    elapsed = time.time() - start
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -951,14 +929,14 @@ def action(request):
 
     txt = txt[:140]
 
-    pq = get_object_or_404(PandaQueue, name=nick)
+    pq = get_object_or_404(BatchQueue, name=nick)
 
     f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
     if created:
         msg = "Factory auto-created: %s" % fid
         logging.warn(msg)
 
-    l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+    l, created = Label.objects.get_or_create(name=label, fid=f, batchqueue=pq)
     if created:
         msg = "Label auto-created: %s" % label
         logging.warn(msg)
@@ -972,47 +950,6 @@ def action(request):
         return HttpResponseBadRequest(msg, mimetype="text/plain")
 
     return HttpResponse("OK", mimetype="text/plain")
-
-#def info(request, fid, cid):
-#    """
-#    Handle info about the panda job, find pandaID
-#    """
-#
-#    try:
-#        j = Job.objects.get(fid__name=fid, cid=cid)
-#    except Job.DoesNotExist, e:
-#        msg = "INF unknown Job: %s_%s" % (fid, cid)
-#        logging.warn(msg)
-#        return HttpResponseBadRequest('Fine', mimetype="text/plain")
-#
-#    pandaid = request.POST.get('PandaID', None)
-#    info = request.POST.get('msg', None)
-#
-#    if pandaid:
-#        send_mail('PANDAID found', 'PANDAID:%s, CID:%s'% (pandaid,j.cid), 'atl@py-prod.lancs.ac.uk', ['p.love@lancaster.ac.uk'], fail_silently=False)
-#
-#        msg = "%s pandaid:%s, pilot status:%s" % (j.cid, pandaid, j.result)
-#        logging.warn(msg)
-#
-##        try:
-##            p = Pandaid(pid=int(pandaid), job=j)
-##            p.save()
-##            msg = 'monpost: PandaID=%s' % pandaid
-##            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-##            m.save()
-##        except:
-##            msg = "Problem creating Pandaid: %s" % pandaid
-##            logging.warn(msg)
-#    else:
-#        l = len(request.POST.keys())
-#        msg = "no info from monpost(), post len:%s" % l
-#        m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-#        m.save()
-#        #if j.result != 20:
-#        msg = "%s monpost no pandaid, pilot status: %s, post len:%s" % (j.cid, j.result, l)
-#        logging.warn(msg)
-#
-#    return HttpResponse("OK", mimetype="text/plain")
 
 def awol(request):
     """
@@ -1047,8 +984,9 @@ def awol(request):
     
         if j.state.name not in ['DONE', 'FAULT']:
             msg = "%s -> FAULT (AWOL)" % j.state
-            m = Message(job=j, msg=msg, client=request.META['REMOTE_ADDR'])
-            m.save()
+            element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+            r.rpush(j.jid, element)
+
             msg = "%s -> FAULT (AWOL) FID:%s CID:%s" % (j.state, j.fid, j.cid)
             logging.warn(msg)
             j.state = State.objects.get(name='FAULT')
@@ -1119,12 +1057,8 @@ def old(request, fid):
         content = "Unknown factory: %s" % fid
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-
     deltat = datetime.now(pytz.utc) - timedelta(hours=24)
-    cjobs = Job.objects.filter(fid=f, state=cstate, last_modified__lt=deltat)[:500]
+    cjobs = Job.objects.filter(fid=f, state='created', last_modified__lt=deltat)[:500]
 
     deltat = datetime.now(pytz.utc) - timedelta(hours=48)
     rjobs = Job.objects.filter(fid__name=fid, state__name='RUNNING', last_modified__lt=deltat)[:500]
@@ -1168,7 +1102,7 @@ def rrd(request):
     Return list of active pandaqueues
     """
 
-    pqs = PandaQueue.objects.all()
+    pqs = BatchQueue.objects.all()
 
     response = HttpResponse(mimetype='text/plain')
 
@@ -1190,7 +1124,7 @@ def pandasites(request):
 
     queues = []
     for site in sites:
-        qs = PandaQueue.objects.filter(site=site)
+        qs = BatchQueue.objects.filter(site=site)
         queues += qs
 
     response = HttpResponse(mimetype='text/plain')
@@ -1344,83 +1278,33 @@ def test(request):
 def index(request):
     """
     Rendered view of front page which shows a table of activity
-    for each cloud with counts of number of active factories
+    for each factories
     """
-
-    clouds = Cloud.objects.all().order_by('name')
     jobs = Job.objects.all()
-    dt = datetime.now(pytz.utc) - timedelta(minutes=10)
-    dtfail = datetime.now(pytz.utc) - timedelta(hours=1)
+    dtfail = datetime.now(pytz.utc) - timedelta(days=10)
+    dterror = datetime.now(pytz.utc) - timedelta(hours=1)
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
 
-    dtdead = datetime.now(pytz.utc) - timedelta(days=10)
-
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
-
-    crows = []
-    #    labels = Label.objects.all()
-#    for cloud in clouds:
-#
-#        factive = []
-#        labels = Label.objects.filter(pandaq__pandasite__site__cloud=cloud)
-#
-#        factories = []
-#        ncreated = 0
-## undo comment once deployed on prod
-#        for label in labels:
-#            if label.fid not in factories:
-#                if label.fid.last_modified < dtdead: continue
-#                factories.append(label.fid)
-#                if label.fid.last_modified > dtwarn:
-#                    factive.append(label.fid)
-#
-## leave commented
-##            jcount = jobs.filter(label=label, created__gt=dt).count()
-##            ncreated += jcount
-#       
-##        active = 'hot'
-##        if qactive <= 2000:
-##            active = 'pass'
-##        if qactive <= 5:
-##            active = 'cold'
-#
-#        row = {
-#            'cloud' : cloud,
-#            'labels' : labels,
-#            'factories' : factories,
-#            'factive' : factive,
-#            'ncreated' : ncreated,
-#            }
-#
-#        crows.append(row)
-
     factories = Factory.objects.all().order_by('name')
-    frows = []
+    rows = []
     for f in factories:
-        if f.last_modified < dtdead: continue
+        if f.last_modified < dtfail: continue
 
-#        ncreated = jobs.filter(fid=f, state=cstate).count()
-        ncreated = 4444
-
-        active = 'stale'
-        if f.last_modified > dtfail:
+        # this 'active' string map to a html classes
+        active = 'error'
+        if f.last_modified > dterror:
             active = 'warn'
         if f.last_modified > dtwarn:
-            active = 'pass'
+            active = 'ok'
         row = {
             'factory' : f,
             'active' : active,
-            'ncreated' : ncreated,
             }
 
-        frows.append(row)
+        rows.append(row)
 
     context = {
-            'frows' : frows,
+            'rows' : rows,
             }
 
     return render_to_response('mon/index.html', context)
@@ -1435,7 +1319,6 @@ def cloud(request, name):
 
     labels = Label.objects.filter(pandaq__pandasite__site__cloud=c)
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
-    rstate = State.objects.get(name='RUNNING')
 
     factive = []
     finactive = []
@@ -1451,7 +1334,7 @@ def cloud(request, name):
 
     for site in sites:
 
-        pandaqs = PandaQueue.objects.filter(pandasite__site=site)
+        pandaqs = BatchQueue.objects.filter(pandasite__site=site)
         for pandaq in pandaqs:
 
             elogmatch = ELOGREGEX.match(pandaq.comment)
@@ -1472,7 +1355,6 @@ def cloud(request, name):
                 url = SAVANNAHURL % suffix
 
             jobs = Job.objects.filter(pandaq=pandaq)
-#            nrunning = jobs.filter(state=rstate).count()
 
             cssclass = pandaq.state 
             if pandaq.type in ['SPECIAL_QUEUE']:
@@ -1520,7 +1402,7 @@ def queues(request):
     lifetime = 300
 
     clouds = Cloud.objects.all()
-    pandaqs = PandaQueue.objects.filter().order_by('pandasite__site__cloud','name')
+    pandaqs = BatchQueue.objects.filter().order_by('pandasite__site__cloud','name')
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     jobs = Job.objects.all()
 
@@ -1528,12 +1410,12 @@ def queues(request):
 
     cloudlist = []
     for cloud in clouds:
-        npq = PandaQueue.objects.filter(pandasite__site__cloud=cloud).count()
+        npq = BatchQueue.objects.filter(pandasite__site__cloud=cloud).count()
         cloudlist.append({'name' : cloud.name, 'npq' : npq})
 
     rows = []
     for pandaq in pandaqs:
-        labs = Label.objects.filter(pandaq=pandaq)
+        labs = Label.objects.filter(batchqueue=pandaq)
         nactive = 0
         ndone = 0
         nfault = 0
@@ -1545,7 +1427,9 @@ def queues(request):
             # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            val = jobs.filter(pandaq=pandaq, state__name__in=astates).count()
+            jobs = jobs.filter(label__batchqueue=pandaq)
+            jobs = jobs.filter(state__in=['created','running','exiting'])
+            val = jobs.count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -1562,7 +1446,7 @@ def queues(request):
             # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            val = jobs.filter(pandaq=pandaq, state__name="DONE").count()
+            val = jobs.filter(label__batchqueue=pandaq, state="done").count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -1579,7 +1463,7 @@ def queues(request):
             # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            val = jobs.filter(pandaq=pandaq, state__name="FAULT").count()
+            val = jobs.filter(label__batchqueue=pandaq, state="fault").count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -1662,7 +1546,7 @@ def cr(request):
     (cid, nick, fid, label)
     """
     stat = 'apfmon.cr'
-    start = time()
+    start = time.time()
 
     ip = request.META['REMOTE_ADDR']
     jdecode = json.JSONDecoder()
@@ -1692,9 +1576,9 @@ def cr(request):
         fid = d[2]
         label = d[3]
     
-        pq, created = PandaQueue.objects.get_or_create(name=nick)
+        pq, created = BatchQueue.objects.get_or_create(name=nick)
         if created:
-            msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
+            msg = 'FID:%s, BatchQueue auto-created, no siteid: %s' % (fid,nick)
             logging.error(msg)
             pq.save()
     
@@ -1706,11 +1590,11 @@ def cr(request):
         f.save()
     
         try: 
-            l = Label.objects.get(name=label, fid=f, pandaq=pq)
+            l = Label.objects.get(name=label, fid=f, batchqueue=pq)
         except:
             msg = 'PAL except:'
             logging.error(msg)
-            l = Label(name=label, fid=f, pandaq=pq)
+            l = Label(name=label, fid=f, batchqueue=pq)
             created = True
             
 #        try:
@@ -1726,9 +1610,8 @@ def cr(request):
             logging.error(msg)
     
         try:
-            state = State.objects.get(name='CREATED')
             jid = ':'.join((f.name,cid))
-            j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=l)
+            j = Job(jid=jid, cid=cid, state='created', label=l)
             j.save()
 
             key = "fcr%d" % f.id
@@ -1738,7 +1621,7 @@ def cr(request):
                 msg = "MISS key: %s" % key
                 logging.warn(msg)
                 # key not known so set to current count
-                val = Job.objects.filter(fid=f, state=state).count()
+                val = Job.objects.filter(jid__startswith=f.name, state='created').count()
                 added = cache.add(key, val)
                 if added:
                     msg = "Added DB count for key %s : %d" % (key, val)
@@ -1751,13 +1634,12 @@ def cr(request):
                 msg = "memcached key:%s val:%d" % (key, val)
                 logging.warn(msg)
         except Exception, e:
-            msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
-            logging.error(msg)
+            msg = "Failed to create: fid=%s cid=%s state=created label=%s" % (f,cid,l)
             logging.error(e)
-            msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,cid,state,pq,l)
+            logging.error(msg)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
     
-    elapsed = time() - start
+    elapsed = time.time() - start
     ss.timing(stat,int(elapsed))
 
     txt = 'job' if len(data) == 1 else 'jobs'
@@ -1846,9 +1728,9 @@ def msg(request):
 
             txt = text[:140]
         
-            pq, created = PandaQueue.objects.get_or_create(name=nick)
+            pq, created = BatchQueue.objects.get_or_create(name=nick)
             if created:
-                msg = 'FID:%s, PandaQueue auto-created, no siteid: %s' % (fid,nick)
+                msg = 'FID:%s, BatchQueue auto-created, no siteid: %s' % (fid,nick)
                 logging.warn(msg)
                 pq.save()
 
@@ -1863,11 +1745,11 @@ def msg(request):
         
 
             try:
-                l = Label.objects.get(name=label, fid=f, pandaq=pq)
+                l = Label.objects.get(name=label, fid=f, batchqueue=pq)
             except:
-                msg = 'PAL except msg()'
+                msg = 'PAL except msg() pq:%s' % pq
                 logging.error(msg)
-                l = Label(name=label, fid=f, pandaq=pq)
+                l = Label(name=label, fid=f, batchqueue=pq)
                 created = True
 
 #            try:
@@ -1888,7 +1770,7 @@ def msg(request):
                 l.msg = txt
                 l.save()
             except Exception, e:
-                msg = "Failed to update label: %s" % l
+                msg = "Failed to update the %s label: %s" % (created,l)
                 logging.error(msg)
                 logging.error(e)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
@@ -1921,9 +1803,9 @@ def query(request, q=None):
     if q:
         qset = (
             Q(name__icontains=q) |
-            Q(pandaq__name__icontains=q) |
-            Q(pandaq__pandasite__name__icontains=q) |
-            Q(pandaq__pandasite__site__name__icontains=q)
+            Q(batchqueue__name__icontains=q) |
+            Q(batchqueue__pandasite__name__icontains=q) |
+            Q(batchqueue__pandasite__site__name__icontains=q)
             # can add other search params here, eg. SITE name
         )
         labels = Label.objects.filter(qset).order_by('fid', 'name')
@@ -1944,15 +1826,10 @@ def site(request, sid):
     Note: this is a Site not a PandaSite
     """
     s = get_object_or_404(Site, id=int(sid))
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
 
     # all labels serving this site
-    labels = Label.objects.filter(pandaq__pandasite__site=s)
+    labels = Label.objects.filter(batchqueue__pandasite__site=s)
 
     rows = []
     for label in labels:
@@ -1965,12 +1842,6 @@ def site(request, sid):
         nfault = 0
         nmiss = 0
         jobs = Job.objects.filter(label=label)
-#        ncreated = jobs.filter(state=cstate).count()
-#        nrunning = jobs.filter(state=rstate).count()
-#        nexiting = jobs.filter(state=estate).count()
-#        ndone = jobs.filter(state=dstate, last_modified__gt=dt).count()
-#        nfault = jobs.filter(state=fstate, last_modified__gt=dt).count()
-#        nmiss = jobs.filter(state=dstate, last_modified__gt=dt, result=20).count()
     
         row['jobcount'] = {
                 'created' : ncreated,
@@ -1982,7 +1853,7 @@ def site(request, sid):
                 }
 
         row['label'] = label
-        pandaqs = PandaQueue.objects.filter(label=label)
+        pandaqs = BatchQueue.objects.filter(label=label)
         rows.append(row)
 
     context = {
@@ -1998,9 +1869,8 @@ def fault(request):
     List Labels which have FAULT jobs
     """
 
-    jobs = Job.objects.filter(state__name='FAULT', pandaq__state='online')
-#    jobs = Job.objects.filter(flag=True)
-    lablist = jobs.values('label__id', 'label__pandaq').annotate(njob=Count('id'))
+    jobs = Job.objects.filter(state='fault', label__batchqueue__state='online')
+    lablist = jobs.values('label__id', 'label__batchqueue').annotate(njob=Count('id'))
 
     rows = []
     for lab in lablist:
@@ -2008,7 +1878,6 @@ def fault(request):
         nfault = lab['njob']
         if nfault < 1000: continue
         nflag = Job.objects.filter(label=lid, flag=True).count()
-#        nfault = Job.objects.filter(label=lid, state__name='FAULT').count()
         totjob = Job.objects.filter(label=lid).count()
         flagfrac = 100 * nflag/totjob
         faultfrac = 100 * nfault/totjob
@@ -2029,7 +1898,7 @@ def fault(request):
         rows.append(row)
 
     # find panda queues only being serviced by one factory
-    qlist = Label.objects.values('pandaq__name','pandaq__id').annotate(n=Count('fid'))
+    qlist = Label.objects.values('batchqueue__name','batchqueue__id').annotate(n=Count('fid'))
     sololist = []
     for q in qlist:
         if q['n'] == 1:
@@ -2082,12 +1951,6 @@ def label(request, lid, p=1):
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     # factories with labels serving selected pandaq
 
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
-
     row = {}
     ncreated = 0
     nsubmitted = 0
@@ -2097,12 +1960,12 @@ def label(request, lid, p=1):
     nfault = 0
 
     jobs = Job.objects.filter(label=l)
-    ncreated = jobs.filter(state=cstate).count()
-    nrunning = jobs.filter(state=rstate).count()
-    nexiting = jobs.filter(state=estate).count()
-    ndone = jobs.filter(state=dstate).count()
-    nfault = jobs.filter(state=fstate).count()
-    nmiss = jobs.filter(state=dstate, result=20).count()
+    ncreated = jobs.filter(state='created').count()
+    nrunning = jobs.filter(state='running').count()
+    nexiting = jobs.filter(state='exiting').count()
+    ndone = jobs.filter(state='done').count()
+    nfault = jobs.filter(state='fault').count()
+    nmiss = jobs.filter(state='done', result=20).count()
     
     row['jobcount'] = {
             'created' : ncreated,
@@ -2141,7 +2004,7 @@ def label(request, lid, p=1):
 
     context = {
             'label' : l,
-            'pandaq' : l.pandaq,
+            'pandaq' : l.batchqueue,
             'row' : row,
             'jobs' : jobs,
             'pages' : pages,
@@ -2163,12 +2026,6 @@ def cloudindex(request):
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
 
     dtdead = datetime.now(pytz.utc) - timedelta(days=10)
-
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
 
     crows = []
     #    labels = Label.objects.all()

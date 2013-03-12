@@ -3,10 +3,10 @@ from django.contrib import admin
 from atl.kit.models import Tag
 from atl.kit.models import Site
 from atl.kit.models import Cloud
-from atl.kit.models import PandaQueue
+from atl.kit.models import BatchQueue
 from atl.kit.models import PandaSite
 
-class PandaQueueAdmin(admin.ModelAdmin):
+class BatchQueueAdmin(admin.ModelAdmin):
     list_display = (
                     'name',
                     'pandasite',
@@ -24,5 +24,5 @@ class PandaSiteAdmin(admin.ModelAdmin):
 admin.site.register(Tag)
 admin.site.register(Site)
 admin.site.register(Cloud)
-admin.site.register(PandaQueue, PandaQueueAdmin)
+admin.site.register(BatchQueue, BatchQueueAdmin)
 admin.site.register(PandaSite, PandaSiteAdmin)

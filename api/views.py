@@ -1,14 +1,11 @@
-from atl.mon.models import State
 from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
-from atl.mon.models import Message
-#from atl.mon.models import Pandaid
 
 from atl.kit.models import Cloud
 from atl.kit.models import Tag
 from atl.kit.models import Site
-from atl.kit.models import PandaQueue
+from atl.kit.models import BatchQueue
 from atl.kit.models import PandaSite
 
 #import csv
@@ -89,7 +86,7 @@ def job(request, id):
                 msg = "Invalid state transition, %s->%s" % (
                                                 job.state.name, newstate.upper())
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
-            job.state = State.objects.get(name='RUNNING')
+            job.state = 'running'
             job.save()
             response = HttpResponse(mimetype="text/plain")
             location = "/api/jobs/%s" % job.jid
@@ -102,7 +99,7 @@ def job(request, id):
                                                 job.state.name, newstate.upper())
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
-            job.state = State.objects.get(name='EXITING')
+            job.state = 'exiting'
             job.save()
             return HttpResponse(mimetype="text/plain")
 
@@ -159,16 +156,14 @@ def jobs(request):
         nfailed = 0
         ncreated = 0
         for job in jobs:
-            nick = job['nick']
             factory = job['factory']
             label = job['label']
             cid = job['cid']
-            queue = job.get('queue', None)
-            localqueue = job.get('localqueue', None)
+            nick = job.get('nick', None)
             
-            pq, created = PandaQueue.objects.get_or_create(name=nick)
+            pq, created = BatchQueue.objects.get_or_create(name=nick)
             if created:
-                msg = 'PandaQueue auto-created: %s (%s)' % (nick,factory)
+                msg = 'BatchQueue auto-created: %s (%s)' % (nick,factory)
                 logging.warn(msg)
                 pq.save()
     
@@ -198,7 +193,7 @@ def jobs(request):
                 lab.save()
 
             try:
-                state = State.objects.get(name='CREATED')
+                state = 'created'
                 jid = ':'.join((f.name,cid))
                 j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=lab)
                 j.save()
@@ -285,7 +280,7 @@ def label(request, id=None):
     label = get_object_or_404(Label, name=name, fid__name=factory)
 
     if request.method == 'GET':
-        fields = ('id','name','fid__name','msg','last_modified','queue', 'localqueue')
+        fields = ('id','name','fid__name','msg','last_modified','resource','localqueue')
 
         lab = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
 
@@ -333,6 +328,46 @@ def labels(request):
         mail_managers('PUT /api/labels from: %s' % ip,
                       'PUT /api/labels from: %s' % ip,
                       fail_silently=False)
+
+        try:
+            data = json.loads(request.body)
+        except ValueError, e:
+            msg = str(e)
+            return HttpResponseBadRequest(msg, mimetype="text/plain")
+
+        msg = "Number of labels in JSON data: %d (%s)" % (len(labels), ip)
+        logging.debug(msg)
+
+        for d in data:
+            logging.debug(d)
+            
+            try:
+                name = d['name']
+                factory = d['factory']
+                batchqueue = d['batchqueue']
+                wmsqueue = d['wmsqueue']
+                resource = d['resource']
+                localqueue = d['localqueue']
+            except KeyError, e:
+                msg = "KeyError in label: %s" % str(e)
+                logging.warn(msg)
+                continue
+
+            label, created = Label.objects.get_or_create(name=name,
+                                                         fid__name=factory,
+                                                         defaults=d)
+
+
+            if not created:
+                if batchqueue != label.batchqueue:
+                    label.batchqueue = batchqueue
+                if wmsqueue != label.wmsqueue:
+                    label.wmsqueue = wmsqueue 
+                if resource != label.resource:
+                    label.resource = resource 
+                if localqueue != label.localqueue:
+                    label.localqueue = localqueue 
+                label.save()
 
         context = "HTTP method not supported: %s" % request.method
         return HttpResponse(context, status=405, mimetype="text/plain")

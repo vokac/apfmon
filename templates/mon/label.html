@@ -46,7 +46,7 @@
 </tr>
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td><a href={% url 'atl.mon.views.job1' j.fid.id j.cid %}>{{ j.cid }}</a>
+  <td><a href={% url 'atl.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% ifequal j.result 20 %}
     <td>miss
