@@ -19,7 +19,6 @@ sys.path.append('/var/local/django')
 
 from atl.mon.models import Job
 from atl.mon.models import Message
-from atl.mon.models import State
 from django.conf import settings
 from django.core.cache import cache
 
@@ -49,12 +48,6 @@ def main():
     logger.handlers = []
     logger.addHandler(handler)
 
-    cstate = State.objects.get(name='CREATED')
-    rstate = State.objects.get(name='RUNNING')
-    estate = State.objects.get(name='EXITING')
-    dstate = State.objects.get(name='DONE')
-    fstate = State.objects.get(name='FAULT')
-    
     ctimeout = 6
     rtimeout = 72
     etimeout = 30
@@ -62,28 +55,23 @@ def main():
 
     # created state
     deltat = datetime.now(pytz.utc) - timedelta(hours=ctimeout)
-    cjobs = Job.objects.filter(state=cstate, last_modified__lt=deltat, flag=False)
+    cjobs = Job.objects.filter(state='created', last_modified__lt=deltat, flag=False)
     logging.info("Stale created: %d" % cjobs.count())
     
     # running state
     deltat = datetime.now(pytz.utc) - timedelta(hours=rtimeout)
-    rjobs = Job.objects.filter(state=rstate, last_modified__lt=deltat, flag=False)
+    rjobs = Job.objects.filter(state='running', last_modified__lt=deltat, flag=False)
     logging.info("Stale running: %d" % rjobs.count())
     
     # exiting state
     deltat = datetime.now(pytz.utc) - timedelta(minutes=etimeout)
-    ejobs = Job.objects.filter(state=estate, last_modified__lt=deltat)
+    ejobs = Job.objects.filter(state='exiting', last_modified__lt=deltat)
     logging.info("Stale exiting: %d" % ejobs.count())
     
     # flagged jobs
     deltat = datetime.now(pytz.utc) - timedelta(hours=ftimeout)
     fjobs = Job.objects.filter(last_modified__lt=deltat, flag=True)
     logging.info("Stale flagged: %d" % fjobs.count())
-
-    skey = {'CREATED' : 'fcr',
-            'RUNNING' : 'frn',
-            'EXITING' : 'fex',
-            }
 
     for j in cjobs:
         # flag stale created jobs
@@ -127,7 +115,7 @@ def main():
             # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            val = Job.objects.filter(fid=j.fid, state=estate).count()
+            val = Job.objects.filter(fid=j.fid, state='exiting').count()
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -143,7 +131,7 @@ def main():
             # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            val = Job.objects.filter(fid=j.fid, state=dstate).count()
+            val = Job.objects.filter(fid=j.fid, state='done').count()
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
