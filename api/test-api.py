@@ -7,7 +7,8 @@ import random
 import requests
 import unittest
 
-APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:80/api/')
+
+APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:8000/api/')
 
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
@@ -19,19 +20,45 @@ class APFmonTestCase(unittest.TestCase):
 
     def setUp(self):
         """Create a few jobs, clearly this needs to work too."""
+        url = apfmon('factories','dev-factory')
+        f = {
+             'url'     : 'http://localhost/',
+             'email'   : 'p.love@lancaster.ac.uk',
+             'version' : '0.0.1',
+            }
+        payload = json.dumps(f)
+        r = requests.put(url, data=payload)
+
+        self.labels = []
+        for i in range(2):
+            nn = str(random.randint(10,99))
+            label = {
+                    'name'         : 'dev-' + nn,
+                    'factory'      : 'peter-UK-dev',
+                    'batchqueue'   : 'dev-pandaq',
+                    'resource'     : 'dev.example.com/cream-pbs',
+                    'localqueue'   : 'dev-localqueue',
+                }
+            self.labels.append(label)
+
+        payload = json.dumps(self.labels)
+        url = apfmon('labels')
+        r = requests.put(url, data=payload)
+
         self.jobs = []
         for j in range(3):
             cid = str(random.randint(1,10000))
             job = {
                   'cid'     : 'dev' + cid,
-                  'nick'    : 'dev-nick',
-                  'factory' : 'dev-factory',
-                  'label'   : 'dev-label',
+                  'label'   : self.labels[0]['name'],
+                  'factory' : 'peter-UK-dev',
                 }
             self.jobs.append(job)
         payload = json.dumps(self.jobs)
         url = apfmon('jobs')
         r = requests.put(url, data=payload)
+#        print r.status_code
+#        print r.text
 
     def tearDown(self):
         """Teardown."""
@@ -43,10 +70,10 @@ class APFmonTestCase(unittest.TestCase):
         url = apfmon('factories','dev-factory')
         r = requests.delete(url)
 
-    def test_assertion(self):
-        assert 1
+#    def test_assertion(self):
+#        assert 1
 
-#    def test_HTTP_200_OK_HEAD(self):
+##    def test_HTTP_200_OK_HEAD(self):
 ##        r = requests.head(apfmon('get'))
 ##        self.assertEqual(r.status_code, 200)
 
@@ -156,15 +183,12 @@ class APFmonTestCase(unittest.TestCase):
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 200)
 
-    def xtest_LABELS_200_OK_UPDATE_STATUS(self):
-        """POST update the label status via query params"""
-        for job in self.jobs:
-            lid = ':'.join((job['factory'],job['label']))
-            url = apfmon('labels',lid)
-            msg = 'Lorem ipsum dolor sit amet'
-            payload = {'status' : msg}
-            r = requests.post(url, data=payload)
-            self.assertEqual(r.status_code, 200)
+    def test_LABELS_200_OK_PUT_CREATE(self):
+        """PUT a collection of labels"""
+        payload = json.dumps(self.labels)
+        url = apfmon('labels')
+        r = requests.put(url, data=payload)
+        self.assertEqual(r.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()
