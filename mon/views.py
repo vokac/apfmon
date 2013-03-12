@@ -48,7 +48,7 @@ GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
 SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
-r = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
+red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 
 # Flows
 # 1. CREATED <- condor_id (Entry)
@@ -58,7 +58,7 @@ r = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0
 
 def jobs1(request, lid, state, p=1):
     """
-    Rendered view of a set of Jobs for particular Label and optional State
+    Rendered view of a set of Jobs for particular Label and optional state
     """
 
     lab = get_object_or_404(Label, id=int(lid))
@@ -102,7 +102,7 @@ def job1(request, fid, cid):
     jid = ':'.join((f.name,cid))
     job = get_object_or_404(Job, jid=jid)
 
-    msglist = r.lrange(job.jid, 0, -1)
+    msglist = red.lrange(job.jid, 0, -1)
 
     msgs = []
     for msg in msglist:
@@ -599,7 +599,7 @@ def st(request):
 
     if msg:
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-        r.rpush(j.jid, element)
+        red.rpush(j.jid, element)
     else:
         msg = "HANDLE-THIS %s: Current:%s, js=%s, gs=%s" % (j.cid, j.state, js, gs)
         j.flag = True
@@ -697,7 +697,7 @@ def stale(request):
     
         if msg:
             element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-            r.rpush(j.jid, element)
+            red.rpush(j.jid, element)
 
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -729,14 +729,14 @@ def rn(request, fid, cid):
     if j.state == 'created':
         msg = "%s -> RUNNING" % j.state
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-        r.rpush(j.jid, element)
+        red.rpush(j.jid, element)
 
         j.state = 'running'
         if j.flag:
             j.flag = False
             msg = "RUNNING now, flag cleared"
             element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-            r.rpush(j.jid, element)
+            red.rpush(j.jid, element)
         j.save()
 
 #        key = "fcr%d" % f.id
@@ -806,7 +806,7 @@ def rn(request, fid, cid):
     else:
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-        r.rpush(j.jid, element)
+        red.rpush(j.jid, element)
 
         j.state = 'running'
         j.flag = True
@@ -844,7 +844,7 @@ def ex(request, fid, cid, sc=None):
     if j.state in ['done', 'fault']:
         msg = "Terminal: %s, no state change allowed." % j.state
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-        r.rpush(j.jid, element)
+        red.rpush(j.jid, element)
 
         j.flag = True
         j.save()
@@ -852,7 +852,7 @@ def ex(request, fid, cid, sc=None):
     elif j.state == 'running':
         msg = "%s -> EXITING statuscode: %s" % (j.state, sc)
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-        r.rpush(j.jid, element)
+        red.rpush(j.jid, element)
 
         j.state = 'exiting'
         if sc:
@@ -899,7 +899,7 @@ def ex(request, fid, cid, sc=None):
     else:
         msg = "%s -> EXITING STATUSCODE: %s (WARN: state not RUNNING)" % (j.state, sc)
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-        r.rpush(j.jid, element)
+        red.rpush(j.jid, element)
 
         j.state = 'exiting'
         if sc:
@@ -985,7 +985,7 @@ def awol(request):
         if j.state.name not in ['DONE', 'FAULT']:
             msg = "%s -> FAULT (AWOL)" % j.state
             element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
-            r.rpush(j.jid, element)
+            red.rpush(j.jid, element)
 
             msg = "%s -> FAULT (AWOL) FID:%s CID:%s" % (j.state, j.fid, j.cid)
             logging.warn(msg)
