@@ -36,7 +36,8 @@ class APFmonTestCase(unittest.TestCase):
                     'name'         : 'dev-' + nn,
                     'factory'      : 'peter-UK-dev',
                     'batchqueue'   : 'dev-pandaq',
-                    'resource'     : 'dev.example.com/cream-pbs',
+                    'wmsqueue'     : 'dev-site',
+                    'resource'     : 'cream fal-pygrid-44.lancs.ac.uk:8443/ce-cream/services/CREAM2 pbs q',
                     'localqueue'   : 'dev-localqueue',
                 }
             self.labels.append(label)

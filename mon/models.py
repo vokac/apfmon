@@ -48,11 +48,11 @@ JOBSTATES = (
         )
 
 STATES = (
-        ('CREATED', 'CREATED'),
-        ('RUNNING', 'RUNNING'),
-        ('EXITING', 'EXITING'),
-        ('DONE', 'DONE'),
-        ('FAULT', 'FAULT'),
+        ('created', 'created'),
+        ('running', 'running'),
+        ('exiting', 'exiting'),
+        ('done', 'done'),
+        ('fault', 'fault'),
         )
 
 FACTORYTYPES = (
@@ -64,14 +64,6 @@ FACTORYTYPES = (
 # todo: set this automatically by sending factory config
 # to webservice when factory starts up
 DEFAULTURL = ''
-
-class State(models.Model):
-    """
-    Current state of job
-    """
-    name = models.CharField(max_length=16, choices=STATES, default='CREATED')
-    def __unicode__(self):
-        return str(self.get_name_display())
 
 class Factory(models.Model):
     """
@@ -97,7 +89,8 @@ class Label(models.Model):
     name = models.CharField(max_length=64, blank=True)
     created = models.DateTimeField(auto_now_add=True, editable=False)
     fid = models.ForeignKey(Factory)
-    batchqueue = models.ForeignKey(BatchQueue)   # aka pandaqueue
+    batchqueue = models.CharField(max_length=64, blank=True)
+#    batchqueue = models.ForeignKey(BatchQueue)   # aka pandaqueue
     msg = models.CharField(max_length=140, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
     resource = models.CharField(max_length=128, blank=True)
@@ -116,7 +109,7 @@ class Job(models.Model):
     jid = models.CharField(max_length=64, blank=False, unique=True)
     cid = models.CharField(max_length=16, unique=False, blank=False)
     label = models.ForeignKey(Label)
-    state = models.CharField(max_length=16, choices=STATES, default='CREATED')
+    state = models.CharField(max_length=16, choices=STATES, default='created')
     created = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False, db_index=True)
     result = models.SmallIntegerField(blank=True, default=-1)
@@ -125,22 +118,3 @@ class Job(models.Model):
         ordering = ('-last_modified', )
     def __unicode__(self):
         return str(self.jid)
-        
-#class Pandaid(models.Model):
-#    """
-#    Simple many-to-one pandaid->job
-#    """
-#    pid = models.IntegerField(unique=False, blank=True, null=True)
-#    job = models.ForeignKey(Job)
-#    def __unicode__(self):
-#        return str(self.pid)
-
-#class StateHistory(models.Model):
-#    """
-#    (not used)
-#    Record timestamp of each state change
-#    """
-#    job = models.ForeignKey(Job)
-#    state_changed = models.DateTimeField(auto_now_add=True, editable=False)
-#    from_state = models.ForeignKey(State, related_name='from_state')
-#    to_state = models.ForeignKey(State , related_name='to_state')

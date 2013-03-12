@@ -147,19 +147,13 @@ url = baseurl + '/jobs'
 jobs = [
         {
          'cid'        : '123456.0',
-         'nick'       : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf',
          'factory'    : 'foo-factory',
          'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_FOOBAR',
-         'queue'      : 'abaddon.hec.lancs.ac.uk/cream-lsf',
-         'localqueue' : 'hex',
          },
         {
          'cid'        : '123456.1',
-         'nick'       : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf',
          'factory'    : 'foo-factory',
          'label'      : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_FOOBAR',
-         'queue'      : 'abaddon.hec.lancs.ac.uk/cream-lsf',
-         'localqueue' : 'hex',
          },
         ]
 
@@ -197,6 +191,44 @@ curl -d "state=running" $url
   <dd>The {id} is constructed from colon separated factory name and jobid.
 </dl>
 
+<h4><code>POST /labels</code></h4>
+<dl class="dl-horizontal">
+  <dt>Description
+  <dd>Creates or updates a collection of Labels. Primary scenario is for factories to notify monitoring of it's list of configured queues.
+  <dt>Example
+  <dd>
+<pre>
+url = "http://apfmon.lancs.ac.uk/api/labels"
+payload = [
+    {
+        'name'         : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_1224',
+        'factory'      : 'foo-factory',
+        'batchqueue'   : 'UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf',
+        'wmsqueue'     : 'UKI-NORTHGRID-LANCS-HEP',
+        'resource'     : 'cream abaddon.hec.lancs.ac.uk:8443/ce-cream/services/CREAM2 lsf hex'
+        'localqueue'   : 'hex',
+    }
+    {
+        'name'         : 'UKI-NORTHGRID-LANCS-HEP-fal-pygrid-44-q-pbs-1284',
+        'factory'      : 'foo-factory',
+        'batchqueue'   : 'UKI-NORTHGRID-LANCS-HEP-fal-pygrid-44-q-pbs',
+        'wmsqueue'     : 'UKI-NORTHGRID-LANCS-HEP',
+        'resource'     : 'cream fal-pygrid-44.lancs.ac.uk:8443/ce-cream/services/CREAM2 pbs q'
+        'localqueue'   : 'q',
+    }
+]
+
+r = requests.put(url, data=payload)
+</pre>
+  <dt>Returns
+  <dd>200 OK if Labels are successfully updated
+  <dt>Errors
+  <dd>400 Bad Request, some detail in response body as Content-type: text/plain
+  <dt>Notes
+  <dd>-
+</dl>
+</div>
+
 <h4><code>POST /labels/{id}</code></h4>
 <dl class="dl-horizontal">
   <dt>Description
@@ -216,7 +248,7 @@ r = requests.post(url, data=payload)
   <dt>Errors
   <dd>400 Bad Request, some detail in response body as Content-type: text/plain
   <dt>Notes
-  <dd>The {id} is constructed from colon separated factory name and Label name. 
+  <dd>The {id} is constructed from colon separated Factory name and Label name. 
 </dl>
 </div>
 

@@ -18,7 +18,6 @@ Enforce various timeouts by moving jobs to FAULT state
 sys.path.append('/var/local/django')
 
 from atl.mon.models import Job
-from atl.mon.models import Message
 from django.conf import settings
 from django.core.cache import cache
 
@@ -97,7 +96,7 @@ def main():
         msg = "Job flagged for >%dhrs so setting state to FAULT" % ftimeout
         element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
         r.rpush(j.jid, element)
-        j.state = fstate
+        j.state = 'fault'
         j.save()
 
     for j in ejobs:
@@ -105,17 +104,17 @@ def main():
         msg = "%s -> DONE" % j.state
         element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
         r.rpush(j.jid, element)
-        j.state = dstate
+        j.state = 'done'
         j.save()
 
-        key = "fex%d" % j.fid.id
+        key = "fex%d" % j.label.fid.id
         try:
             val = cache.decr(key)
         except ValueError:
             # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            val = Job.objects.filter(fid=j.fid, state='exiting').count()
+            val = Job.objects.filter(jid=j.jid, state='exiting').count()
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -124,14 +123,14 @@ def main():
                 msg = "Failed to decr key: %s" % key
                 logging.debug(msg)
 
-        key = "fdn%d" % j.fid.id
+        key = "fdn%d" % j.label.fid.id
         try:
             val = cache.incr(key)
         except ValueError:
             # key not known so set to current count
             msg = "MISS key: %s" % key
             logging.debug(msg)
-            val = Job.objects.filter(fid=j.fid, state='done').count()
+            val = Job.objects.filter(jid=j.jid, state='done').count()
             added = cache.add(key, val)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
