@@ -1341,6 +1341,14 @@ def test(request):
     return render_to_response('mon/test.html', context)
 
 @cache_page(60 * 1)
+def offline(request):
+    """
+    Render a maintenance notice
+    """
+
+    return render_to_response('mon/offline.html')
+
+@cache_page(60 * 1)
 def index(request):
     """
     Rendered view of front page which shows a table of activity
@@ -1679,7 +1687,7 @@ def cr(request):
         data = jdecode.decode(raw)
         ncreated = len(data)
         msg = "Number of jobs in JSON data: %d (%s)" % (ncreated, ip)
-        logging.error(msg)
+#        logging.error(msg)
     except:
         msg = 'Error decoding POST json data'
         logging.error(msg)
@@ -1722,7 +1730,7 @@ def cr(request):
 #            return HttpResponseBadRequest(msg, mimetype="text/plain")
 
         if created:
-            msg = "Label auto-created: %s" % label
+            msg = "Label auto-created: %s (%s)" % (label, ip)
             logging.error(msg)
     
         try:

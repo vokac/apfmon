@@ -4,7 +4,7 @@ from django.conf.urls.defaults import *
 
 urlpatterns = patterns('atl.mon.views',
 # rendered views
-#    (r'^$', 'offline'),
+    (r'^offline$', 'offline'),
     (r'^$', 'index'),
     (r'^clouds/?$', 'cloudindex'),
     (r'^cloud/(?P<name>[a-zA-Z]*)/?$', 'cloud'),
