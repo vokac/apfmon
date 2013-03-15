@@ -133,11 +133,10 @@ def jobs(request):
     Create the Job, expect data format is a JSON encoded list of dicts
     with the following keys:
     cid     : unique id of job, usually condorid but can be anything 
-    nick    : panda queue name
     factory : factory name
     label   : factory label for each queue (name of section in factory config)
-    queue   : computing resource endpoint
-    localqueue : local queue at the endpoint
+
+    The label must already exist and usually created at factory (re)start.
     """
 
     ip = request.META['REMOTE_ADDR']
@@ -159,75 +158,53 @@ def jobs(request):
         nfailed = 0
         ncreated = 0
         for job in jobs:
-            nick = job['nick']
+#            nick = job['nick']
             factory = job['factory']
             label = job['label']
             cid = job['cid']
-            queue = job.get('queue', None)
-            localqueue = job.get('localqueue', None)
+#            queue = job.get('queue', None)
+#            localqueue = job.get('localqueue', None)
             
-            pq, created = PandaQueue.objects.get_or_create(name=nick)
-            if created:
-                msg = 'PandaQueue auto-created: %s (%s)' % (nick,factory)
-                logging.warn(msg)
-                pq.save()
-    
-            f, created = Factory.objects.get_or_create(name=factory, defaults={'ip':ip})
-            if created:
-                msg = "Factory auto-created: %s" % factory
-                logging.warn(msg)
-            f.last_ncreated = len(jobs)
-            f.save()
-    
+            f = Factory.objects.get(name=factory)
+
             try: 
-                lab, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
+                lab = Label.objects.get(name=label, fid=f)
             except MultipleObjectsReturned,e:
                 msg = "Multiple objects - apfv2 issue?"
                 logging.warn(msg)
                 msg = "Multiple objects error"
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
-            if created:
-                msg = "Label auto-created: %s" % label
-                logging.debug(msg)
-    
-            if lab.queue != queue:
-                lab.queue = queue
-                lab.save()
-            if lab.localqueue != localqueue:
-                lab.queue = localqueue
-                lab.save()
-
-            try:
-                state = State.objects.get(name='CREATED')
-                jid = ':'.join((f.name,cid))
-                j = Job(jid=jid, cid=cid, fid=f, state=state, pandaq=pq, label=lab)
-                j.save()
-                ncreated += 1
-
-                key = "fcr%d" % f.id
-                try:
-                    val = cache.incr(key)
-                except ValueError:
-                    msg = "MISS key: %s" % key
-                    logging.warn(msg)
-                    # key not known so set to current count
-                    val = Job.objects.filter(fid=f, state=state).count()
-                    added = cache.add(key, val)
-                    if added:
-                        msg = "Added DB count for key %s : %d" % (key, val)
-                        #logging.warn(msg)
-                    else:
-                        msg = "Failed to incr key: %s" % key
-                        logging.warn(msg)
-
-#                if not val % 1000:
-                msg = "memcached key:%s val:%d" % (key, val)
+            except Label.DoesNotExist:
+                msg = "Label not found: %s, job %s:%s" % (label, factory, cid)
                 logging.warn(msg)
-            except Exception, e:
-                msg = "Failed to create: fid=%s cid=%s state=%s pandaq=%s label=%s" % (f,jid,state,pq,lab)
-                logging.error(msg)
-                logging.error(e)
                 nfailed += 1
+                continue
+    
+            
+            jid = ':'.join((f.name,cid))
+            j = Job(jid=jid, state='created', label=lab)
+            j.save()
+            ncreated += 1
+
+            key = "fcr%d" % f.id
+            try:
+                val = cache.incr(key)
+            except ValueError:
+                msg = "MISS key: %s" % key
+                logging.warn(msg)
+                # key not known so set to current count
+                val = Job.objects.filter(label__fid=f, state='created').count()
+                added = cache.add(key, val)
+                if added:
+                    msg = "Added DB count for key %s : %d" % (key, val)
+                    #logging.warn(msg)
+                else:
+                    msg = "Failed to incr key: %s" % key
+                    logging.warn(msg)
+
+#            if not val % 1000:
+            msg = "memcached key:%s val:%d" % (key, val)
+            logging.warn(msg)
 
         txt = 'job' if len(jobs) == 1 else 'jobs'
         context = 'Created %d/%d %s, %d not created' % (ncreated, len(jobs), txt, nfailed)
@@ -334,10 +311,65 @@ def labels(request):
                       'PUT /api/labels from: %s' % ip,
                       fail_silently=False)
 
-        context = "HTTP method not supported: %s" % request.method
-        return HttpResponse(context, status=405, mimetype="text/plain")
+        try:
+            data = json.loads(request.body)
+        except ValueError, e:
+            msg = str(e)
+            return HttpResponseBadRequest(msg, mimetype="text/plain")
+
+        msg = "Number of labels in JSON data: %d (%s)" % (len(data), ip)
+        logging.debug(msg)
+
+        nupdated = 0
+        ncreated = 0
+        for d in data:
+            logging.debug(d)
+            
+            try:
+                name = d['name']
+                factory = d['factory']
+#                pandaq = d['pandaq']
+                batchqueue = d['batchqueue']
+                wmsqueue = d['wmsqueue']
+                queue = d['queue']
+                localqueue = d['localqueue']
+            except KeyError, e:
+                msg = "KeyError in label: %s" % str(e)
+                logging.warn(msg)
+                continue
+
+            pq = PandaQueue.objects.get(name='dummy')
+            f = Factory.objects.get(name='peter-UK-dev')
+            defaults = {
+                       'fid'    : f,
+                       'pandaq' : pq,
+                       }
+
+            label, created = Label.objects.get_or_create(name=name,
+                                                         fid__name=factory,
+                                                         defaults=defaults)
 
 
+            if not created:
+                nupdated += 1
+                if pq != label.pandaq:
+                    label.pandaq = pq
+#                if batchqueue != label.batchqueue:
+#                    label.batchqueue = batchqueue
+#                if wmsqueue != label.wmsqueue:
+#                    label.wmsqueue = wmsqueue 
+#                if resource != label.resource:
+#                    label.resource = resource 
+#                if localqueue != label.localqueue:
+#                    label.localqueue = localqueue 
+                label.save()
+            else:
+                ncreated += 1
+
+        txt = 'label' if len(data) == 1 else 'labels'
+        context = 'Created %d/%d %s, %d updated' % (ncreated, len(data), txt, nupdated)
+        status = 201 if ncreated else 200
+        return HttpResponse(context, status=status, mimetype="text/plain")
 
 #        try:
 #            jobs = json.loads(request.body)
