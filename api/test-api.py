@@ -20,19 +20,39 @@ class APFmonTestCase(unittest.TestCase):
 
     def setUp(self):
         """Create a few jobs, clearly this needs to work too."""
+        self.labels = []
+        for i in range(2):
+            nn = str(random.randint(10,99))
+            label = {
+                    'name'         : 'dev-' + nn,
+                    'factory'      : 'peter-UK-dev',
+                    'wmsqueue'     : 'dev-site',
+                    'batchqueue'   : 'dev-pandaq',
+                    'queue'        : 'dev.example.com/cream-pbs',
+                    'localqueue'   : 'dev-localqueue',
+                }
+            self.labels.append(label)
+
+        payload = json.dumps(self.labels)
+        url = apfmon('labels')
+        r = requests.put(url, data=payload)
+        print 'LABELS', r.status_code
+        print r.text
+
         self.jobs = []
         for j in range(3):
             cid = str(random.randint(1,10000))
             job = {
                   'cid'     : 'dev' + cid,
-                  'nick'    : 'dev-nick',
-                  'factory' : 'dev-factory',
-                  'label'   : 'dev-label',
+                  'label'   : self.labels[0]['name'],
+                  'factory' : 'peter-UK-dev',
                 }
             self.jobs.append(job)
         payload = json.dumps(self.jobs)
         url = apfmon('jobs')
         r = requests.put(url, data=payload)
+        print r.status_code
+        print r.text
 
     def tearDown(self):
         """Teardown."""
@@ -44,12 +64,12 @@ class APFmonTestCase(unittest.TestCase):
         url = apfmon('factories','dev-factory')
         r = requests.delete(url)
 
-#    def test_assertion(self):
-#        assert 1
-#
-##    def test_HTTP_200_OK_HEAD(self):
-##        r = requests.head(apfmon('get'))
-##        self.assertEqual(r.status_code, 200)
+    def test_assertion(self):
+        assert 1
+
+#    def test_HTTP_200_OK_HEAD(self):
+#        r = requests.head(apfmon('get'))
+#        self.assertEqual(r.status_code, 200)
 
     def test_JOBS_200_OK_GET(self):
         """GET a single job"""
@@ -156,6 +176,14 @@ class APFmonTestCase(unittest.TestCase):
             payload = {'status' : msg}
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 200)
+
+    def test_LABELS_200_OK_PUT_CREATE(self):
+        """PUT a collection of labels"""
+        print self.labels
+        payload = json.dumps(self.labels)
+        url = apfmon('labels')
+        r = requests.put(url, data=payload)
+        self.assertEqual(r.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()
