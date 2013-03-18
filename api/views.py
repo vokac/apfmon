@@ -1,13 +1,10 @@
 from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
-#from atl.mon.models import Pandaid
 
-from atl.kit.models import Cloud
-from atl.kit.models import Tag
 from atl.kit.models import Site
 from atl.kit.models import BatchQueue
-from atl.kit.models import PandaSite
+from atl.kit.models import WMSQueue
 
 #import csv
 import logging
@@ -339,12 +336,16 @@ def labels(request):
                 continue
 
             f = Factory.objects.get(name='peter-UK-dev')
+            bq, created = BatchQueue.objects.get_or_create(name=batchqueue)
 
-            label, created = Label.objects.get_or_create(name=name, fid=f)
+            label, created = Label.objects.get_or_create(name=name,
+                                                         fid=f,
+                                                         batchqueue=bq)
+
             if not created:
                 nupdated += 1
-                if batchqueue != label.batchqueue:
-                    label.batchqueue = batchqueue
+                if bq != label.batchqueue:
+                    label.batchqueue = bq
 #                if wmsqueue != label.wmsqueue:
 #                    label.wmsqueue = wmsqueue 
                 if resource != label.resource:

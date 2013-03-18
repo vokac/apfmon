@@ -1,7 +1,5 @@
-from atl.kit.models import Cloud
-from atl.kit.models import Tag
 from atl.kit.models import Site
-from atl.kit.models import PandaSite
+from atl.kit.models import WMSQueue
 from atl.kit.models import BatchQueue
 
 import csv
@@ -42,14 +40,14 @@ def pandasites(request):
 
     queues = []
     for site in sites:
-        qs = BatchQueue.objects.filter(site=site)
+        qs = BatchQueue.objects.filter(wmsqueue__site=site)
         queues += qs
 
     response = HttpResponse(mimetype='text/plain')
 
     writer = csv.writer(response)
     for q in queues:
-        writer.writerow([q.pandasite])
+        writer.writerow([q.wmsqueue])
 
     return response
 
@@ -99,16 +97,12 @@ def update(request):
         msg = 'Updating AGIS BatchQueue: %s' % pq
         logging.debug(msg)
         try:
-            cloud, created = Cloud.objects.get_or_create(name=d['cloud'])
-            if created:
-                msg = "Cloud auto-created: %s" % cloud
-                logging.warn(msg)
-                
             defaults = {'name' : d['rc_site'],
                         'gocdbname' : d['rc_site'],
                         'ssbname' : d['atlas_site'],
-                        'pandasitename' : d['panda_site'],
-                        'cloud' : cloud,
+#                        'pandasitename' : d['panda_site'],
+                        'cloud' : d['cloud'],
+                        'tier' : d['tier'],
                         }
             site, created = Site.objects.get_or_create(name=d['rc_site'], defaults=defaults)
             if created:
@@ -117,19 +111,18 @@ def update(request):
             
             defaults = {'name' : d['panda_resource'],
                         'site' : site,
-                        'tier' : d['tier'],
                         }
-            pandasite, created = PandaSite.objects.get_or_create(name=d['panda_resource'], defaults=defaults)
+            wmsqueue, created = WMSQueue.objects.get_or_create(name=d['panda_resource'], defaults=defaults)
             if created:
-                msg = "PandaSite auto-created: %s" % site
+                msg = "WMSQueue auto-created: %s" % wmsqueue
                 logging.warn(msg)
     
             defaults = {'name' : d['nickname'],
-                        'pandasite' : pandasite,
+                        'wmsqueue' : wmsqueue,
                         }
-            pandaq, created = BatchQueue.objects.get_or_create(name=d['nickname'], defaults=defaults)
+            batchqueue, created = BatchQueue.objects.get_or_create(name=d['nickname'], defaults=defaults)
             if created:
-                msg = "BatchQueue auto-created: %s" % pandaq
+                msg = "BatchQueue auto-created: %s" % batchqueue
                 print msg
                 logging.warn(msg)
 
@@ -140,36 +133,31 @@ def update(request):
 
         # update key values
         try:
-            if pandaq.pandasite_id == None:
-                pandaq.pandasite = pandasite
-                pandaq.save()
+            if batchqueue.wmsqueue_id == None:
+                batchqueue.wmsqueue = wmsqueue
+                batchqueue.save()
 
-#            print pandaq.comment,d['comment']
-            if pandaq.comment != d['comment']:
-                pandaq.comment = d['comment'] 
-                pandaq.save()
+            if batchqueue.comment != d['comment']:
+                batchqueue.comment = d['comment'] 
+                batchqueue.save()
     
-#            print pandaq.timestamp,d['last_modified']
             f = '%Y-%m-%dT%H:%M:%S.%f'
             dt = datetime.strptime(d['last_modified'], f).replace(tzinfo=utc)
-            if pandaq.timestamp != dt:
-                pandaq.timestamp = dt
-                pandaq.save()
+            if batchqueue.timestamp != dt:
+                batchqueue.timestamp = dt
+                batchqueue.save()
     
-#            print pandaq.state,d['status']
-            if pandaq.state != d['status']:
-                pandaq.state = d['status']
-                pandaq.save()
+            if batchqueue.state != d['status']:
+                batchqueue.state = d['status']
+                batchqueue.save()
     
-#            print pandaq.type, d['type']
-            if pandaq.type != d['type']:
-                pandaq.type = d['type']
-                pandaq.save()
+            if batchqueue.type != d['type']:
+                batchqueue.type = d['type']
+                batchqueue.save()
     
-#            print pandaq.control, d['status_control']
-            if pandaq.control != d['status_control']:
-                pandaq.control = d['status_control']
-                pandaq.save()
+            if batchqueue.control != d['status_control']:
+                batchqueue.control = d['status_control']
+                batchqueue.save()
         except Exception, e:
             msg = "Exception caught: %s" % e
             print msg

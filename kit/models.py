@@ -25,25 +25,6 @@ QTYPE = (
         ('SPECIAL_QUEUE', 'SPECIAL_QUEUE'),
         )
 
-
-class Cloud(models.Model):
-    """
-    Represents an ATLAS cloud
-    """
-    name = models.CharField(max_length=8, choices=CLOUDS, blank=True, unique=True)
-    def __unicode__(self):
-        return self.name
-    class Meta:
-        ordering = ['name']
-
-class Tag(models.Model):
-    """
-    tag string, used to select subset of sites
-    """
-    name = models.CharField(max_length=40)
-    def __unicode__(self):
-        return self.name
-
 class Site(models.Model):
     """
     Represents a GOCDB/SSB/AGIS site, single sysadmin control
@@ -51,22 +32,20 @@ class Site(models.Model):
     name = models.CharField(max_length=128, unique=True)
     gocdbname = models.CharField(max_length=128, unique=True, null=True)
     ssbname = models.CharField(max_length=128, null=True)
-    pandasitename = models.CharField(max_length=128, null=True)
-    cloud = models.ForeignKey(Cloud, blank=True, null=True)
-    tags = models.ManyToManyField(Tag, blank=True)
+    cloud = models.CharField(max_length=8, choices=CLOUDS, blank=True, null=True)
+    tier = models.CharField(max_length=8, blank=True, null=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False, null=True)
     def __unicode__(self):
         return self.name
     class Meta:
         ordering = ['name']
 
-class PandaSite(models.Model):
+class WMSQueue(models.Model):
     """
-    Represents a Panda Site (siteid), first column on 'clouds' page
+    Represents a Panda Site (siteid) 
     """
     name = models.CharField(max_length=64)
     site = models.ForeignKey(Site, blank=True, null=True)
-    tier = models.CharField(max_length=8, blank=True, null=True)
     def __unicode__(self):
         return self.name
     class Meta:
@@ -77,9 +56,8 @@ class BatchQueue(models.Model):
     Represents a Panda queue (nickname)
     """
     name = models.CharField(max_length=64, unique=True)
-    pandasite = models.ForeignKey(PandaSite, blank=True, null=True)
+    wmsqueue = models.ForeignKey(WMSQueue, blank=True, null=True)
     state = models.CharField(max_length=16, blank=True, default='unknown')
-    tags = models.ManyToManyField(Tag, blank=True)
     comment = models.CharField(max_length=140, blank=True, default='')
     type = models.CharField(max_length=32, choices=QTYPE, blank=True, null=True)
     control = models.CharField(max_length=32, blank=True, null=True)

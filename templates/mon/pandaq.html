@@ -4,17 +4,30 @@
 
 {% block content %}
 
-<h2>Panda Queue view - {{ pandaq }}
-- {{ pandaq.state }}
-(<a href="http://atlas-agis.cern.ch/agis/panda_queue/detail/{{ pandaq }}/full/">AGIS</a>)
-(<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">schedconfig</a>)
-</h2>
+<h2>BatchQueue (pandaq) view</h2>
 
-{% comment %}
-<p>
-  <img src="/media/states-1d-0-{{ pandaq.id }}.png"/>
-<p>
-{% endcomment %}
+<div class=row-fluid>
+<dl class="dl-horizontal dl-compact">
+  <dt>Batch queue</dt>
+  <dd>{{ pandaq }}
+  <dt>WMS queue</dt>
+  <dd>{{ pandaq.wmsqueue }}
+  <dt>Site</dt>
+  <dd>{{ pandaq.wmsqueue.site }}
+  <dt>State</dt>
+  <dd>{{ pandaq.state }}
+  <dt>Links</dt>
+  <dd>
+  <ul class="inline">
+    <li><a href="http://atlas-agis.cern.ch/agis/panda_queue/detail/{{ pandaq }}/full/">agis</a>
+    <li><a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">queue</a>
+    <li><a href="http://dashb-atlas-ssb.cern.ch/dashboard/request.py/sitehistory?site={{ pandaq.wmsqueue.site }}#currentView=Shifter+view">ssb</a>
+    <li><a href="">agis</a>
+  </ul>
+
+</dl>
+</div>
+
 
 <div class=row-fluid>
 <div class=span8>
@@ -33,7 +46,7 @@
 </tr>
 {% for row in rows %}
 
-<tr class={% cycle odd,even %}>
+<tr>
   <td class=colhdr title="{{ row.label.msg }}"><a href="{% url 'atl.mon.views.label' row.label.id %}">{{ row.label }}</a>
   <td><a href="{% url 'atl.mon.views.factory' row.label.fid.id %}">{{ row.label.fid }}</a>
   <td><a href="{% url 'atl.mon.views.jobs1' row.label.id 'CREATED' %}">
@@ -60,6 +73,10 @@
   <td colspan=8>{{ row.label.msg }}
 </tr>
 {% endcomment %}
+{% empty %}
+  <tr>
+  <tr class=odd>
+    <td colspan=10 class=note>No Label found for this batch queue. No pilots? Check entry in AGIS.
 {% endfor %}
 
 </table>
@@ -67,6 +84,7 @@
 </div>
 
 
+{% if page.object_list %}
 <div class=row-fluid>
 <div class=span10>
 <table class="table table-compact table-striped table-right">
@@ -110,5 +128,6 @@
 </table>
 </div>
 </div>
+{% endif %}
 
 {% endblock %}

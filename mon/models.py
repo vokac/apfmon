@@ -89,8 +89,7 @@ class Label(models.Model):
     name = models.CharField(max_length=64, blank=True)
     created = models.DateTimeField(auto_now_add=True, editable=False)
     fid = models.ForeignKey(Factory)
-    batchqueue = models.CharField(max_length=64, blank=True)
-#    batchqueue = models.ForeignKey(BatchQueue)   # aka pandaqueue
+    batchqueue = models.ForeignKey(BatchQueue)   # aka pandaqueue
     msg = models.CharField(max_length=140, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
     resource = models.CharField(max_length=128, blank=True)

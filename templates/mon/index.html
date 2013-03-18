@@ -1,4 +1,5 @@
 {% extends "mon/base.html" %}
+{% load url from future %}
 {% load timesince_human %}
 
 {% block content %}
@@ -11,7 +12,7 @@
 
 <div class="row">
   <div class="span6">
-    <form class="well form-search" action="{% url atl.mon.views.search %}" method="GET" name="search">
+    <form class="well form-search" action="{% url 'atl.mon.views.search' %}" method="GET" name="search">
       <input type="text" class="input-large search-query" placeholder="Site or queue name" name="q" value="{{ query|escape }}">
       <button type="submit" class="btn">Search</button>
     </form>
@@ -30,7 +31,7 @@
 </tr>
 {% for row in rows %}
 <tr>
-  <td><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
+  <td><a href="{% url 'atl.mon.views.factory' row.factory.id %}">{{ row.factory }}</a>
   <td class="num {{ row.activity }}">{{ row.factory.last_ncreated }}
   <td class="num {{ row.active }}">{{ row.factory.last_modified|timesince_human }}
   {% if row.factory.version %}

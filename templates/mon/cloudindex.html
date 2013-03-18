@@ -26,7 +26,7 @@
 </tr>
 {% for row in crows %}
 <tr class="{% cycle odd,even %}">
-  <td class="colhdr"><a href="{% url 'atl.mon.views.cloud' row.cloud.name %}">{{ row.cloud }}</a>
+  <td class="colhdr"><a href="{% url 'atl.mon.views.cloud' row.cloud %}">{{ row.cloud }}</a>
   {% if row.factories %}
     <td>{{ row.factive|length }} of {{ row.factories|length }}
   {% else %}

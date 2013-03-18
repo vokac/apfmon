@@ -2,11 +2,9 @@ from atl.mon.models import Factory
 from atl.mon.models import Job
 from atl.mon.models import Label
 
-from atl.kit.models import Cloud
-from atl.kit.models import Tag
 from atl.kit.models import Site
 from atl.kit.models import BatchQueue
-from atl.kit.models import PandaSite
+from atl.kit.models import WMSQueue
 
 import csv
 import logging
@@ -1120,7 +1118,7 @@ def pandasites(request):
     Return list of active panda site names (siteid)
     """
 
-    sites = Site.objects.filter(tags__name__in=['analysis','production']).distinct()
+    sites = Site.objects.all().distinct()
 
     queues = []
     for site in sites:
@@ -1131,7 +1129,7 @@ def pandasites(request):
 
     writer = csv.writer(response)
     for q in queues:
-        writer.writerow([q.pandasite])
+        writer.writerow([q.wmsqueue])
 
     return response
 
@@ -1313,11 +1311,9 @@ def cloud(request, name):
     """
     Rendered view of Cloud page showing table of Sites in this cloud.
     """
-    c = get_object_or_404(Cloud, name=name)
+    sites = Site.objects.filter(cloud=name)
 
-    sites = Site.objects.filter(cloud=c)
-
-    labels = Label.objects.filter(pandaq__pandasite__site__cloud=c)
+    labels = Label.objects.filter(batchqueue__wmsqueue__site__cloud=name)
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
 
     factive = []
@@ -1334,7 +1330,7 @@ def cloud(request, name):
 
     for site in sites:
 
-        pandaqs = BatchQueue.objects.filter(pandasite__site=site)
+        pandaqs = BatchQueue.objects.filter(wmsqueue__site=site)
         for pandaq in pandaqs:
 
             elogmatch = ELOGREGEX.match(pandaq.comment)
@@ -1354,7 +1350,7 @@ def cloud(request, name):
                 suffix = savmatch.group(2)
                 url = SAVANNAHURL % suffix
 
-            jobs = Job.objects.filter(pandaq=pandaq)
+            jobs = Job.objects.filter(label__batchqueue=pandaq)
 
             cssclass = pandaq.state 
             if pandaq.type in ['SPECIAL_QUEUE']:
@@ -1374,7 +1370,7 @@ def cloud(request, name):
     context = {
             'factive' : factive,
             'finactive' : finactive,
-            'cloud' : c,
+            'cloud' : name,
             'sites' : sites,
             'rows' : rows,
             }
@@ -1401,17 +1397,15 @@ def queues(request):
     # cache lifetime for pandaq state counts
     lifetime = 300
 
-    clouds = Cloud.objects.all()
-    pandaqs = BatchQueue.objects.filter().order_by('pandasite__site__cloud','name')
+    clouds = Site.objects.values_list('cloud', flat=True).order_by('cloud').distinct()
+    pandaqs = BatchQueue.objects.filter().order_by('wmsqueue__site__cloud','name')
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     jobs = Job.objects.all()
 
-    astates = ['CREATED','RUNNING','EXITING']
-
     cloudlist = []
     for cloud in clouds:
-        npq = BatchQueue.objects.filter(pandasite__site__cloud=cloud).count()
-        cloudlist.append({'name' : cloud.name, 'npq' : npq})
+        npq = BatchQueue.objects.filter(wmsqueue__site__cloud=cloud).count()
+        cloudlist.append({'name' : cloud, 'npq' : npq})
 
     rows = []
     for pandaq in pandaqs:
@@ -1473,48 +1467,18 @@ def queues(request):
                 logging.warn(msg)
         nfault = val
 
-        statactive = 'hot'
-        statdone = 'pass'
-        if nactive <= 2000:
-            statactive = 'pass'
-        if nactive <= 5:
-            statactive = 'cold'
-#            if ndone <= 1:
-#                statdone = 'cold'
-
-        statfault = 'hot'
-#        if nfault <= 12:
-#            statfault = 'warn'
-        if nfault <= 10:
-            statfault = 'pass'
-
-        activewarn = datetime.now(pytz.utc) - timedelta(minutes=5)
-        activeerror = datetime.now(pytz.utc) - timedelta(minutes=10)
-        activity = 'ok'
-        for lab in labs:
-            if activewarn > lab.last_modified:
-                activity = 'warn'
-            if activeerror > lab.last_modified:
-                activity = 'note'
-    
         row = {
             'pandaq'     : pandaq,
             'nactive'    : nactive,
             'ndone'      : ndone,
             'nfault'     : nfault,
-            'statactive' : statactive,
-            'statdone'   : statdone,
-            'statfault'  : statfault,
-            'activity'   : activity,
             }
 
         rows.append(row)
 
-    # factories with jobs in active states
-#    fids = Factory.objects.filter(job__state__in=astates).annotate(nactive=Count('job'))
     fids = []       
     context = {
-            'clouds'    : cloudlist,
+            'clouds'    : clouds,
             'rows'      : rows,
             'factories' : fids,
             }
@@ -1563,7 +1527,7 @@ def cr(request):
         data = jdecode.decode(raw)
         ncreated = len(data)
         msg = "Number of jobs in JSON data: %d (%s)" % (ncreated, ip)
-        logging.error(msg)
+        logging.warn(msg)
     except:
         msg = 'Error decoding POST json data'
         logging.error(msg)
@@ -1683,6 +1647,10 @@ def helo(request):
     if created:
         msg = "Factory auto-created: %s" % fid
         logging.info(msg)
+        mail_managers('New factory: %s' % fid,
+                      'New factory: %s' % fid,
+                      fail_silently=False)
+
 
     f.ip = ip
     f.url = url
@@ -1804,8 +1772,8 @@ def query(request, q=None):
         qset = (
             Q(name__icontains=q) |
             Q(batchqueue__name__icontains=q) |
-            Q(batchqueue__pandasite__name__icontains=q) |
-            Q(batchqueue__pandasite__site__name__icontains=q)
+            Q(batchqueue__wmsqueue__name__icontains=q) |
+            Q(batchqueue__wmsqueue__site__name__icontains=q)
             # can add other search params here, eg. SITE name
         )
         labels = Label.objects.filter(qset).order_by('fid', 'name')
@@ -1829,7 +1797,7 @@ def site(request, sid):
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
 
     # all labels serving this site
-    labels = Label.objects.filter(batchqueue__pandasite__site=s)
+    labels = Label.objects.filter(batchqueue__wmsqueue__site=s)
 
     rows = []
     for label in labels:
@@ -1870,13 +1838,13 @@ def fault(request):
     """
 
     jobs = Job.objects.filter(state='fault', label__batchqueue__state='online')
-    lablist = jobs.values('label__id', 'label__batchqueue').annotate(njob=Count('id'))
+    labels = jobs.values('label__id', 'label__batchqueue').annotate(njob=Count('id'))
 
     rows = []
-    for lab in lablist:
+    for lab in labels:
         lid = lab['label__id']
         nfault = lab['njob']
-        if nfault < 1000: continue
+        if nfault < 1: continue
         nflag = Job.objects.filter(label=lid, flag=True).count()
         totjob = Job.objects.filter(label=lid).count()
         flagfrac = 100 * nflag/totjob
@@ -2015,16 +1983,14 @@ def label(request, lid, p=1):
 
 def cloudindex(request):
     """
-    Rendered view of front page which shows a table of activity
+    Rendered view which shows a table of activity
     for each cloud with counts of number of active factories
     """
 
-    clouds = Cloud.objects.all().order_by('name')
-    jobs = Job.objects.all()
+    clouds = Site.objects.values_list('cloud', flat=True).order_by('cloud').distinct()
     dt = datetime.now(pytz.utc) - timedelta(minutes=10)
     dtfail = datetime.now(pytz.utc) - timedelta(hours=1)
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
-
     dtdead = datetime.now(pytz.utc) - timedelta(days=10)
 
     crows = []
@@ -2032,7 +1998,7 @@ def cloudindex(request):
     for cloud in clouds:
 
         factive = []
-        labels = Label.objects.filter(pandaq__pandasite__site__cloud=cloud)
+        labels = Label.objects.filter(batchqueue__wmsqueue__site__cloud=cloud)
 
         factories = []
         ncreated = 0
@@ -2043,22 +2009,12 @@ def cloudindex(request):
                 if label.fid.last_modified > dtwarn:
                     factive.append(label.fid)
 
-# leave commented
-#            jcount = jobs.filter(label=label, created__gt=dt).count()
-#            ncreated += jcount
-       
-#        active = 'hot'
-#        if qactive <= 2000:
-#            active = 'pass'
-#        if qactive <= 5:
-#            active = 'cold'
-
         row = {
-            'cloud' : cloud,
-            'labels' : labels,
+            'cloud'     : cloud,
+            'labels'    : labels,
             'factories' : factories,
-            'factive' : factive,
-            'ncreated' : ncreated,
+            'factive'   : factive,
+            'ncreated'  : ncreated,
             }
 
         crows.append(row)
