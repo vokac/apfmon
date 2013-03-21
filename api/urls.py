@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import *
 
-urlpatterns = patterns('atl.api.views',
+urlpatterns = patterns('apfmon.api.views',
     (r'^factories$', 'factories'),
     (r'^factories/(?P<id>\S*)$', 'factory'),
     (r'^jobs$', 'jobs'),
