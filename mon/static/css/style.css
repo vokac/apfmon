@@ -100,7 +100,7 @@ h1              { border-bottom: 2px solid #eee; }
 
 .dl-horizontal dt {
   float: left;
-  width: 100px;
+  width: 150px;
   overflow: hidden;
   clear: left;
   text-align: left;
@@ -175,8 +175,9 @@ input[type="text"],
 }
 
 tr.em {background:#DDDDDD}
-td.online {color:#438843}
-td.offline {color:#aa4343}
+.online {color:#438843}
+.offline {color:#aa4343}
+.unknown {color: #dcdcdc}
 td.brokeroff {color:#444444}
 td.test {color:#444444}
 td.obsolete {color:#444444}

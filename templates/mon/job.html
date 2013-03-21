@@ -7,52 +7,51 @@
 {% block content %}
 
 <div class=row-fluid>
-<table class="table table-compact">
-<tr>
-  <td>FACTORY
-  <td><a href="{% url 'atl.mon.views.factory' factory.id %}">{{ factory }}</a>
-<tr>
-  <td>JOB_ID
-  <td> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
-<tr>
-  <td>PANDAQ
-  <td><a href="{% url 'atl.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
-<tr>
-  <td>CREATED
-  <td>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
-<tr>
-  <td>LAST MODIFIED
-  <td> {{ job.last_modified|date:"Y-m-d H:i:s" }} ({{ job.last_modified|timesince }} ago)
-<tr>
-  <td>STATE
-  <td>{{ job.state }}
-<tr>
-  <td>PAYLOAD?
+<dl class="dl-horizontal dl-compact">
+  <dt>Factory
+  <dd><a href="{% url 'atl.mon.views.factory' factory.id %}">{{ factory }}</a>
+
+  <dt>JobID
+  <dd> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
+
+  <dt>Batch queue
+  <dd><a href="{% url 'atl.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
+
+  <dt>Label
+  <dd><a href="{% url 'atl.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
+  <dt>created
+  <dd>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
+
+  <dt>Last modified
+  <dd> {{ job.last_modified|date:"Y-m-d H:i:s" }} ({{ job.last_modified|timesince }} ago)
+
+  <dt>State
+  <dd>{{ job.state }}
+
+  <dt>Payload?
   {% if job.result == 20 %}
-    <td>miss
+    <dd>miss
   {% elif job.result == -1 %}
-    <td>-
+    <dd>-
   {% elif job.result == 0 %}
-    <td>yes
+    <dd>yes
   {% else %}
-    <td>\o/
+    <dd>\o/
   {% endif %}
 
-<tr>
-  <td>PILOTCODE
+  <dt>Pilotcode
   {% ifequal job.result -1 %}
-    <td>-
+    <dd>-
   {% else %}
-    <td>{{ job.result }}
+    <dd>{{ job.result }}
   {% endifequal %}
-<tr>
-  <td>FLAG
-  <td>{{ job.flag }}
-{% for pid in pids %}
-<tr><td>PANDAID<td> <a href="http://panda.cern.ch:25980/server/pandamon/query?job={{ pid }}">{{ pid }}</a>
-{% endfor %}
 
-</table>
+  <dt>Flag
+  <dd>{{ job.flag }}
+{% for pid in pids %}
+  <dt>PandaId<dd> <a href="http://panda.cern.ch:25980/server/pandamon/query?job={{ pid }}">{{ pid }}</a>
+{% endfor %}
+</dl>
 </div>
 
 <div class=row-fluid>

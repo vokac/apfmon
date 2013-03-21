@@ -13,23 +13,26 @@
 {% endcomment %}
 
 <div class=row-fluid>
-<div class=span6>
-<table class="table table-compact">
-<tr><td>FACTORY<td>{{ factory.name }}
-<tr><td>VERSION <td>{{ factory.version }}
-<tr>
-  <td>LAST STARTUP
+<dl class="dl-horizontal dl-compact">
+  <dt>Factory
+  <dd>{{ factory.name }}
+  <dt>Version
+  <dd>{{ factory.version }}
+  <dt>Last startup
   {% if factory.last_startup %}
-    <td>{{ factory.last_startup|timesince_human }}
+    <dd>{{ factory.last_startup|timesince_human }}
   {% else %}
-    <td>-
+    <dd>-
   {% endif %}
-<tr><td>LAST CYCLE <td>{{ factory.last_modified|timesince_human }} 
-<tr><td>EMAIL <td>{{ factory.email }}
-<tr><td>LOGS <td><a href={{ factory.url }}>{{ factory.url }}</a>
-</table>
+  <dt>Last cycle
+  <dd>{{ factory.last_modified|timesince_human }}
+  <dt>Email
+  <dd>{{ factory.email }}
+  <dt>Logs
+  <dd><a href={{ factory.url }}>{{ factory.url }}</a>
+</dl>
 </div>
-</div>
+
 
 <table class="table table-compact table-striped">
 <tr>

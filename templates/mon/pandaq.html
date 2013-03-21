@@ -11,20 +11,18 @@
   <dt>Batch queue</dt>
   <dd>{{ pandaq }}
   <dt>WMS queue</dt>
-  <dd>{{ pandaq.wmsqueue }}
+  <dd>{{ pandaq.wmsqueue|default:"-" }}
   <dt>Site</dt>
-  <dd>{{ pandaq.wmsqueue.site }}
+  <dd>{{ pandaq.wmsqueue.site|default:"-" }}
   <dt>State</dt>
-  <dd>{{ pandaq.state }}
+  <dd class={{ pandaq.state }}>{{ pandaq.state }}
   <dt>Links</dt>
   <dd>
   <ul class="inline">
     <li><a href="http://atlas-agis.cern.ch/agis/panda_queue/detail/{{ pandaq }}/full/">agis</a>
     <li><a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ pandaq }}">queue</a>
     <li><a href="http://dashb-atlas-ssb.cern.ch/dashboard/request.py/sitehistory?site={{ pandaq.wmsqueue.site }}#currentView=Shifter+view">ssb</a>
-    <li><a href="">agis</a>
   </ul>
-
 </dl>
 </div>
 
