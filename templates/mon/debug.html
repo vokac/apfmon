@@ -16,7 +16,7 @@ ANCIENT COUNT: {{ ancient|length }}
 <table border=1>
 {% for j in flagged %}
 <pre>
-<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+<a href={% url apfmon.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
 </pre>
 {% endfor %}
 </table>
@@ -30,7 +30,7 @@ ANCIENT COUNT: {{ ancient|length }}
 {% for j in ancient %}
 <tr>
 <td>
-<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+<a href={% url apfmon.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
 </td>
 <td>
 {{ j.fid }}
@@ -57,7 +57,7 @@ HAVEJOB COUNT: {{ havejob|length }}
 {% for j in havejob %}
 <tr>
 <td>
-<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+<a href={% url apfmon.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
 </td>
 <td>
 {{ j.fid }}
@@ -84,7 +84,7 @@ FAULT COUNT: {{ fault|length }}
 {% for j in fault %}
 <tr>
 <td>
-<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+<a href={% url apfmon.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
 </td>
 <td>
 {{ j.fid }}
@@ -111,7 +111,7 @@ FLAGGED COUNT: {{ flagged|length }}
 {% for j in flagged %}
 <tr>
 <td>
-<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+<a href={% url apfmon.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
 </td>
 <td>
 {{ j.pandaq }}
@@ -131,7 +131,7 @@ DONE COUNT: {{ done|length }}
 {% for j in done %}
 <tr>
 <td>
-<a href={% url atl.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
+<a href={% url apfmon.mon.views.job j.fid.id j.cid %}>{{ j.cid }}</a>
 </td>
 <td>
 {{ j.pandaq }}

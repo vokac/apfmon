@@ -6,7 +6,7 @@
 
 <div class="row">
   <div class="span6">
-    <form class="well form-search" action="{% url atl.mon.views.search %}" method="GET" name="search">
+    <form class="well form-search" action="{% url apfmon.mon.views.search %}" method="GET" name="search">
       <input type="text" class="input-large search-query" placeholder="Site or queue name" name="q" value="{{ query|escape }}">
       <button type="submit" class="btn">Search</button>
     </form>
@@ -24,10 +24,10 @@
 </tr>
 {% for label in labels %}
 <tr class="{% cycle odd,even %}">
-  <td class="colhdr"><a href="{% url atl.mon.views.factory label.fid %}">{{ label.fid }}</a>
-  <td <a href="{% url atl.mon.views.site label.pandaq.pandasite.site.id %}">{{ label.pandaq.pandasite.site }}</a>
-  <td><a href="{% url atl.mon.views.label label.id %}">{{ label }}</a>
-  <td><a href="{% url atl.mon.views.pandaq label.pandaq.id %}">{{ label.pandaq }}</a>
+  <td class="colhdr"><a href="{% url apfmon.mon.views.factory label.fid %}">{{ label.fid }}</a>
+  <td <a href="{% url apfmon.mon.views.site label.pandaq.pandasite.site.id %}">{{ label.pandaq.pandasite.site }}</a>
+  <td><a href="{% url apfmon.mon.views.label label.id %}">{{ label }}</a>
+  <td><a href="{% url apfmon.mon.views.pandaq label.pandaq.id %}">{{ label.pandaq }}</a>
   <td>{{ label.last_modified|timesince }} ago
 </tr>
 {% endfor %}

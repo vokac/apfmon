@@ -79,20 +79,19 @@ MIDDLEWARE_CLASSES = (
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-ROOT_URLCONF = 'atl.urls'
+ROOT_URLCONF = 'urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    '/var/local/django/atl/templates',
+    '/home/atl/apfmon/templates',
 )
 
 #PAL debug: INTERNAL_IPS = ('0.0.0.0','148.88.67.14','128.141.152.11')
 
-
 # Python dotted path to the WSGI application used by Django's runserver.
-WSGI_APPLICATION = 'atl.wsgi.application'
+WSGI_APPLICATION = 'apfmon.wsgi.application'
 
 INSTALLED_APPS = (
     'django.contrib.auth',
@@ -105,9 +104,9 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
     'django.contrib.admindocs',
-    'atl.mon',
-    'atl.kit',
-    'atl.api',
+    'apfmon.mon',
+    'apfmon.kit',
+    'apfmon.api',
     'django.contrib.humanize',
 #    'debug_toolbar',
 )

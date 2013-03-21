@@ -1,6 +1,6 @@
 venv_django_root = '/var/local/django'
 try:
-    activate_this = venv_django_root + '/atl/env/bin/activate_this.py'
+    activate_this = venv_django_root + '/apfmon/env/bin/activate_this.py'
     execfile(activate_this, dict(__file__=activate_this))
 
     import os
@@ -14,7 +14,7 @@ except IOError: # not running under venv
 
     newpath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     sys.path.insert(0, newpath)
-    sys.path.insert(0, newpath+"/atl")
+    sys.path.insert(0, newpath+"/apfmon")
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "atl.settings")
 # This application object is used by the development server

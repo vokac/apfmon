@@ -5,7 +5,7 @@
 <h2>Global view - all factories</h2>
 
 <p>
-<form action="{% url atl.mon.views.search %}" method="GET" name="search">
+<form action="{% url apfmon.mon.views.search %}" method="GET" name="search">
   <label for="q"></label>
   <input type="text" name="q" value="{{ query|escape }}">
   <input type="submit" value="Site search">
@@ -21,7 +21,7 @@
 </tr>
 {% for row in rows %}
 <tr class="{% cycle odd,even %}">
-  <td class=left><a href="{% url atl.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
+  <td class=left><a href="{% url apfmon.mon.views.factory row.factory.id %}">{{ row.factory }}</a>
   <td>{{ row.factory.last_ncreated }}
   <td class={{ row.active }}>{{ row.factory.last_modified|timesince }} ago
 </tr>

@@ -11,9 +11,9 @@
   <dt>Label</dt>
   <dd>{{ row.label }}
   <dt>Factory</dt>
-  <dd><a href="{% url 'atl.mon.views.factory' row.label.fid.id %}">{{ row.label.fid }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.factory' row.label.fid.id %}">{{ row.label.fid }}</a>
   <dt>Batch queue</dt>
-  <dd><a href="{% url 'atl.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a>
   <dt>Queue</dt>
   <dd>-
   <dt>Localqueue</dt>
@@ -23,11 +23,11 @@
   <dt>Counts
   <dd>
   <ul class="inline">
-    <li>created:<a href="{% url 'atl.mon.views.jobs1' row.label.id 'CREATED' %}">{{ row.jobcount.created }}</a>
-    <li>running:<a href="{% url 'atl.mon.views.jobs1' row.label.id 'RUNNING' %}">{{ row.jobcount.running }}</a>
-    <li>exiting:<a href="{% url 'atl.mon.views.jobs1' row.label.id 'EXITING' %}">{{ row.jobcount.exiting }}</a>
-    <li>done:<a href="{% url 'atl.mon.views.jobs1' row.label.id 'DONE' %}">{{ row.jobcount.done }}</a>
-    <li>fault:<a href="{% url 'atl.mon.views.jobs1' row.label.id 'FAULT' %}">{{ row.jobcount.fault }}</a>
+    <li>created:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'CREATED' %}">{{ row.jobcount.created }}</a>
+    <li>running:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'RUNNING' %}">{{ row.jobcount.running }}</a>
+    <li>exiting:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'EXITING' %}">{{ row.jobcount.exiting }}</a>
+    <li>done:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'DONE' %}">{{ row.jobcount.done }}</a>
+    <li>fault:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'FAULT' %}">{{ row.jobcount.fault }}</a>
   </ul>
   <dt>Last message</dt>
   <dd class={{ row.activity }}>{{ row.label.msg }}
@@ -46,7 +46,7 @@
 </tr>
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td><a href={% url 'atl.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
+  <td><a href={% url 'apfmon.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% ifequal j.result 20 %}
     <td>miss
@@ -64,11 +64,11 @@
 <tr>
   <td colspan=6 class=right>
     {% if page.has_previous %}
-      <a href="{% url 'atl.mon.views.pandaq' pandaq.id page.previous_page_number %}">&lt; Newer</a>
+      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.previous_page_number %}">&lt; Newer</a>
     {% endif %}
     {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
     {% if page.has_next %}
-      <a href="{% url 'atl.mon.views.pandaq' pandaq.id page.next_page_number %}">Older &gt;</a>
+      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.next_page_number %}">Older &gt;</a>
     {% endif %}
   </td>
 </tr>

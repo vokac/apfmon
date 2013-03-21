@@ -1,8 +1,8 @@
 from django.contrib import admin
 
-from atl.kit.models import Site
-from atl.kit.models import BatchQueue
-from atl.kit.models import WMSQueue
+from apfmon.kit.models import Site
+from apfmon.kit.models import BatchQueue
+from apfmon.kit.models import WMSQueue
 
 class BatchQueueAdmin(admin.ModelAdmin):
     list_display = (

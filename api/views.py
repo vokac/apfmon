@@ -1,10 +1,10 @@
-from atl.mon.models import Factory
-from atl.mon.models import Job
-from atl.mon.models import Label
+from apfmon.mon.models import Factory
+from apfmon.mon.models import Job
+from apfmon.mon.models import Label
 
-from atl.kit.models import Site
-from atl.kit.models import BatchQueue
-from atl.kit.models import WMSQueue
+from apfmon.kit.models import Site
+from apfmon.kit.models import BatchQueue
+from apfmon.kit.models import WMSQueue
 
 #import csv
 import logging

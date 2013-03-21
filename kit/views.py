@@ -1,6 +1,6 @@
-from atl.kit.models import Site
-from atl.kit.models import WMSQueue
-from atl.kit.models import BatchQueue
+from apfmon.kit.models import Site
+from apfmon.kit.models import WMSQueue
+from apfmon.kit.models import BatchQueue
 
 import csv
 import logging

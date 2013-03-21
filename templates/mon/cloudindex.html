@@ -10,7 +10,7 @@
 <p>Service degraded due to IO problem with our hosting service. They are working on it.  -Thurs. Jan 12th</p>
 {% endcomment %}
 
-<form action="{% url 'atl.mon.views.search' %}" method="GET" name="search">
+<form action="{% url 'apfmon.mon.views.search' %}" method="GET" name="search">
   <label for="q"></label>
   <input type="text" name="q" value="{{ query|escape }}">
   <input type="submit" value="Site search">
@@ -26,7 +26,7 @@
 </tr>
 {% for row in crows %}
 <tr class="{% cycle odd,even %}">
-  <td class="colhdr"><a href="{% url 'atl.mon.views.cloud' row.cloud %}">{{ row.cloud }}</a>
+  <td class="colhdr"><a href="{% url 'apfmon.mon.views.cloud' row.cloud %}">{{ row.cloud }}</a>
   {% if row.factories %}
     <td>{{ row.factive|length }} of {{ row.factories|length }}
   {% else %}

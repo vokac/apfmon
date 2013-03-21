@@ -1,5 +1,5 @@
 from django.db import models
-from atl.kit.models import BatchQueue
+from apfmon.kit.models import BatchQueue
 
 # Pilotjob STATE
 # 

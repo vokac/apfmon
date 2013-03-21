@@ -2,7 +2,7 @@ from django.conf.urls.defaults import *
 #from django.views.generic import list_detail
 #from django.views.generic.date_based import archive_index
 
-urlpatterns = patterns('atl.mon.views',
+urlpatterns = patterns('apfmon.mon.views',
 # rendered views
 #    (r'^$', 'offline'),
     (r'^$', 'index'),

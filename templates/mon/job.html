@@ -9,16 +9,16 @@
 <div class=row-fluid>
 <dl class="dl-horizontal dl-compact">
   <dt>Factory
-  <dd><a href="{% url 'atl.mon.views.factory' factory.id %}">{{ factory }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.factory' factory.id %}">{{ factory }}</a>
 
   <dt>JobID
   <dd> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
 
   <dt>Batch queue
-  <dd><a href="{% url 'atl.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
 
   <dt>Label
-  <dd><a href="{% url 'atl.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
   <dt>created
   <dd>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
 

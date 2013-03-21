@@ -17,7 +17,7 @@ Enforce various timeouts by moving jobs to FAULT state
 
 sys.path.append('/var/local/django')
 
-from atl.mon.models import Job
+from apfmon.mon.models import Job
 from django.conf import settings
 from django.core.cache import cache
 

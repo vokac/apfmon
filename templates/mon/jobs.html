@@ -7,10 +7,10 @@
 <div class=row-fluid>
 <dl class="dl-horizontal dl-compact">
   <dt>Factory
-  <dd><a href="{% url 'atl.mon.views.factory' fid %}">{{ factoryname }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.factory' fid %}">{{ factoryname }}</a>
 
   <dt>Batch queue
-  <dd><a href="{% url 'atl.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a>
 
   <dt>State
   <dd> {{ statename }}
@@ -36,7 +36,7 @@
 
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td class=colhdr><a href={% url 'atl.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
+  <td class=colhdr><a href={% url 'apfmon.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% ifequal j.result 20 %}
     <td>miss
@@ -56,11 +56,11 @@
 <tr>
   <td colspan=5 class=right>
     {% if page.has_previous %}
-      <a href="{% url 'atl.mon.views.jobs1' label.id statename page.previous_page_number %}">&lt; Newer</a>
+      <a href="{% url 'apfmon.mon.views.jobs1' label.id statename page.previous_page_number %}">&lt; Newer</a>
     {% endif %}
     {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
     {% if page.has_next %}
-      <a href="{% url 'atl.mon.views.jobs1' label.id statename page.next_page_number %}">&gt; Older</a>
+      <a href="{% url 'apfmon.mon.views.jobs1' label.id statename page.next_page_number %}">&gt; Older</a>
     {% endif %}
   </td>
 </tr>

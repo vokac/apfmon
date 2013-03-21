@@ -20,8 +20,8 @@
 {% for row in rows %}
 
 <tr class="{% cycle odd,even %}">
-  <td class=colhdr nowrap><a href="{% url atl.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
-  <td><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
+  <td class=colhdr nowrap><a href="{% url apfmon.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
+  <td><a href="{% url apfmon.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
   <td class=note>{{ row.label.msg }}
 </tr>

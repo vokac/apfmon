@@ -14,7 +14,7 @@
 {% for row in rows %}
 
 <tr class="{% cycle odd,even %}">
-  <td nowrap><a href="{% url atl.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
+  <td nowrap><a href="{% url apfmon.mon.views.pandaq row.label.pandaq.id %}">{{ row.label }}</a>
   <td>{{ row.label.pandaq }}
   <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
 {% comment %}

@@ -3,12 +3,12 @@ import sys
 
 sys.path.append('/var/local/django')
 
-from atl.mon.models import State
-from atl.mon.models import Factory
-from atl.mon.models import Job
-from atl.mon.models import Label
-from atl.mon.models import Message
-#from atl.mon.models import Pandaid
+from apfmon.mon.models import State
+from apfmon.mon.models import Factory
+from apfmon.mon.models import Job
+from apfmon.mon.models import Label
+from apfmon.mon.models import Message
+#from apfmon.mon.models import Pandaid
 from django.conf import settings
 from django.db.models import Count
 
