@@ -16,7 +16,7 @@ except IOError: # not running under venv
     sys.path.insert(0, newpath)
     sys.path.insert(0, newpath+"/apfmon")
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "atl.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "apfmon.settings")
 # This application object is used by the development server
 # as well as any WSGI server configured to use this file.
 from django.core.wsgi import get_wsgi_application
