@@ -7,8 +7,7 @@ import random
 import requests
 import unittest
 
-
-APFMONURL = os.environ.get('APFMON_URL', 'http://localhost:8000/api/')
+APFMONURL = os.environ.get('APFMON_URL', 'http://localhost/api/')
 
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
