@@ -14,14 +14,14 @@ import redis
 import statsd
 #import string
 #import sys
-#from time import time
+import time
 #from operator import itemgetter
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
 #from django.db.models import Count
 #from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.conf import settings
 from django.core.cache import cache
 #from django.views.decorators.cache import cache_page
@@ -86,9 +86,19 @@ def job(request, id):
             if job.state != 'created':
                 msg = "Invalid state transition, %s->%s" % (
                                                 job.state, newstate)
+                element = "%f %s %s" % (time.time(),
+                                        request.META['REMOTE_ADDR'],
+                                        msg)
+                red.rpush(job.jid, element)
+
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
             job.state = 'running'
             job.save()
+            msg = "State change: created->running"
+            element = "%f %s %s" % (time.time(),
+                                    request.META['REMOTE_ADDR'],
+                                    msg)
+            red.rpush(job.jid, element)
             response = HttpResponse(mimetype="text/plain")
             location = "/api/jobs/%s" % job.jid
             response['Location'] = location
@@ -102,6 +112,11 @@ def job(request, id):
 
             job.state = 'exiting'
             job.save()
+            msg = "State change: running->exiting"
+            element = "%f %s %s" % (time.time(),
+                                    request.META['REMOTE_ADDR'],
+                                    msg)
+            red.rpush(job.jid, element)
             return HttpResponse(mimetype="text/plain")
 
         else:
@@ -150,18 +165,15 @@ def jobs(request):
             msg = str(e)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
 
-        msg = "Number of jobs in JSON data: %d (%s)" % (len(jobs), ip)
+        msg = "API number of jobs in JSON data: %d (%s)" % (len(jobs), ip)
         logging.debug(msg)
 
         nfailed = 0
         ncreated = 0
         for job in jobs:
-#            nick = job['nick']
             factory = job['factory']
             label = job['label']
             cid = job['cid']
-#            queue = job.get('queue', None)
-#            localqueue = job.get('localqueue', None)
             
             f = Factory.objects.get(name=factory)
 
@@ -215,7 +227,9 @@ def jobs(request):
         label = request.GET.get('label', None)
         site = request.GET.get('site', None)
         state = request.GET.get('state', None)
-        
+        offset = request.GET.get('offset', 0)
+        limit = request.GET.get('limit', 50)
+        order = request.GET.get('order','last_modified')
 
         if factory:
             jobs = jobs.filter(label__fid__name=factory)
@@ -226,9 +240,13 @@ def jobs(request):
         if state:
             jobs = jobs.filter(state=state.lower())
 
-# limit
-# offset
-        return HttpResponse(json.dumps(list(jobs.values('jid','state')), 
+        jobs.order_by(order)
+        offset = max(0,int(offset))
+        limit = int(limit)
+        jobs = jobs[offset:offset+limit]
+
+        fields = ('jid','state','created','last_modified','result','flag')
+        return HttpResponse(json.dumps(list(jobs.values(*fields)), 
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
@@ -247,6 +265,9 @@ def label(request, id=None):
     POST:
     status : message from factory updating status of [queue]
            : truncated to 140 chars
+
+    DELETE:
+    Delete a Label, restricted to localhost
     """
 
     ip = request.META['REMOTE_ADDR']
@@ -282,6 +303,15 @@ def label(request, id=None):
         location = "/api/labels/%s" % ':'.join((factory,name))
         response['Location'] = location
         return response
+
+    if request.method == 'DELETE':
+        if ip == '127.0.0.1':
+            label = get_object_or_404(Label, name=name, fid__name=factory)
+            label.delete()
+            return HttpResponse(mimetype="text/plain")
+        else: 
+            context = "Remote deletion is forbidden"
+            return HttpResponseForbidden(context, mimetype="text/plain")
 
     context = "HTTP method not supported: %s" % request.method
     return HttpResponse(context, status=405, mimetype="text/plain")
@@ -335,7 +365,13 @@ def labels(request):
                 logging.warn(msg)
                 continue
 
-            f = Factory.objects.get(name='peter-UK-dev')
+            try:
+                f = Factory.objects.get(name=factory)
+            except Factory.DoesNotExist:
+                msg = "Factory not found: %s" % factory
+                logging.warn(msg)
+                continue
+                
             bq, created = BatchQueue.objects.get_or_create(name=batchqueue)
 
             label, created = Label.objects.get_or_create(name=name,

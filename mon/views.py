@@ -183,7 +183,7 @@ def debug(request):
 
     return render_to_response('mon/debug.html', context)
 
-@cache_page(60 * 10)
+#@cache_page(60 * 10)
 def factory(request, fid):
     """
     Rendered view of Factory instance. Lists all factory labels with
@@ -1272,7 +1272,7 @@ def test(request):
     context = {}
     return render_to_response('mon/test.html', context)
 
-@cache_page(60 * 1)
+#@cache_page(60 * 1)
 def index(request):
     """
     Rendered view of front page which shows a table of activity
@@ -1429,7 +1429,7 @@ def queues(request):
                 msg = "Added DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
             else:
-                msg = "Failed to add DB count for key %s : %d" % (key, val)
+                msg = "queues() failed to add DB count for key %s : %d" % (key, val)
                 logging.warn(msg)
         nactive = val
 

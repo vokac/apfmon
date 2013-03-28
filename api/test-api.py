@@ -27,13 +27,15 @@ class APFmonTestCase(unittest.TestCase):
             }
         payload = json.dumps(f)
         r = requests.put(url, data=payload)
+#        print r.status_code
+#        print r.text
 
         self.labels = []
         for i in range(2):
             nn = str(random.randint(10,99))
             label = {
                     'name'         : 'dev-' + nn,
-                    'factory'      : 'peter-UK-dev',
+                    'factory'      : 'dev-factory',
                     'batchqueue'   : 'dev-pandaq',
                     'wmsqueue'     : 'dev-site',
                     'resource'     : 'cream fal-pygrid-44.lancs.ac.uk:8443/ce-cream/services/CREAM2 pbs q',
@@ -44,6 +46,8 @@ class APFmonTestCase(unittest.TestCase):
         payload = json.dumps(self.labels)
         url = apfmon('labels')
         r = requests.put(url, data=payload)
+#        print r.status_code
+#        print r.text
 
         self.jobs = []
         for j in range(3):
@@ -51,7 +55,7 @@ class APFmonTestCase(unittest.TestCase):
             job = {
                   'cid'     : 'dev' + cid,
                   'label'   : self.labels[0]['name'],
-                  'factory' : 'peter-UK-dev',
+                  'factory' : 'dev-factory',
                 }
             self.jobs.append(job)
         payload = json.dumps(self.jobs)
@@ -62,13 +66,19 @@ class APFmonTestCase(unittest.TestCase):
 
     def tearDown(self):
         """Teardown."""
-        for job in self.jobs:
-            jid = ':'.join((job['factory'], job['cid']))
-            url = apfmon('jobs',jid)
-            r = requests.delete(url)
-        del self.jobs
+#        for job in self.jobs:
+#            jid = ':'.join((job['factory'], job['cid']))
+#            url = apfmon('jobs',jid)
+#            r = requests.delete(url)
+#
+#        for label in self.labels:
+#            lid = ':'.join((label['factory'], label['name']))
+#            url = apfmon('labels',lid)
+#            r = requests.delete(url)
         url = apfmon('factories','dev-factory')
-        r = requests.delete(url)
+#        r = requests.delete(url)
+#        print r.status_code
+#        print r.text
 
 #    def test_assertion(self):
 #        assert 1
@@ -126,6 +136,8 @@ class APFmonTestCase(unittest.TestCase):
         payload = json.dumps(f)
         r = requests.put(url, data=payload)
         self.assertEqual(r.status_code, 201)
+        url = apfmon('factories',factory)
+        r = requests.delete(url)
 
     def test_JOBS_200_OK_UPDATE_STATE(self):
         """POST update the job status via query params"""

@@ -105,7 +105,7 @@ class Job(models.Model):
     """
     Represent a condor pilot job
     """
-    jid = models.CharField(max_length=64, blank=False, unique=True)
+    jid = models.CharField(max_length=80, blank=False, unique=True)
     cid = models.CharField(max_length=16, unique=False, blank=False)
     label = models.ForeignKey(Label)
     state = models.CharField(max_length=16, choices=STATES, default='created')

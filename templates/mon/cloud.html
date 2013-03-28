@@ -55,7 +55,7 @@
     {% if row.url %}
       <td class="note {{ row.class }}"
           title="{{ row.pandaq.last_modified|timesince_human }}">
-         {{ row.prefix }}<a href="{{ row.url }}">{{ row.suffix }}</a>
+          {{ row.prefix }}<a href="{{ row.url }}">{{ row.suffix }}</a>
     {% else %}
       {% ifequal row.pandaq.comment 'empty.comment' %}
         <td class="note {{ row.class }}" 

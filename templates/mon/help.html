@@ -56,8 +56,8 @@
   <td>-
 <tr>
   <td>/jobs
-  <td class=muted>return collection of jobs (filtered)
-  <td class=muted>create a collection of jobs
+  <td>return collection of jobs (filtered)
+  <td>create a collection of jobs
   <td>-
   <td>-
 <tr>
@@ -116,7 +116,7 @@ http://code.google.com/p/google-code-prettify/
   <dd>Creates or updates Factory with name foo-factory and expects JSON-encoded hash. Factories should send this at startup.
   <dt>Example
   <dd>
-<pre>
+<pre><code>
 # using requests library, HTTP for humans
 url = baseurl + '/factories/foo-factory'
 f = {
@@ -127,7 +127,7 @@ f = {
 payload = json.dumps(f)
 r = requests.put(url, data=payload) 
 print r.status_code
-</pre>
+</code></pre>
   <dt>Returns
   <dd>200 OK or 201 Created plus Location header linking to the factory resource
   <dt>Errors
@@ -141,8 +141,7 @@ print r.status_code
   <dd>Creates job collection and expects JSON-encoded list of job hashes. Job hashes should be similar in form to the example. Factories should send the list at the end of each cycle.
   <dt>Example
   <dd>
-<pre>
-# using requests library, HTTP for humans
+<pre><code># using requests library, HTTP for humans
 url = baseurl + '/jobs'
 jobs = [
     {
@@ -161,7 +160,7 @@ payload = json.dumps(jobs)
 r = requests.put(url, data=payload)
 print r.status_code
 print r.text
-</pre>
+</code></pre>
   <dt>Returns
   <dd>201 Created if at least one job was created, details in response body as Content-type:text/plain
   <dt>Errors
@@ -177,10 +176,10 @@ print r.text
   <dd>Updates the state of an existing job using query string parameters. Primary scenario is for wrapper scripts to notify monitoring when entering 'running' and 'exiting' state.
   <dt>Example
   <dd>
-<pre>
+<pre><code>
 url='http://apfmon.lancs.ac.uk/api/jobs/foo-factory:123456.0'
 curl -d "state=running" $url
-</pre>
+</code></pre>
   <dt>Parameters
   <dd><em>state</em>: can be either 'running' or 'exiting'
   <dt>Returns
@@ -197,7 +196,7 @@ curl -d "state=running" $url
   <dd>Creates or updates a collection of Labels. Primary scenario is for factories to notify monitoring of it's list of configured queues.
   <dt>Example
   <dd>
-<pre>
+<pre><code>
 url = baseurl + '/labels'
 labels = [
     {
@@ -219,7 +218,7 @@ labels = [
 ]
 payload = json.dumps(labels)
 r = requests.put(url, data=payload)
-</pre>
+</code></pre>
   <dt>Returns
   <dd>200 OK if Labels are successfully updated
   <dt>Errors
@@ -235,12 +234,12 @@ r = requests.put(url, data=payload)
   <dd>Updates the status message of a Label. Primary scenario is for factories to notify monitoring of it's internal state for a particular [queue].
   <dt>Example
   <dd>
-<pre>
+<pre><code>
 url = baseurl + '/labels/foo-factory:UKI-NORTHGRID-LANCS-HEP-abaddon-hex-lsf_1224'
 msg = "Attempt to submit 50 pilots"
 payload = {'status' : msg}
 r = requests.post(url, data=payload)
-</pre>
+</code></pre>
   <dt>Parameters
   <dd><em>status</em>: truncated to 140 characters
   <dt>Returns
