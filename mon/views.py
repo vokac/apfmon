@@ -1183,7 +1183,7 @@ def pandasites(request):
 #    f.close()
 #    return response
 
-@cache_page(60 * 10)
+#@cache_page(60 * 10)
 def stats(request):
     """
     WTF
@@ -1200,7 +1200,7 @@ def stats(request):
             msg = "MISS key: %s" % key
             logging.debug(msg)
             # key not known so set to current count
-            val = Job.objects.filter(label=l, state__name='DONE').count()
+            val = Job.objects.filter(label=l, state='done').count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -1216,7 +1216,7 @@ def stats(request):
             msg = "MISS key: %s" % key
             logging.debug(msg)
             # key not known so set to current count
-            val = Job.objects.filter(label=l, state__name='FAULT').count()
+            val = Job.objects.filter(label=l, state='fault').count()
             added = cache.add(key, val, lifetime)
             if added:
                 msg = "Added DB count for key %s : %d" % (key, val)
@@ -1239,16 +1239,16 @@ def stats(request):
 
 
         url = l.fid.url
-        nhit = Job.objects.filter(state__name='DONE', label=l, result=0).count()
-        nmiss = Job.objects.filter(state__name='DONE', label=l, result=20).count()
+        nhit = Job.objects.filter(state='done', label=l, result=0).count()
+        nmiss = Job.objects.filter(state='done', label=l, result=20).count()
         row = {
             'label' : l.name,
             'labelid' : l.id,
             'factory' : l.fid.name,
             'factoryid' : l.fid.id,
             'factoryver' : l.fid.version,
-            'pandaq' : l.pandaq.name,
-            'pandaqid' : l.pandaq.id,
+            'pandaq' : l.batchqueue.name,
+            'pandaqid' : l.batchqueue.id,
             'ndone' : ndone,
             'nfault' : nfault,
             'nhit' : nhit,
