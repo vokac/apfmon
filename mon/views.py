@@ -183,7 +183,7 @@ def debug(request):
 
     return render_to_response('mon/debug.html', context)
 
-#@cache_page(60 * 10)
+@cache_page(60 * 10)
 def factory(request, fid):
     """
     Rendered view of Factory instance. Lists all factory labels with
@@ -566,7 +566,8 @@ def st(request):
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
     try:
-        j = Job.objects.get(fid__name=fid, cid=cid)
+        jid = ':'.join((fid, cid))
+        j = Job.objects.get(jid=jid)
     except Job.DoesNotExist:
         content = "DoesNotExist: %s" % cid
         return HttpResponseBadRequest(content, mimetype="text/plain")
@@ -642,7 +643,8 @@ def stale(request):
             return HttpResponseBadRequest(content, mimetype="text/plain")
 
         try:
-            j = Job.objects.get(fid__name=fid, cid=cid)
+            jid = ':'.join((fid, cid))
+            j = Job.objects.get(jid=jid)
         except Job.DoesNotExist:
             content = "DoesNotExist: %s_%s" % (fid, cid)
             return HttpResponseBadRequest(content, mimetype="text/plain")
@@ -715,7 +717,8 @@ def rn(request, fid, cid):
         return HttpResponseBadRequest(content, mimetype="text/plain")
 
     try:
-        j = Job.objects.get(cid=cid, label__fid=f)
+        jid = ':'.join((fid, cid))
+        j = Job.objects.get(jid=jid)
     except Job.DoesNotExist, e:
         msg = "RN unknown job: %s_%s" % (f, cid)
 #PAL - pending fix for apfv2        logging.warn(msg)
@@ -975,7 +978,8 @@ def awol(request):
 
     for cid in data:
         try:
-            j = Job.objects.get(fid__name=fid, cid=cid)
+            jid = ':'.join((fid, cid))
+            j = Job.objects.get(jid=jid)
         except Job.DoesNotExist:
             content = "DoesNotExist: %s" % cid
             return HttpResponseBadRequest(content, mimetype="text/plain")
@@ -1183,7 +1187,7 @@ def pandasites(request):
 #    f.close()
 #    return response
 
-#@cache_page(60 * 10)
+@cache_page(60 * 10)
 def stats(request):
     """
     WTF
@@ -1193,7 +1197,7 @@ def stats(request):
     lifetime = 300
     rows = []
     for l in labels:
-
+        print l
         key = "ldn%d" % l.id
         val = cache.get(key)
         if val is None:
@@ -1272,7 +1276,7 @@ def test(request):
     context = {}
     return render_to_response('mon/test.html', context)
 
-#@cache_page(60 * 1)
+@cache_page(60 * 1)
 def index(request):
     """
     Rendered view of front page which shows a table of activity
@@ -1556,23 +1560,11 @@ def cr(request):
         try: 
             l = Label.objects.get(name=label, fid=f, batchqueue=pq)
         except:
-            msg = 'PAL except:'
-            logging.error(msg)
             l = Label(name=label, fid=f, batchqueue=pq)
             created = True
-            
-#        try:
-#            l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
-#        except MultipleObjectsReturned,e:
-#            msg = "Multiple objects - apfv2 issue?"
-#            logging.error(msg)
-#            msg = "Multiple objects error"
-#            return HttpResponseBadRequest(msg, mimetype="text/plain")
-
-        if created:
-            msg = "Label auto-created: %s" % label
+            msg = "Label auto-created: %s" % l.name
             logging.error(msg)
-    
+            
         try:
             jid = ':'.join((f.name,cid))
             j = Job(jid=jid, cid=cid, state='created', label=l)
@@ -1594,11 +1586,15 @@ def cr(request):
                     msg = "Failed to incr key: %s" % key
                     logging.warn(msg)
 
-            if not val % 1000:
-                msg = "memcached key:%s val:%d" % (key, val)
-                logging.warn(msg)
+#        except MultipleObjectsReturned,e:
+#            msg = "PAL Failed to create: fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
+#            logging.error(msg)
+#            logging.error(e)
+#            msg = "Multiple objects error"
+#            logging.error(msg)
+#            return HttpResponseBadRequest(msg, mimetype="text/plain")
         except Exception, e:
-            msg = "Failed to create: fid=%s cid=%s state=created label=%s" % (f,cid,l)
+            msg = "PAL Failed to create: fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
             logging.error(e)
             logging.error(msg)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
