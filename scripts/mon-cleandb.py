@@ -7,7 +7,7 @@ import statsd
 import sys
 from time import time
 
-sys.path.append('/var/local/django')
+sys.path.append('/home/atl')
 
 from apfmon.mon.models import Job
 from django.conf import settings
@@ -56,8 +56,8 @@ than the specified number of hours
     logger.addHandler(handler)
     
     dt = datetime.now(pytz.utc) - timedelta(hours=options.t)
-    djobs = Job.objects.filter(state__name='DONE', last_modified__lt=dt)
-    fjobs = Job.objects.filter(state__name='FAULT', last_modified__lt=dt)
+    djobs = Job.objects.filter(state='done', last_modified__lt=dt)
+    fjobs = Job.objects.filter(state='fault', last_modified__lt=dt)
     
     msg = 'DONE: %d' % djobs.count()
     logging.info(msg)
