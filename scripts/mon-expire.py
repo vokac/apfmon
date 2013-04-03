@@ -15,7 +15,7 @@ r = redis.StrictRedis(host=settings.REDIS['host'], port=6379, db=0)
 Enforce various timeouts by moving jobs to FAULT state
 """
 
-sys.path.append('/var/local/django')
+sys.path.append('/home/atl')
 
 from apfmon.mon.models import Job
 from django.conf import settings
@@ -107,37 +107,37 @@ def main():
         j.state = 'done'
         j.save()
 
-        key = "fex%d" % j.label.fid.id
-        try:
-            val = cache.decr(key)
-        except ValueError:
-            # key not known so set to current count
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            val = Job.objects.filter(jid=j.jid, state='exiting').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
-            else:
-                msg = "Failed to decr key: %s" % key
-                logging.debug(msg)
-
-        key = "fdn%d" % j.label.fid.id
-        try:
-            val = cache.incr(key)
-        except ValueError:
-            # key not known so set to current count
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            val = Job.objects.filter(jid=j.jid, state='done').count()
-            added = cache.add(key, val)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.debug(msg)
-            else:
-                msg = "Failed to incr key: %s, db count: %d" % (key, val)
-                logging.debug(msg)
+#        key = "fex%d" % j.label.fid.id
+#        try:
+#            val = cache.decr(key)
+#        except ValueError:
+#            # key not known so set to current count
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            val = Job.objects.filter(jid=j.jid, state='exiting').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.debug(msg)
+#            else:
+#                msg = "Failed to decr key: %s" % key
+#                logging.debug(msg)
+#
+#        key = "fdn%d" % j.label.fid.id
+#        try:
+#            val = cache.incr(key)
+#        except ValueError:
+#            # key not known so set to current count
+#            msg = "MISS key: %s" % key
+#            logging.debug(msg)
+#            val = Job.objects.filter(jid=j.jid, state='done').count()
+#            added = cache.add(key, val)
+#            if added:
+#                msg = "Added DB count for key %s : %d" % (key, val)
+#                logging.debug(msg)
+#            else:
+#                msg = "Failed to incr key: %s, db count: %d" % (key, val)
+#                logging.debug(msg)
 
 if __name__ == "__main__":
 #    connection = Connection('py-stor', 27017)
