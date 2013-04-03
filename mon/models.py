@@ -7,8 +7,8 @@ from apfmon.kit.models import BatchQueue
 # 1. CREATED <- condor_id (Entry)
 # 2. RUNNING <- signal from pilot wrapper
 # 3. EXITING <- signal from pilot wrapper
-# 4. DONE <- signal from mon-exiting Completed (jobstates=4)
-# 5. FAULT <- signal from mon-exiting or mon-stale cron jobs (bad condor states)
+# 4. DONE <- signal from 'expire' cron
+# 5. FAULT <- signal 'expire' cron 
 
 # http://condor-wiki.cs.wisc.edu/index.cgi/wiki?p=MagicNumbers
 
@@ -86,7 +86,7 @@ class Label(models.Model):
     """
     Represents a factory queue
     """
-    name = models.CharField(max_length=64, blank=True)
+    name = models.CharField(max_length=64, blank=True, db_index=True)
     created = models.DateTimeField(auto_now_add=True, editable=False)
     fid = models.ForeignKey(Factory)
     batchqueue = models.ForeignKey(BatchQueue)   # aka pandaqueue
