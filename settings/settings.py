@@ -106,6 +106,7 @@ INSTALLED_APPS = (
     'apfmon.kit',
     'apfmon.api',
     'django.contrib.humanize',
+    'django_extensions',
 #    'debug_toolbar',
 )
 
@@ -145,6 +146,11 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': True,
         },
+        'apfmon.mon': {
+            'handlers': ['console', 'mail_admins'],
+            'level': 'INFO',
+#            'filters': ['special']
+        }
     }
 }
 
