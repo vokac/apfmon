@@ -31,5 +31,4 @@ GRAPHITE = {
     'port': 8125
 }
 
-DEBUG = True
 USE_X_FORWARDED_HOST = True
