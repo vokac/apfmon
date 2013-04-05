@@ -22,12 +22,13 @@ red = redis.StrictRedis(host=settings.REDIS['host'], port=6379, db=0)
 
 stats = statsd.StatsClient(settings.GRAPHITE['host'],
                            settings.GRAPHITE['port'])
+
 class Command(BaseCommand):
     args = '<hours>'
-    help = 'Remove jobs from DB older than supllied time'
+    help = 'Remove jobs from DB older than supplied time'
     logger = logging.getLogger(__name__)
 #    logger.setLevel(options.loglevel)
-    logger.setLevel(logging.info)
+    logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
         t = int(args[0])
@@ -36,9 +37,9 @@ class Command(BaseCommand):
         fjobs = Job.objects.filter(state='fault', last_modified__lt=dt)
         
         msg = 'DONE: %d' % djobs.count()
-        logging.info(msg)
+        self.logger.info(msg)
         msg = 'FAULT: %d' % fjobs.count()
-        logging.info(msg)
+        self.logger.info(msg)
         stats.gauge('apfmon.dclean',djobs.count())
         stats.gauge('apfmon.fclean',fjobs.count())
         djobs.delete()

@@ -23,14 +23,12 @@ Get info about DB and print or publish to statsd
 """
 
 red = redis.StrictRedis(host=settings.REDIS['host'], port=6379, db=0)
-sys.path.append('/var/local/django')
 
 class Command(NoArgsCommand):
     args = '<...>'
     help = 'Enforce various timeouts by moving jobs to FAULT state'
     logger = logging.getLogger(__name__)
-#    logger.setLevel(options.loglevel)
-#    logger.setLevel(logging.warn)
+    logger.setLevel(logging.info)
 
     def handle(self, *args, **options):
 
@@ -40,23 +38,22 @@ class Command(NoArgsCommand):
         
         jobcount = Job.objects.count()
         flagcount = Job.objects.filter(flag=True).count()
-        #msgcount = Message.objects.count()
         labelcount = Label.objects.count()
         factorycount = Factory.objects.count()
         
-        msg = 'Total job count     : ', jobcount
+        msg = 'Total job count     : %s' % jobcount
         self.logger.info(msg)
         c.gauge('apfmon.njob', jobcount)
 
-        msg = 'Total flagged count : ', flagcount
+        msg = 'Total flagged count : %s' % flagcount
         self.logger.info(msg)
         c.gauge('apfmon.nflag', flagcount)
 
-        msg = 'Total label count   : ', labelcount
+        msg = 'Total label count   : %s' % labelcount
         self.logger.info(msg)
         c.gauge('apfmon.nlabel', labelcount)
 
-        msg = 'Total factory count : ', factorycount
+        msg = 'Total factory count : %s' % factorycount
         self.logger.info(msg)
         c.gauge('apfmon.nfactory', factorycount)
         
