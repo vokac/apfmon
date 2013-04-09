@@ -11,21 +11,27 @@ import sys
 import time
 from datetime import timedelta, datetime
 #from optparse import OptionParser
-#from pymongo import Connection
 
-red = redis.StrictRedis(host=settings.REDIS['host'], port=6379, db=0)
+red = redis.StrictRedis(host=settings.REDIS['host'],
+                        port=settings.REDIS['port'], db=0)
+stats = statsd.StatsClient(settings.GRAPHITE['host'],
+                           settings.GRAPHITE['port'])
 
 class Command(NoArgsCommand):
     args = '<...>'
     help = 'Enforce various timeouts by moving jobs to FAULT state'
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.info)
+    logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
             ctimeout = 6
             rtimeout = 72
             etimeout = 630
             ftimeout = 24# 96
+            expire2days = 172800
+            expire7days = 604800
+            statname = 'apfmon.expire'
+            start = time.time()
         
             # created state
             deltat = datetime.now(pytz.utc) - timedelta(hours=ctimeout)
@@ -47,13 +53,14 @@ class Command(NoArgsCommand):
             fjobs = Job.objects.filter(last_modified__lt=deltat, flag=True)
             self.logger.info("Stale flagged: %d" % fjobs.count())
         
-            for j in cjobs[:20000]:
+            for j in cjobs:
                 # flag stale created jobs
                 if j.flag: continue
                 self.logger.info(j.jid)
                 msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 red.rpush(j.jid, element)
+                red.expire(j.jid, expire7days)
                 j.flag = True
                 j.save()
         
@@ -63,6 +70,7 @@ class Command(NoArgsCommand):
                 msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 red.rpush(j.jid, element)
+                red.expire(j.jid, expire7days)
                 j.flag = True
                 j.save()
         
@@ -72,6 +80,7 @@ class Command(NoArgsCommand):
                 self.logger.debug(msg)
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 red.rpush(j.jid, element)
+                red.expire(j.jid, expire2days)
                 j.state = 'fault'
                 j.save()
         
@@ -81,6 +90,7 @@ class Command(NoArgsCommand):
                 self.logger.debug(msg)
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 red.rpush(j.jid, element)
+                red.expire(j.jid, expire2days)
                 j.state = 'done'
                 j.save()
 
@@ -88,14 +98,6 @@ class Command(NoArgsCommand):
             self.logger.info('stale running:', len(rjobs))
             self.logger.info('flag->fault:', len(fjobs))
             self.logger.info('exiting->done:', len(ejobs))
-#if __name__ == "__main__":
-##    connection = Connection('py-stor', 27017)
-##    db = connection.jobdb
-#    c = statsd.StatsClient(settings.GRAPHITE['host'],
-#                           settings.GRAPHITE['port'])
-#    stat = 'apfmon.monexpire'
-#    start = time.time()
-#    rc = main()
-#    elapsed = time.time() - start
-#    c.timing(stat,int(elapsed))
-#    sys.exit(rc)
+
+            elapsed = time.time() - start
+            stats.timing(statname,int(elapsed))
