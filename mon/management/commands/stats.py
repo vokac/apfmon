@@ -28,12 +28,9 @@ class Command(NoArgsCommand):
     args = '<...>'
     help = 'Enforce various timeouts by moving jobs to FAULT state'
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.info)
+    logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
-
-
-        # http://statsd.readthedocs.org/en/latest/index.html
         c = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
         
         jobcount = Job.objects.count()
@@ -66,6 +63,5 @@ class Command(NoArgsCommand):
         vers = list(Factory.objects.values_list('version', flat=True))
         for v in set(vers): 
           stat = 'apfmon.factory.' + v.replace('.','_')
-          print stat, vers.count(v)
           c.gauge(stat, vers.count(v))
         
