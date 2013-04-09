@@ -27,7 +27,6 @@ class Command(BaseCommand):
     args = '<hours>'
     help = 'Remove jobs from DB older than supplied time'
     logger = logging.getLogger(__name__)
-#    logger.setLevel(options.loglevel)
     logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
