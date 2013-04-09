@@ -47,7 +47,7 @@
 <th class=num title="Factory count">Factory count
 {% for solo in sololist %}
 <tr class="{% cycle odd,even %}">
-  <td nowrap><a href="{% url 'apfmon.mon.views.pandaq' solo.pandaq__id %}">{{ solo.pandaq__name }}
+  <td nowrap><a href="{% url 'apfmon.mon.views.pandaq' solo.batchqueue__id %}">{{ solo.batchqueue__name }}
   <td class=num>{{ solo.n }}
 {% endfor %}
 
