@@ -47,6 +47,8 @@ SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
+expire2days = 172800
+expire7days = 604800
 
 # Flows
 # 1. CREATED <- condor_id (Entry)
@@ -731,6 +733,7 @@ def rn(request, fid, cid):
         msg = "%s -> RUNNING" % j.state
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
+        red.expire(j.jid, expire7days)
 
         j.state = 'running'
         if j.flag:
@@ -808,6 +811,7 @@ def rn(request, fid, cid):
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
+        red.expire(j.jid, expire2days)
 
         j.state = 'running'
         j.flag = True
@@ -846,6 +850,7 @@ def ex(request, fid, cid, sc=None):
         msg = "Terminal: %s, no state change allowed." % j.state
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
+        red.expire(j.jid, expire2days)
 
         j.flag = True
         j.save()
@@ -854,6 +859,7 @@ def ex(request, fid, cid, sc=None):
         msg = "%s -> EXITING statuscode: %s" % (j.state, sc)
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
+        red.expire(j.jid, expire2days)
 
         j.state = 'exiting'
         if sc:
@@ -1586,15 +1592,8 @@ def cr(request):
                     msg = "Failed to incr key: %s" % key
                     logging.warn(msg)
 
-#        except MultipleObjectsReturned,e:
-#            msg = "PAL Failed to create: fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
-#            logging.error(msg)
-#            logging.error(e)
-#            msg = "Multiple objects error"
-#            logging.error(msg)
-#            return HttpResponseBadRequest(msg, mimetype="text/plain")
         except Exception, e:
-            msg = "PAL Failed to create: fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
+            msg = "Failed to create: fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
             logging.error(e)
             logging.error(msg)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
@@ -1865,8 +1864,7 @@ def fault(request):
     qlist = Label.objects.values('batchqueue__name','batchqueue__id').annotate(n=Count('fid'))
     sololist = []
     for q in qlist:
-        if q['n'] == 1:
-            sololist.append(q)
+        if q['n'] == 1: sololist.append(q)
 
     sortedrows = sorted(rows, key=itemgetter('flagfrac'), reverse=True) 
     context = {

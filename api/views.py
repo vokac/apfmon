@@ -39,6 +39,8 @@ except ImportError, err:
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
+expire2days = 172800
+expire7days = 604800
 
 def job(request, id):
     """
@@ -99,6 +101,7 @@ def job(request, id):
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(job.jid, element)
+            red.expire(job.jid, expire7days)
             response = HttpResponse(mimetype="text/plain")
             location = "/api/jobs/%s" % job.jid
             response['Location'] = location
@@ -117,6 +120,7 @@ def job(request, id):
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(job.jid, element)
+            red.expire(job.jid, expire2days)
             return HttpResponse(mimetype="text/plain")
 
         else:
