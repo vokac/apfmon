@@ -25,7 +25,7 @@
 {% for label in labels %}
 <tr class="{% cycle odd,even %}">
   <td class="colhdr"><a href="{% url apfmon.mon.views.factory label.fid %}">{{ label.fid }}</a>
-  <td <a href="{% url apfmon.mon.views.site label.batchqueue.wmsqueue.site.id %}">{{ label.batchqueue.wmsqueue.site }}</a>
+  <td><a href="{% url apfmon.mon.views.site label.batchqueue.wmsqueue.site.id %}">{{ label.batchqueue.wmsqueue.site }}</a>
   <td><a href="{% url apfmon.mon.views.label label.id %}">{{ label }}</a>
   <td><a href="{% url apfmon.mon.views.pandaq label.batchqueue.id %}">{{ label.batchqueue }}</a>
   <td>{{ label.last_modified|timesince }} ago
