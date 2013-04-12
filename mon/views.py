@@ -14,7 +14,7 @@ import redis
 import statsd
 import string
 import sys
-import time
+from time import time, mktime
 from operator import itemgetter
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
@@ -599,7 +599,7 @@ def st(request):
             j.save()
 
     if msg:
-        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
     else:
         msg = "HANDLE-THIS %s: Current:%s, js=%s, gs=%s" % (j.cid, j.state, js, gs)
@@ -698,7 +698,7 @@ def stale(request):
             j.save()
     
         if msg:
-            element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+            element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
             red.rpush(j.jid, element)
 
     return HttpResponse("OK", mimetype="text/plain")
@@ -708,7 +708,7 @@ def rn(request, fid, cid):
     Handle 'rn' signal from a running job
     """
     stat = 'apfmon.rn'
-    start = time.time()
+    start = time()
 
     try:
         f = Factory.objects.get(name=fid)
@@ -731,7 +731,7 @@ def rn(request, fid, cid):
 
     if j.state == 'created':
         msg = "%s -> RUNNING" % j.state
-        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire7days)
 
@@ -739,9 +739,14 @@ def rn(request, fid, cid):
         if j.flag:
             j.flag = False
             msg = "RUNNING now, flag cleared"
-            element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+            element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
             red.rpush(j.jid, element)
         j.save()
+        c2r = time() - mktime(j.created.timetuple())
+        name = str(j.label.name).replace(':','_')
+        stat = 'apfmon.c2r.%s' % name
+        ss.timing(stat,int(c2r))
+
 
 #        key = "fcr%d" % f.id
 #        try:
@@ -809,7 +814,7 @@ def rn(request, fid, cid):
 
     else:
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
-        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire2days)
 
@@ -817,7 +822,7 @@ def rn(request, fid, cid):
         j.flag = True
         j.save()
 
-    elapsed = time.time() - start
+    elapsed = time() - start
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -826,7 +831,7 @@ def ex(request, fid, cid, sc=None):
     Handle 'ex' signal from exiting wrapper
     """
     stat = 'apfmon.ex'
-    start = time.time()
+    start = time()
     
     try:
         f = Factory.objects.get(name=fid)
@@ -848,7 +853,7 @@ def ex(request, fid, cid, sc=None):
 
     if j.state in ['done', 'fault']:
         msg = "Terminal: %s, no state change allowed." % j.state
-        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire2days)
 
@@ -857,7 +862,7 @@ def ex(request, fid, cid, sc=None):
 
     elif j.state == 'running':
         msg = "%s -> EXITING statuscode: %s" % (j.state, sc)
-        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire2days)
 
@@ -905,7 +910,7 @@ def ex(request, fid, cid, sc=None):
 
     else:
         msg = "%s -> EXITING STATUSCODE: %s (WARN: state not RUNNING)" % (j.state, sc)
-        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
 
         j.state = 'exiting'
@@ -915,7 +920,7 @@ def ex(request, fid, cid, sc=None):
         j.save()
 
 
-    elapsed = time.time() - start
+    elapsed = time() - start
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -992,7 +997,7 @@ def awol(request):
     
         if j.state.name not in ['DONE', 'FAULT']:
             msg = "%s -> FAULT (AWOL)" % j.state
-            element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
+            element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
             red.rpush(j.jid, element)
 
             msg = "%s -> FAULT (AWOL) FID:%s CID:%s" % (j.state, j.fid, j.cid)
@@ -1520,7 +1525,9 @@ def cr(request):
     (cid, nick, fid, label)
     """
     stat = 'apfmon.cr'
-    start = time.time()
+    start = time()
+
+    ss.gauge('apfmon.length.cr',request.META['CONTENT_LENGTH'])
 
     ip = request.META['REMOTE_ADDR']
     jdecode = json.JSONDecoder()
@@ -1598,7 +1605,7 @@ def cr(request):
             logging.error(msg)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
     
-    elapsed = time.time() - start
+    elapsed = time() - start
     ss.timing(stat,int(elapsed))
 
     txt = 'job' if len(data) == 1 else 'jobs'
@@ -1676,7 +1683,8 @@ def msg(request):
             logging.debug(msg)
             length = request.META['CONTENT_LENGTH']
             msg = "Msg content length: %s" % length
-            logging.info(msg)
+            logging.debug(msg)
+            ss.gauge('apfmon.length.msg', length)
         except:
             msg = 'Error decoding POST json data'
             logging.error(msg)
