@@ -6,18 +6,16 @@
 
 <h2>Factory view: {{ factory.name }}</h2>
 
-{% comment %}
-<p>
-<img src="/media/states-4h-{{ factory.id }}-0.png" />
-</p>
-{% endcomment %}
-
 <div class=row-fluid>
 <dl class="dl-horizontal dl-compact">
   <dt>Factory
   <dd>{{ factory.name }}
   <dt>Version
-  <dd>{{ factory.version }}
+  {% if factory.version %}
+    <dd>{{ factory.version }}
+  {% else %}
+    <dd>-
+  {% endif %}
   <dt>Last startup
   {% if factory.last_startup %}
     <dd>{{ factory.last_startup|timesince_human }}
@@ -27,7 +25,11 @@
   <dt>Last cycle
   <dd>{{ factory.last_modified|timesince_human }}
   <dt>Email
-  <dd>{{ factory.email }}
+  {% if factory.email %}
+    <dd>{{ factory.email }}
+  {% else %}
+    <dd>-
+  {% endif %}
   <dt>Logs
   <dd><a href={{ factory.url }}>{{ factory.url }}</a>
 </dl>
