@@ -30,7 +30,6 @@ class Command(NoArgsCommand):
             ftimeout = 24# 96
             expire2days = 172800
             expire7days = 604800
-            statname = 'apfmon.expire'
             start = time.time()
         
             # created state
@@ -94,10 +93,14 @@ class Command(NoArgsCommand):
                 j.state = 'done'
                 j.save()
 
-            self.logger.info('stale created:', len(cjobs))
-            self.logger.info('stale running:', len(rjobs))
-            self.logger.info('flag->fault:', len(fjobs))
-            self.logger.info('exiting->done:', len(ejobs))
+            msg = 'stale created: %d' % len(cjobs)
+#            self.stdout.write(msg+'\n')
+            msg = 'stale running: %d' % len(rjobs)
+#            self.stdout.write(msg+'\n')
+            msg = 'flag->fault: %d' % len(fjobs)
+#            self.stdout.write(msg+'\n')
+            msg = 'exiting->done: %d' % len(ejobs)
+#            self.stdout.write(msg+'\n')
 
             elapsed = time.time() - start
-            stats.timing(statname,int(elapsed))
+            stats.timing('apfmon.expire',int(1000*elapsed))

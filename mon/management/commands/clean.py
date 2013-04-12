@@ -34,13 +34,14 @@ class Command(BaseCommand):
         dt = datetime.now(pytz.utc) - timedelta(hours=t)
         djobs = Job.objects.filter(state='done', last_modified__lt=dt)
         fjobs = Job.objects.filter(state='fault', last_modified__lt=dt)
+        ndone = djobs.count()
+        nfault = fjobs.count()
+        start = time.time()
         
-        msg = 'DONE: %d' % djobs.count()
-        self.logger.info(msg)
-        msg = 'FAULT: %d' % fjobs.count()
-        self.logger.info(msg)
-        stats.gauge('apfmon.dclean',djobs.count())
-        stats.gauge('apfmon.fclean',fjobs.count())
+        msg = 'DONE: %d' % ndone
+#        self.stdout.write(msg+'\n')
+        msg = 'FAULT: %d' % nfault
+#        self.stdout.write(msg+'\n')
         djobs.delete()
         fjobs.delete()
 
@@ -50,3 +51,8 @@ class Command(BaseCommand):
         jobids = fjobs.values_list('jid', flat=True)
         red.delete(jobids)
 
+        elapsed = time.time() - start
+#        self.stdout.write(str(int(1000*elapsed))+'\n')
+        stats.timing('apfmon.clean',int(1000*elapsed))
+        stats.gauge('apfmon.dclean',ndone)
+        stats.gauge('apfmon.fclean',nfault)

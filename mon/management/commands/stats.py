@@ -31,37 +31,34 @@ class Command(NoArgsCommand):
     logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
-        c = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
+        stats = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
         
-        jobcount = Job.objects.count()
         flagcount = Job.objects.filter(flag=True).count()
+        counts = Job.objects.values('state').annotate(n=Count('state'))
+
         labelcount = Label.objects.count()
         factorycount = Factory.objects.count()
         
-        msg = 'Total job count     : %s' % jobcount
-        self.logger.info(msg)
-        c.gauge('apfmon.njob', jobcount)
+        for c in counts:
+            msg = 'Total %s count : %d' % (c['state'], c['n'])
+#            self.stdout.write(msg+'\n')
+            statname = 'apfmon.n%s' % c['state']
+            stats.gauge(statname, c['n'])
 
         msg = 'Total flagged count : %s' % flagcount
-        self.logger.info(msg)
-        c.gauge('apfmon.nflag', flagcount)
+#        self.stdout.write(msg+'\n')
+        stats.gauge('apfmon.nflag', flagcount)
+
 
         msg = 'Total label count   : %s' % labelcount
-        self.logger.info(msg)
-        c.gauge('apfmon.nlabel', labelcount)
+#        self.stdout.write(msg+'\n')
+        stats.gauge('apfmon.nlabel', labelcount)
 
         msg = 'Total factory count : %s' % factorycount
-        self.logger.info(msg)
-        c.gauge('apfmon.nfactory', factorycount)
-        
-        
-        ## this is a slow query
-        #counts = Job.objects.values('state__name').annotate(count=Count('id'))
-        #for count in counts:
-        #  print count['state__name'], ':', count['count']
+#        self.stdout.write(msg+'\n')
+        stats.gauge('apfmon.nfactory', factorycount)
         
         vers = list(Factory.objects.values_list('version', flat=True))
         for v in set(vers): 
           stat = 'apfmon.factory.' + v.replace('.','_')
-          c.gauge(stat, vers.count(v))
-        
+          stats.gauge(stat, vers.count(v))
