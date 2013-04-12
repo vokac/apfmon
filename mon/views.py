@@ -139,51 +139,9 @@ def job1(request, fid, cid):
                 'factory' : f,
                 'job'     : job,
                 'msgs'    : msgs,
-#                'pids' : pids,
                 }
 
     return render_to_response('mon/job.html', context)
-
-def history(request, qid):
-    """
-    Rendered view of historic graphs
-    """
-
-#    try:
-#        queue = Queue.objects.get(id=qid)
-#    except Queue.DoesNotExist:
-#        queue = None
-
-    context = {
-#                'q' : queue,
-#                'qid' : qid,
-            }
-
-    return render_to_response('mon/history.html', context)
-
-def debug(request):
-    """
-    Rendered view of selected Jobs
-    """
-
-    dt = datetime.now(pytz.utc) - timedelta(minutes=60)
-    fault = Job.objects.filter(last_modified__gt=dt, state__name='FAULT')
-    done = Job.objects.filter(last_modified__gt=dt, state__name='DONE').filter(result=0)
-    flagged = Job.objects.filter(last_modified__gt=dt, flag=True)
-    havejob = done.filter(result=0)
-
-    dt = datetime.now(pytz.utc) - timedelta(hours=96)
-    ancient = Job.objects.filter(created__lt=dt).order_by('created').exclude(state__name__in=['FAULT','DONE'])
-
-    context = {
-                'ancient' : ancient,
-                'flagged' : flagged,
-                'fault' : fault,
-                'done' : done,
-                'havejob' : havejob,
-                }
-
-    return render_to_response('mon/debug.html', context)
 
 @cache_page(60 * 10)
 def factory(request, fid):
@@ -304,7 +262,6 @@ def factory(request, fid):
         row = {
             'label' : lab,
             'pandaq' : lab.batchqueue,
-#            'graph' : url % q.id,
             'ncreated' : ncreated,
             'nrunning' : nrunning,
             'nexiting' : nexiting,
@@ -354,11 +311,8 @@ def pandaq(request, qid, p=1):
         ncreated = jobs.filter(state='created').count()
         nrunning = jobs.filter(state='running').count()
         nexiting = jobs.filter(state='exiting').count()
-#        ndone = jobs.filter(state='done', last_modified__gt=dt).count()
         ndone = jobs.filter(state='done').count()
-#        nfault = jobs.filter(state='fault', last_modified__gt=dt).count()
         nfault = jobs.filter(state='fault').count()
-#        nmiss = jobs.filter(state='done', last_modified__gt=dt, result=20).count()
         nmiss = jobs.filter(state='done', result=20).count()
     
         row['jobcount'] = {
@@ -413,296 +367,12 @@ def pandaq(request, qid, p=1):
 
     return render_to_response('mon/pandaq.html', context)
 
-def oldindex(request):
-    """
-    Rendered view of front mon page
-    """
-
-    factories = Factory.objects.all()
-   
-    dt = datetime.now(pytz.utc) - timedelta(hours=1)
-    jobs = Job.objects.all()
-
-    rows = []
-    for f in factories:
-        ncreated = 0
-        nrunning = 0
-        nexiting = 0
-        ndone = 0
-        nfault = 0
-        ntotal = jobs.count()
-        ncreated = jobs.filter(fid=f, state='created').count()
-        nrunning = jobs.filter(fid=f, state='running').count()
-        nexiting = jobs.filter(fid=f, state='exiting').count()
-        ndone = jobs.filter(fid=f, state='done', last_modified__gt=dt).count()
-        nfault = jobs.filter(fid=f, state='fault', last_modified__gt=dt).count()
-        statdone = 'pass'
-        if nexiting == 0:
-            statdone = 'fail'
-        elif nexiting <= 5:
-            statdone = 'warn'
-        row = {
-            'factory' : f,
-            'ncreated' : ncreated,
-            'nrunning' : nrunning,
-            'nexiting' : nexiting,
-            'ndone' : ndone,
-            'nfault' : nfault,
-            'statdone' : statdone,
-            }
-
-        rows.append(row)
-
-    context = {
-            'rows' : rows,
-            'plot' : 'off',
-            }
-
-    return render_to_response('mon/total.html', context)
-
 def offline(request):
 
     context = {}
     return render_to_response('mon/offline.html', context)
 
-def count(request, state=None, fid=None, qid=None):
-    """
-    return count of Jobs
-    """
-
-    if not (fid and qid and state):
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    f = None
-    try:
-        f = Factory.objects.get(id=fid)
-    except Factory.DoesNotExist:
-        if fid != '0':
-            msg = "Factory %s not found when counting" % fid
-            logging.debug(msg)
-            content = "Bad request"
-            return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    q = None
-    if qid:
-        try:
-            q = BatchQueue.objects.get(id=qid)
-        except BatchQueue.DoesNotExist:
-            if qid != '0':
-                msg = "Queue %s not found when counting" % qid
-                logging.debug(msg)
-                content = "Bad request"
-                return HttpResponseBadRequest(content, mimetype="text/plain")
-        
-    s = None
-    if state:
-        try:
-            s = State.objects.get(name=state)
-        except State.DoesNotExist:
-            msg = "State %s not found when counting" % state
-            logging.debug(msg)
-            content = "Bad request"
-            return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    if f:
-        if q and s:
-            jobs = Job.objects.filter(fid=f, state=s, label__batchqueue=q)
-        elif s:
-            jobs = Job.objects.filter(fid=f, state=s)
-        elif q:
-            jobs = Job.objects.filter(fid=f, label__batchqueue=q)
-        else:
-            jobs = Job.objects.filter(fid=f)
-    else:
-        if q and s:
-            jobs = Job.objects.filter(state=s, label__batchqueue=q)
-        elif s:
-            jobs = Job.objects.filter(state=s)
-        elif q:
-            jobs = Job.objects.filter(label__batchqueue=q)
-        else:
-            jobs = Job.objects.all()
-
-
-    if state in ['FAULT', 'DONE']:
-        deltat = datetime.now(pytz.utc) - timedelta(hours=1)
-        jobs = jobs.filter(last_modified__gt=deltat)
-
-    result = jobs.count()
-
-    return HttpResponse("%s" % result, mimetype="text/plain")
-
-def st(request):
-    """
-    Unrendered handle reported state of condor job, via mon-expire.py cron
-
-    JobStatus in job ClassAds
-    0   Unexpanded  U
-    1   Idle    I
-    2   Running     R
-    3   Removed     X
-    4   Completed   C
-    5   Held    H
-    6   Submission_err  E
-
-    Condor globusstate:
-    1   PENDING The job is waiting for resources to become available to run.
-    2   ACTIVE  The job has received resources and the application is executing.
-    4   FAILED  The job terminated before completion because an error, user-triggered cancel, or system-triggered cancel.
-    8   DONE    The job completed successfully
-    16  SUSPENDED   The job has been suspended. Resources which were allocated for this job may have been released due to some scheduler-specific reason.
-    32  UNSUBMITTED The job has not been submitted to the scheduler yet, pending the reception of the GLOBUS_GRAM_PROTOCOL_JOB_SIGNAL_COMMIT_REQUEST signal from a client.
-    64  STAGE_IN    The job manager is staging in files to run the job.
-    128 STAGE_OUT   The job manager is staging out files generated by the job.
-    0xFFFFF     ALL     A mask of all job states.
-
-    """
-    fid = request.POST.get('fid', None)
-    cid = request.POST.get('cid', None)
-    js = request.POST.get('js', None)
-    gs = request.POST.get('gs', None)
-
-    if not cid:
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    try:
-        jid = ':'.join((fid, cid))
-        j = Job.objects.get(jid=jid)
-    except Job.DoesNotExist:
-        content = "DoesNotExist: %s" % cid
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    msg = None
-
-    if j.state.name in ['DONE', 'FAULT']:
-        msg = "Terminal: %s, no state change allowed. js=%s, gs=%s" % (j.cid, js, gs)
-        j.flag = True
-        j.save()
-
-    if j.state.name in ['EXITING']:
-        if js in ['4']:
-            # EXITING job finished OK (js=4)
-            msg = "%s -> DONE: %s (COMPLETED) js=%s, gs=%s" % (j.state, j.cid, js, gs)
-            j.state = State.objects.get(name='DONE')
-            j.save()
-        elif js in ['1', '2']:
-            # EXITING job finished but condor not uptodate (js=1)
-            msg = "%s -> DONE: (PENDING) %s js=%s, gs=%s" % (j.state, j.cid, js, gs)
-            j.state = State.objects.get(name='DONE')
-            j.save()
-        else:
-            # EXITING job in bad state, set FAULT
-            msg = "Bad state %s: %s js=%s, gs=%s" % (j.state, j.cid, js, gs)
-            j.state = State.objects.get(name='FAULT')
-            j.save()
-
-    if msg:
-        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
-        red.rpush(j.jid, element)
-    else:
-        msg = "HANDLE-THIS %s: Current:%s, js=%s, gs=%s" % (j.cid, j.state, js, gs)
-        j.flag = True
-        j.save()
-        logging.warn(msg)
-
-    return HttpResponse("OK", mimetype="text/plain")
-
-def stale(request):
-    """
-    Handle job which has been too long in a particular state
-    Called by the mon-stale.py cronjob using jobs given by old() func
-    """
-
-    jdecode = json.JSONDecoder()
-
-    raw = request.POST.get('data', None)
-    fid = request.POST.get('fid', None)
-
-    if not (fid and raw):
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    try:
-        data = jdecode.decode(raw)
-        msg = "JSON stale length: %d" % len(data)
-        logging.debug(msg)
-    except:
-        msg = "Error decoding POST json data"
-        logging.error(msg)
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    for d in data:
-        if not d: continue
-        cid = d['cid']
-        js = d['jobstate']
-        gs = d.get('globusstate', None)
-
-        if not (fid and cid and js):
-            content = "Bad request"
-            return HttpResponseBadRequest(content, mimetype="text/plain")
-
-        try:
-            jid = ':'.join((fid, cid))
-            j = Job.objects.get(jid=jid)
-        except Job.DoesNotExist:
-            content = "DoesNotExist: %s_%s" % (fid, cid)
-            return HttpResponseBadRequest(content, mimetype="text/plain")
-
-        msg = None
-    
-        if j.state.name in ['CREATED']:
-            if js in ['4']:
-                # CREATED job is done according to condor therefore missed state change
-                msg = "Missed state change. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-                j.state = State.objects.get(name='DONE')
-                j.flag = True
-                j.save()
-            elif js in ['2']:
-                # CREATED job is running according to condor therefore missed state change
-                msg = "Missed state change. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-                j.flag = True
-                j.save()
-            else:
-                # CREATED job in bad state, set FAULT
-                msg = "Stale %s -> FAULT js=%s, gs=%s" % (j.state, js, gs)
-                j.state = State.objects.get(name='FAULT')
-                j.save()
-    
-        elif j.state.name in ['RUNNING']:
-            if js in ['4']:
-                # RUNNING job taking too long
-                msg = "Missed state change. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-                j.state = State.objects.get(name='DONE')
-                j.flag = True
-                j.save()
-            else:
-                msg = "Stale %s -> FAULT js=%s, gs=%s" % (j.state, js, gs)
-                j.state = State.objects.get(name='FAULT')
-                j.save()
-    
-        elif j.state.name in ['EXITING']:
-            msg = "Stale %s (slow middleware), js=%s, gs=%s" % (j.state, js, gs)
-            j.save()
-    
-        elif j.state.name in ['DONE', 'FAULT']:
-            msg = "Stale? Terminal state. Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-            j.flag = True
-            j.save()
-    
-        else:
-            msg = "Stale flagged Current:%s, js=%s, gs=%s" % (j.state, js, gs)
-            j.flag = True
-            j.save()
-    
-        if msg:
-            element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
-            red.rpush(j.jid, element)
-
-    return HttpResponse("OK", mimetype="text/plain")
-
+# APIv1
 def rn(request, fid, cid):
     """
     Handle 'rn' signal from a running job
@@ -747,71 +417,6 @@ def rn(request, fid, cid):
         stat = 'apfmon.c2r.%s' % name
         ss.timing(stat,int(c2r))
 
-
-#        key = "fcr%d" % f.id
-#        try:
-#            val = cache.decr(key)
-#        except ValueError:
-#            # key not known so set to current count
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            val = Job.objects.filter(fid=f, state__name='CREATED').count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.warn(msg)
-#            else:
-#                msg = "Failed to decr key: %s" % key
-#                logging.warn(msg)
-#
-#        key = "frn%d" % f.id
-#        try:
-#            val = cache.incr(key)
-#        except ValueError:
-#            # key not known so set to current count
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.debug(msg)
-#            else:
-#                msg = "Failed to incr key: %s" % key
-#                logging.warn(msg)
-#
-#        key = "lcr%d" % j.label.id
-#        try:
-#            val = cache.decr(key)
-#        except ValueError:
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            # key not known so set to current count
-#            val = Job.objects.filter(label=j.label, state__name='CREATED').count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.debug(msg)
-#            else:
-#                msg = "Failed to decr key: %s" % key
-#                logging.warn(msg)
-#
-#        key = "lrn%d" % j.label.id
-#        try:
-#            val = cache.incr(key)
-#        except ValueError:
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            # key not known so set to current count
-#            val = Job.objects.filter(label=j.label, state__name='RUNNING').count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.debug(msg)
-#            else:
-#                msg = "Failed to incr key: %s" % key
-#                logging.warn(msg)
-
     else:
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
         element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
@@ -826,6 +431,7 @@ def rn(request, fid, cid):
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
+# APIv1
 def ex(request, fid, cid, sc=None):
     """
     Handle 'ex' signal from exiting wrapper
@@ -873,41 +479,6 @@ def ex(request, fid, cid, sc=None):
             j.flag = True
         j.save()
 
-#        key = "fex%d" % f.id
-#        try:
-#            val = cache.incr(key)
-#        except ValueError:
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            # key not known so set to current count
-#            val = Job.objects.filter(fid=f, state__name='EXITING').count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.debug(msg)
-#            else:
-#                msg = "Failed to incr key: %s" % key
-#                logging.warn(msg)
-#
-#        key = "frn%d" % f.id
-#        try:
-#            val = cache.decr(key)
-#        except ValueError:
-#            msg = "MISS key: %s" % key
-#            logging.debug(msg)
-#            # key not known so set to current count
-#            val = Job.objects.filter(fid=f, state__name='RUNNING').count()
-#            added = cache.add(key, val)
-#            if added:
-#                msg = "Added DB count for key %s : %d" % (key, val)
-#                logging.debug(msg)
-#            else:
-#                msg = "Failed to decr key: %s" % key
-#                logging.warn(msg)
-
-
-
-
     else:
         msg = "%s -> EXITING STATUSCODE: %s (WARN: state not RUNNING)" % (j.state, sc)
         element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
@@ -924,6 +495,7 @@ def ex(request, fid, cid, sc=None):
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
+# APIv1
 def action(request):
     """
     Update the latest factory actions
@@ -963,241 +535,7 @@ def action(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
-def awol(request):
-    """
-    Handle jobs which have been lost within condor
-    """
-
-    jdecode = json.JSONDecoder()
-
-    raw = request.POST.get('data', None)
-    fid = request.POST.get('fid', None)
-
-    if not (fid and raw):
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    try:
-        data = jdecode.decode(raw)
-        msg = "JSON list length: %d" % len(data)
-        logging.debug(msg)
-    except:
-        msg = "Error decoding POST json data"
-        logging.error(msg)
-        content = "Bad request"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    for cid in data:
-        try:
-            jid = ':'.join((fid, cid))
-            j = Job.objects.get(jid=jid)
-        except Job.DoesNotExist:
-            content = "DoesNotExist: %s" % cid
-            return HttpResponseBadRequest(content, mimetype="text/plain")
-    
-        if j.state.name not in ['DONE', 'FAULT']:
-            msg = "%s -> FAULT (AWOL)" % j.state
-            element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
-            red.rpush(j.jid, element)
-
-            msg = "%s -> FAULT (AWOL) FID:%s CID:%s" % (j.state, j.fid, j.cid)
-            logging.warn(msg)
-            j.state = State.objects.get(name='FAULT')
-            j.flag = True
-            j.save()
-
-    return HttpResponse("OK", mimetype="text/plain")
-
-def ping(request, tag):
-    """
-    Log a ping request with timestamp and tag,
-    """
-    if len(tag) > 80:
-        msg = tag[:77] + '...'
-    else:
-        msg = tag
-
-    if request.is_secure():
-        dn = request.META['HTTP_SSL_CLIENT_S_DN']
-        dnok = request.META['HTTP_SSL_CLIENT_VERIFY']
-        msg = dn+dnok
-    else:
-        dn = None
-        dnok = False
-    
-    return HttpResponse("Pong! %s\n" % msg, mimetype="text/plain")
-
-def cid(request, fid):
-    """
-    Return a list of jobs in state EXITING. This will allow condor_q
-    to query the state of the condor job.
-    """
-
-#    jobs = Job.objects.filter(state__name='EXITING', fid__name=fid).order_by('last_modified')
-    jobs = Job.objects.filter(state__name='EXITING', fid__name=fid).order_by('?')[:300]
-
-    response = HttpResponse(mimetype='text/plain')
-
-    writer = csv.writer(response)
-    for j in jobs:
-        writer.writerow([j.cid])
-
-    return response
-
-def old(request, fid):
-    """
-    Return a list of stale jobs
-    """
-
-    ip=request.META['REMOTE_ADDR']
-
-    try:
-        f = Factory.objects.get(name=fid)
-    except Factory.DoesNotExist:
-        msg = "factory %s not found" % fid
-        logging.debug(msg)
-        try:
-            f = Factory.objects.get(ip=ip)
-            msg = "found factory %s based on IP: %s" % (f, ip)
-            logging.warning(msg)
-        except Factory.DoesNotExist:
-            msg = "factory IP not found: %s " % ip
-            logging.error(msg)
-
-    if not f:
-        msg = "factory %s not found in function old()" % fid
-        logging.error(msg)
-        content = "Unknown factory: %s" % fid
-        return HttpResponseBadRequest(content, mimetype="text/plain")
-
-    deltat = datetime.now(pytz.utc) - timedelta(hours=24)
-    cjobs = Job.objects.filter(fid=f, state='created', last_modified__lt=deltat)[:500]
-
-    deltat = datetime.now(pytz.utc) - timedelta(hours=48)
-    rjobs = Job.objects.filter(fid__name=fid, state__name='RUNNING', last_modified__lt=deltat)[:500]
-
-    deltat = datetime.now(pytz.utc) - timedelta(hours=1)
-    ejobs = Job.objects.filter(fid__name=fid, state__name='EXITING', last_modified__lt=deltat)[:500]
-
-    jobs = []
-    jobs.extend(cjobs)
-    jobs.extend(rjobs)
-# commented since we move to auto EXITING state
-#    jobs.extend(ejobs)
-    response = HttpResponse(mimetype='text/plain')
-
-    writer = csv.writer(response)
-    for j in jobs:
-        writer.writerow([j.cid])
-
-    return response
-
-def fids(request):
-    """
-    Return list of all factories
-    """
-
-    fids = Factory.objects.all()
-
-    response = HttpResponse(mimetype='text/plain')
-
-    writer = csv.writer(response, delimiter=' ', lineterminator='\n')
-    result = []
-    for f in fids:
-        result.append(f.id)
-
-    writer.writerow(result)
-
-    return response
-
-def rrd(request):
-    """
-    Return list of active pandaqueues
-    """
-
-    pqs = BatchQueue.objects.all()
-
-    response = HttpResponse(mimetype='text/plain')
-
-    writer = csv.writer(response, delimiter=' ', lineterminator='\n')
-    result = []
-    for q in pqs:
-        result.append(q.id)
-
-    writer.writerow(result)
-
-    return response
-
-def pandasites(request):
-    """
-    Return list of active panda site names (siteid)
-    """
-
-    sites = Site.objects.all().distinct()
-
-    queues = []
-    for site in sites:
-        qs = BatchQueue.objects.filter(site=site)
-        queues += qs
-
-    response = HttpResponse(mimetype='text/plain')
-
-    writer = csv.writer(response)
-    for q in queues:
-        writer.writerow([q.wmsqueue])
-
-    return response
-
-
-#import rrdtool
-#import StringIO
-#import shutil
-#import tempfile
-#def img(request, t, fid, qid):
-#    db = '/var/tmp/rrd/job-state-%s-%s.rrd' % (fid, qid)
-#    t = str(t)
-#    db = str(db)
-#
-#    # serialize to HTTP response
-#    response = HttpResponse(mimetype="image/png")
-#    f = tempfile.NamedTemporaryFile(dir='/dev/shm')
-#
-#    output = rrdtool.graph(f.name,
-#            '--title', 'Hello',
-#            '--watermark', 'x',
-#            '--start', 'end-%s' % t,
-#            '--lower-limit', '0',
-#            '--vertical-label', "number of jobs" 
-##            'DEF:cr=%s:created:AVERAGE' % db,
-#            'DEF:cr=/var/tmp/rrd/job-state-1-1.rrd:created:AVERAGE',
-#            'DEF:rn=%s:running:AVERAGE' % db,
-#            'DEF:ex=%s:exiting:AVERAGE' % db,
-#            'DEF:ft=%s:fault:AVERAGE' % db,
-#            'DEF:dn=%s:done:AVERAGE' % db,
-##            'CDEF:st1=cr,1,*',
-#            'CDEF:st2=rn,1,*',
-#            'CDEF:st3=ex,1,*',
-#            'CDEF:st4=ft,1,*',
-#            'CDEF:st5=dn,1,*',
-#            'CDEF:ln1=cr,cr,UNKN,IF',
-#            'CDEF:ln2=rn,cr,rn,+,UNKN,IF',
-#            'CDEF:ln3=ex,rn,cr,ex,+,+,UNKN,IF',
-#            'CDEF:ln4=ft',
-#            'CDEF:ln5=dn',
-#            'AREA:st1#ECD748:CREATED',
-#            'STACK:st2#48C4EC:RUNNING',
-#            'STACK:st3#EC9D48:EXITING',
-#            'LINE1:ln1#C9B215',
-#            'LINE1:ln2#1598C3',
-#            'LINE1:ln3#CC7016',
-#            'LINE3:ln4#cc3118:FAULT',
-#            'LINE3:ln5#23bc14:DONE',
-#            )
-#
-#    shutil.copyfileobj(f, response)
-#    f.close()
-#    return response
-
+# APIv1
 @cache_page(60 * 10)
 def stats(request):
     """
@@ -1279,14 +617,7 @@ def stats(request):
 
     return HttpResponse(json.dumps(rows, sort_keys=True, indent=2), mimetype="application/json")
 
-
-def test(request):
-
-    jobs = Job.objects.all()
-
-    context = {}
-    return render_to_response('mon/test.html', context)
-
+# UI
 @cache_page(60 * 1)
 def index(request):
     """
@@ -1322,6 +653,7 @@ def index(request):
 
     return render_to_response('mon/index.html', context)
 
+# UI
 def cloud(request, name):
     """
     Rendered view of Cloud page showing table of Sites in this cloud.
@@ -1403,6 +735,7 @@ def testtimeline(request):
 
     return render_to_response('mon/test.html', context)
 
+# UI wtf
 @cache_page(60 * 10)
 def queues(request):
     """
@@ -1500,25 +833,7 @@ def queues(request):
 
     return render_to_response('mon/queues.html', context)
 
-def shout(request):
-    """
-    Create the Job
-    """
-
-    jdecode = json.JSONDecoder()
-
-    raw = request.POST.get('data', None)
-
-    
-    if raw:
-        data = jdecode.decode(raw)
-        for d in data:
-            logging.warn(d)
-
-
-    
-    return HttpResponse("OK", mimetype="text/plain")
-
+# APIv1
 def cr(request):
     """
     Create the Job, expect data format is:
@@ -1612,6 +927,7 @@ def cr(request):
     context = 'Received %d %s' % (len(data), txt) 
     return HttpResponse(context, mimetype="text/plain")
 
+# APIv1
 def helo(request):
     """
     Factory startup messages. Expecting POST with key,value pairs
@@ -1663,6 +979,7 @@ def helo(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
+# APIv1
 def msg(request):
     """
     Update the latest factory messages. Expect data format:
@@ -1723,19 +1040,9 @@ def msg(request):
                 l = Label(name=label, fid=f, batchqueue=pq)
                 created = True
 
-#            try:
-#                l, created = Label.objects.get_or_create(name=label, fid=f, pandaq=pq)
-#            except MultipleObjectsReturned, e:
-#                msg = "Multiple objects apfv2 error %s %s" %(ip, dict(request.POST))
-#                logging.warn(msg)
-#                logging.warn(str(e))
-#                msg = "Multiple objects error %s %s" %(ip, dict(request.POST))
-#                return HttpResponseBadRequest(msg, mimetype="text/plain")
-
             if created:
                 msg = "Label auto-created: %s" % label
                 logging.warn(msg)
-#            l = get_object_or_404(Label, name=label, fid=f, pandaq=pq)
         
             try:
                 l.msg = txt
@@ -1748,12 +1055,13 @@ def msg(request):
 
     return HttpResponse("OK", mimetype="text/plain")
 
+# UI
 def help(request):
 
     context = {}
     return render_to_response('mon/help.html', context)
 
-
+# APIv1
 def search(request):
     """
     Search for a string in pandaqueue, sites, labels.
@@ -1767,6 +1075,7 @@ def search(request):
     logging.debug(url)
     return HttpResponseRedirect(url)
 
+# UI
 def query(request, q=None):
     """
     Search for a string in pandaq
@@ -1789,7 +1098,7 @@ def query(request, q=None):
     }
     return render_to_response('mon/query.html', context)
 
-
+# UI
 def site(request, sid):
     """
     Rendered view of Site page showing table of Pandaqs for this Site
@@ -1835,6 +1144,7 @@ def site(request, sid):
 
     return render_to_response('mon/site.html', context)
 
+# UI
 def fault(request):
     """
     List Labels which have FAULT jobs
@@ -1882,35 +1192,7 @@ def fault(request):
 
     return render_to_response('mon/fault.html', context)
 
-def labels(request):
-    """
-    Rendered view of all Labels
-    """
-
-    jobs = Job.objects.all()
-    lablist = Label.objects.all()
-
-    stale = datetime.now(pytz.utc) - timedelta(days=14)
-
-    rows = []
-    for lab in lablist:
-        activity = 'ok'
-        if stale > lab.last_modified:
-            activity = 'stale'
-        row = {
-            'label' : lab,
-            'last_modified' : lab.last_modified,
-            'activity' : activity,
-            }
-        rows.append(row)
-
-    sortedrows = sorted(rows, key=itemgetter('last_modified')) 
-    context = {
-        'rows' : sortedrows,
-        }
-
-    return render_to_response('mon/labels.html', context)
-
+# UI
 def label(request, lid, p=1):
     """
     Rendered view of a single Label with job details
@@ -1983,6 +1265,7 @@ def label(request, lid, p=1):
 
     return render_to_response('mon/label.html', context)
 
+# UI
 def cloudindex(request):
     """
     Rendered view which shows a table of activity
@@ -2024,4 +1307,35 @@ def cloudindex(request):
     context = { 'crows' : crows }
 
     return render_to_response('mon/cloudindex.html', context)
+
+def test(request):
+
+    jobs = Job.objects.all()
+
+    context = {}
+    return render_to_response('mon/test.html', context)
+
+def debug(request):
+    """
+    Rendered view of selected Jobs
+    """
+
+    dt = datetime.now(pytz.utc) - timedelta(minutes=60)
+    fault = Job.objects.filter(last_modified__gt=dt, state__name='FAULT')
+    done = Job.objects.filter(last_modified__gt=dt, state__name='DONE').filter(result=0)
+    flagged = Job.objects.filter(last_modified__gt=dt, flag=True)
+    havejob = done.filter(result=0)
+
+    dt = datetime.now(pytz.utc) - timedelta(hours=96)
+    ancient = Job.objects.filter(created__lt=dt).order_by('created').exclude(state__name__in=['FAULT','DONE'])
+
+    context = {
+                'ancient' : ancient,
+                'flagged' : flagged,
+                'fault' : fault,
+                'done' : done,
+                'havejob' : havejob,
+                }
+
+    return render_to_response('mon/debug.html', context)
 

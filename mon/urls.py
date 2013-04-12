@@ -13,10 +13,9 @@ urlpatterns = patterns('apfmon.mon.views',
     (r'^queues/?$', 'queues'),
     (r'^l/(?P<lid>\d*)/page/(?P<p>\d*)$', 'label'),
     (r'^l/(?P<lid>\d*)/+$', 'label'),
-    (r'^labels/?$', 'labels'),
     (r'^fault/?$', 'fault'),
     (r'^site/(?P<sid>\d*)$', 'site'),
-    (r'^history/(?P<qid>\d*)/?$', 'history'),
+#    (r'^history/(?P<qid>\d*)/?$', 'history'),
     (r'^help/?$', 'help'),
     (r'^q/(?P<qid>\d*)/page/(?P<p>\d*)$', 'pandaq'),
     (r'^q/(?P<qid>\d*)/+$', 'pandaq'),
@@ -31,26 +30,15 @@ urlpatterns = patterns('apfmon.mon.views',
 
 # non-rendered views
     (r'^c/$', 'cr'),
-    (r'^f/$', 'fids'),
     (r'^h/$', 'helo'),
-#    (r'^i/(?P<fid>\S*)/(?P<cid>\S*)/$', 'info'),
     (r'^m/$', 'msg'),
-    (r'^n/(?P<fid>\d*)/(?P<state>[A-Z]*)/?(?P<qid>\d*)$', 'count'),
-    (r'^r/$', 'rrd'),
-#    (r'^cr/$', 'cr'),
     (r'^ex/(?P<fid>\S*)/(?P<cid>\S*)/(?P<sc>\d*)$', 'ex'),
-    (r'^st/$', 'st'),
     (r'^rn/(?P<fid>\S*)/(?P<cid>\S*)/$', 'rn'),
-    (r'^cid/(?P<fid>\S*)$', 'cid'),
-    (r'^old/(?P<fid>\S*)$', 'old'),
     (r'^msg/$', 'action'),
-    (r'^awol/$', 'awol'),
-    (r'^stale/$', 'stale'),
     (r'^search/$', 'search'),
     (r'^query/(?P<q>.*)/$', 'query'),
 
 )
-
 
 """
 django.views.generic.date_based.archive_index
