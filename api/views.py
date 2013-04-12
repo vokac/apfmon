@@ -157,6 +157,8 @@ def jobs(request):
     """
 
     ip = request.META['REMOTE_ADDR']
+    length = request.META['CONTENT_LENGTH']
+    ss.gauge('apfmon.length.apijobs', length)
 
     if request.method == 'PUT':
 
@@ -275,6 +277,8 @@ def label(request, id=None):
     """
 
     ip = request.META['REMOTE_ADDR']
+    length = request.META['CONTENT_LENGTH']
+    ss.gauge('apfmon.length.apilabel', length)
 
     try:
         factory, name = id.split(':')
@@ -333,6 +337,8 @@ def labels(request):
     """
 
     ip = request.META['REMOTE_ADDR']
+    length = request.META['CONTENT_LENGTH']
+    ss.gauge('apfmon.length.apilabels', length)
 
     if request.method == 'PUT':
 
@@ -460,6 +466,9 @@ def factory(request, id):
     """
 
     ip = request.META['REMOTE_ADDR']
+    length = request.META['CONTENT_LENGTH']
+    ss.gauge('apfmon.length.apifactory', length)
+
     dt = datetime.now(pytz.utc) - timedelta(days=10)
 
     if request.method == 'GET':
