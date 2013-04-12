@@ -31,4 +31,9 @@ GRAPHITE = {
     'port': 8125
 }
 
+REDIS = {
+    'host': 'py-prod',
+    'port': 6379,
+}
+
 USE_X_FORWARDED_HOST = True
