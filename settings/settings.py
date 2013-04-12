@@ -157,7 +157,6 @@ LOGGING = {
         'apfmon.mon': {
             'handlers': ['console', 'mail_admins'],
             'level': 'INFO',
-            'filters': ['simple']
         }
     }
 }
