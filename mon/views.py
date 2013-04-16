@@ -842,7 +842,14 @@ def cr(request):
     stat = 'apfmon.cr'
     start = time()
 
-    ss.gauge('apfmon.length.cr',request.META['CONTENT_LENGTH'])
+    if 'CONTENT_LENGTH' in request.META.keys():
+        length = request.META['CONTENT_LENGTH']
+        msg = "cr content length: %s" % length
+        logging.debug(msg)
+        ss.gauge('apfmon.length.cr',length)
+    else:
+        msg = 'No CONTENT_LENGTH in request'
+        logging.debug(msg)
 
     ip = request.META['REMOTE_ADDR']
     jdecode = json.JSONDecoder()
@@ -859,7 +866,8 @@ def cr(request):
         data = jdecode.decode(raw)
         ncreated = len(data)
         msg = "Number of jobs in JSON data: %d (%s)" % (ncreated, ip)
-        logging.warn(msg)
+        logging.debug(msg)
+        ss.gauge('apfmon.apiv1.jsoncount',ncreated)
     except:
         msg = 'Error decoding POST json data'
         logging.error(msg)
@@ -998,10 +1006,14 @@ def msg(request):
             data = jdecode.decode(raw)
             msg = "Number of msgs in JSON data: %d (%s)" % (len(data), ip)
             logging.debug(msg)
-            length = request.META['CONTENT_LENGTH']
-            msg = "Msg content length: %s" % length
-            logging.debug(msg)
-            ss.gauge('apfmon.length.msg', length)
+            if 'CONTENT_LENGTH' in request.META.keys():
+                length = request.META['CONTENT_LENGTH']
+                msg = "Msg content length: %s" % length
+                logging.debug(msg)
+                ss.gauge('apfmon.length.msg', length)
+            else:
+                msg = 'No CONTENT_LENGTH in request'
+                logging.debug(msg)
         except:
             msg = 'Error decoding POST json data'
             logging.error(msg)

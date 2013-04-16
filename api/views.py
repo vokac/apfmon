@@ -157,8 +157,15 @@ def jobs(request):
     """
 
     ip = request.META['REMOTE_ADDR']
-    length = request.META['CONTENT_LENGTH']
-    ss.gauge('apfmon.length.apijobs', length)
+    if 'CONTENT_LENGTH' in request.META.keys():
+        length = request.META['CONTENT_LENGTH']
+        msg = "APIv2 content length: %s" % length
+        logging.debug(msg)
+        ss.gauge('apfmon.length.apijobs', length)
+    else:
+        msg = 'No CONTENT_LENGTH in request'
+        logging.debug(msg)
+
 
     if request.method == 'PUT':
 
@@ -277,8 +284,14 @@ def label(request, id=None):
     """
 
     ip = request.META['REMOTE_ADDR']
-    length = request.META['CONTENT_LENGTH']
-    ss.gauge('apfmon.length.apilabel', length)
+    if 'CONTENT_LENGTH' in request.META.keys():
+        length = request.META['CONTENT_LENGTH']
+        msg = "APIv2 content length: %s" % length
+        logging.debug(msg)
+        ss.gauge('apfmon.length.apilabel', length)
+    else:
+        msg = 'No CONTENT_LENGTH in request'
+        logging.debug(msg)
 
     try:
         factory, name = id.split(':')
@@ -337,8 +350,14 @@ def labels(request):
     """
 
     ip = request.META['REMOTE_ADDR']
-    length = request.META['CONTENT_LENGTH']
-    ss.gauge('apfmon.length.apilabels', length)
+    if 'CONTENT_LENGTH' in request.META.keys():
+        length = request.META['CONTENT_LENGTH']
+        msg = "APIv2 content length: %s" % length
+        logging.debug(msg)
+        ss.gauge('apfmon.length.apilabels', length)
+    else:
+        msg = 'No CONTENT_LENGTH in request'
+        logging.debug(msg)
 
     if request.method == 'PUT':
 
@@ -466,8 +485,14 @@ def factory(request, id):
     """
 
     ip = request.META['REMOTE_ADDR']
-    length = request.META['CONTENT_LENGTH']
-    ss.gauge('apfmon.length.apifactory', length)
+    if 'CONTENT_LENGTH' in request.META.keys():
+        length = request.META['CONTENT_LENGTH']
+        msg = "APIv2 content length: %s" % length
+        logging.debug(msg)
+        ss.gauge('apfmon.length.apifactory', length)
+    else:
+        msg = 'No CONTENT_LENGTH in request'
+        logging.debug(msg)
 
     dt = datetime.now(pytz.utc) - timedelta(days=10)
 
