@@ -68,7 +68,6 @@ def job(request, id):
                    'result', 'state')
         j = Job.objects.filter(jid=id).values(*jobfields)[0]
 
-#        j['messages'] = list(messages)
         j['messages'] = msglist
 
         response = HttpResponse(json.dumps(j, 
@@ -83,6 +82,7 @@ def job(request, id):
 
     if request.method == 'POST':
         newstate = request.POST.get('state', None)
+        rc = request.POST.get('rc', None)
 
         if newstate == 'running':
             if job.state != 'created':
@@ -114,8 +114,9 @@ def job(request, id):
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = 'exiting'
+            if rc: job.result = rc
             job.save()
-            msg = "State change: running->exiting"
+            msg = "State change: running->exiting (pilot return code: %s)" % rc
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
