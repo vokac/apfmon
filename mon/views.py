@@ -635,11 +635,11 @@ def index(request):
         if f.last_modified < dtfail: continue
 
         # this 'active' string map to a html classes
-        active = 'error'
+        active = 'text-error'
         if f.last_modified > dterror:
-            active = 'warn'
+            active = 'text-warning'
         if f.last_modified > dtwarn:
-            active = 'ok'
+            active = ''
         row = {
             'factory' : f,
             'active' : active,
