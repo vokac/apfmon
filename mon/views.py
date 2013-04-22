@@ -155,9 +155,11 @@ def factory(request, fid):
     except ValueError:
         raise Http404
 
+    dtdead = datetime.now(pytz.utc) - timedelta(days=10)
+
     f = get_object_or_404(Factory, id=id)
     pandaqs = BatchQueue.objects.all()
-    labels = Label.objects.filter(fid=f)
+    labels = Label.objects.filter(fid=f, last_modified__gt=dtdead)
     jobs = Job.objects.filter(label__fid=f)
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     dtlab = datetime.now(pytz.utc) - timedelta(weeks=3)
