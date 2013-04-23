@@ -257,7 +257,10 @@ def jobs(request):
         jobs.order_by(order)
         offset = max(0,int(offset))
         limit = int(limit)
-        jobs = jobs[offset:offset+limit]
+        if limit == 0:
+            jobs = jobs[offset:]
+        else:
+            jobs = jobs[offset:offset+limit]
 
         fields = ('jid','state','created','last_modified','result','flag')
         return HttpResponse(json.dumps(list(jobs.values(*fields)), 
@@ -303,9 +306,15 @@ def label(request, id=None):
     label = get_object_or_404(Label, name=name, fid__name=factory)
 
     if request.method == 'GET':
-        fields = ('id','name','fid__name','msg','last_modified','resource','localqueue')
+        fields = ('id','name','fid__name','msg','created','last_modified','resource','localqueue')
 
         lab = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
+        lab['factory'] = lab['fid__name']
+        del lab['fid__name']
+        truth = ['unsub', 'pend', 'stgin', 'running', 'stgout', 'held']
+        for t in truth:
+            lab[t] = '-'
+
 
         return HttpResponse(json.dumps(lab,
                             cls=DjangoJSONEncoder,
@@ -500,13 +509,22 @@ def factory(request, id):
     if request.method == 'GET':
         f = get_object_or_404(Factory, name=id)
 
-        labels = Label.objects.filter(fid__name=id).values(
-                               'name', 'msg', 'last_modified', 'batchqueue')
+        fields = ('name', 'email', 'url', 'version', 'last_modified',
+                  'last_startup')
+        f = Factory.objects.filter(name=id).values(*fields)[0]
 
-        f = Factory.objects.filter(name=id).values('name', 'email',
-                            'url', 'version', 'last_modified',
-                            'last_startup')[0]
-        f['labels'] = list(labels)
+# Let's not include labels here since they can be retrieved from the
+# /api/labels resource
+#
+#        fields = ('name', 'msg', 'last_modified', 'batchqueue__name',
+#                  'resource', 'localqueue')
+#        labels = Label.objects.filter(fid__name=id).values(*fields)
+#
+#        for label in labels:
+#            label['batchqueue'] = label['batchqueue__name']
+#            del label['batchqueue__name']
+#
+#        f['labels'] = list(labels)
 
         return HttpResponse(json.dumps(f, 
                             cls=DjangoJSONEncoder,
