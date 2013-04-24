@@ -210,26 +210,6 @@ def jobs(request):
             j.save()
             ncreated += 1
 
-            key = "fcr%d" % f.id
-            try:
-                val = cache.incr(key)
-            except ValueError:
-                msg = "MISS key: %s" % key
-                logging.warn(msg)
-                # key not known so set to current count
-                val = Job.objects.filter(label__fid=f, state='created').count()
-                added = cache.add(key, val)
-                if added:
-                    msg = "Added DB count for key %s : %d" % (key, val)
-                    #logging.warn(msg)
-                else:
-                    msg = "Failed to incr key: %s" % key
-                    logging.warn(msg)
-
-#            if not val % 1000:
-            msg = "memcached key:%s val:%d" % (key, val)
-            logging.warn(msg)
-
         txt = 'job' if len(jobs) == 1 else 'jobs'
         context = 'Created %d/%d %s, %d not created' % (ncreated, len(jobs), txt, nfailed)
         status = 201 if ncreated else 200
@@ -257,10 +237,12 @@ def jobs(request):
         jobs.order_by(order)
         offset = max(0,int(offset))
         limit = int(limit)
+        start = min(offset, jobs.count())
+        end = min(offset+limit, jobs.count())
         if limit == 0:
-            jobs = jobs[offset:]
+            jobs = jobs[start:]
         else:
-            jobs = jobs[offset:offset+limit]
+            jobs = jobs[start:end]
 
         fields = ('jid','state','created','last_modified','result','flag')
         return HttpResponse(json.dumps(list(jobs.values(*fields)), 
@@ -374,9 +356,9 @@ def labels(request):
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
         logging.debug(msg)
 
-        mail_managers('PUT /api/labels from: %s' % ip,
-                      'PUT /api/labels from: %s' % ip,
-                      fail_silently=False)
+#        mail_managers('PUT /api/labels from: %s' % ip,
+#                      'PUT /api/labels from: %s' % ip,
+#                      fail_silently=False)
 
         try:
             data = json.loads(request.body)
@@ -396,7 +378,7 @@ def labels(request):
                 name = d['name']
                 factory = d['factory']
                 batchqueue = d['batchqueue']
-#                wmsqueue = d['wmsqueue']
+                wmsqueue = d['wmsqueue']
                 resource = d['resource']
                 localqueue = d['localqueue']
             except KeyError, e:
@@ -413,22 +395,34 @@ def labels(request):
                 
             bq, created = BatchQueue.objects.get_or_create(name=batchqueue)
 
-            label, created = Label.objects.get_or_create(name=name,
+            if created:
+                msg = "BatchQueue auto-created: %s" % batchqueue
+                logging.warn(msg)
+
+            try: 
+                label, created = Label.objects.get_or_create(name=name,
                                                          fid=f,
                                                          batchqueue=bq)
+            except:
+                msg = "Exception get/create label: %s, fid: %s, bq:" % (name,f,bq)
+                logging.error(msg)
+                continue
+                
 
             if not created:
                 nupdated += 1
                 if bq != label.batchqueue:
                     label.batchqueue = bq
-#                if wmsqueue != label.wmsqueue:
-#                    label.wmsqueue = wmsqueue 
+                if wmsqueue != label.wmsqueue:
+                    label.wmsqueue = wmsqueue 
                 if resource != label.resource:
                     label.resource = resource 
                 if localqueue != label.localqueue:
                     label.localqueue = localqueue 
                 label.save()
             else:
+                msg = "Label auto-created: %s" % label.name
+                logging.warn(msg)
                 ncreated += 1
 
         txt = 'label' if len(data) == 1 else 'labels'
@@ -442,6 +436,9 @@ def labels(request):
         factory = request.GET.get('factory', None)
         name = request.GET.get('name', None)
         batchqueue = request.GET.get('batchqueue', None)
+        offset = request.GET.get('offset', 0)
+        limit = request.GET.get('limit', 50)
+        order = request.GET.get('order','name')
         
         if factory:
             labels = labels.filter(fid__name=factory)
@@ -450,8 +447,16 @@ def labels(request):
         if batchqueue:
             jobs = jobs.filter(batchqueue=batchqueue)
 
-# limit
-# offset
+        labels.order_by(order)
+        offset = max(0,int(offset))
+        limit = int(limit)
+        start = min(offset, labels.count())
+        end = min(offset+limit, labels.count())
+        if limit == 0:
+            labels = labels[start:]
+        else:
+            labels = labels[start:end]
+
         fields = ('id','name','fid__name','msg','last_modified','resource','localqueue')
 
         data = list(labels.values(*fields))
@@ -509,22 +514,9 @@ def factory(request, id):
     if request.method == 'GET':
         f = get_object_or_404(Factory, name=id)
 
-        fields = ('name', 'email', 'url', 'version', 'last_modified',
+        fields = ('id', 'name', 'email', 'url', 'version', 'last_modified',
                   'last_startup')
         f = Factory.objects.filter(name=id).values(*fields)[0]
-
-# Let's not include labels here since they can be retrieved from the
-# /api/labels resource
-#
-#        fields = ('name', 'msg', 'last_modified', 'batchqueue__name',
-#                  'resource', 'localqueue')
-#        labels = Label.objects.filter(fid__name=id).values(*fields)
-#
-#        for label in labels:
-#            label['batchqueue'] = label['batchqueue__name']
-#            del label['batchqueue__name']
-#
-#        f['labels'] = list(labels)
 
         return HttpResponse(json.dumps(f, 
                             cls=DjangoJSONEncoder,
@@ -624,7 +616,11 @@ def factories(request):
 
     dtactive = datetime.now(pytz.utc) - timedelta(days=10)
 
-    factories = Factory.objects.values().order_by('name')
+    fields = ('id', 'name', 'email', 'url', 'version', 'last_modified',
+              'last_startup')
+    factories = Factory.objects.values(*fields).order_by('name')
+
+#    factories = Factory.objects.values().order_by('name')
     for f in factories:
         active = True if f['last_modified'] > dtactive else False
         f['active'] = active
