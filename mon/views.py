@@ -908,22 +908,6 @@ def cr(request):
             j = Job(jid=jid, cid=cid, state='created', label=l)
             j.save()
 
-            key = "fcr%d" % f.id
-            try:
-                val = cache.incr(key)
-            except ValueError:
-                msg = "MISS key: %s" % key
-                logging.warn(msg)
-                # key not known so set to current count
-                val = Job.objects.filter(jid__startswith=f.name, state='created').count()
-                added = cache.add(key, val)
-                if added:
-                    msg = "Added DB count for key %s : %d" % (key, val)
-                    logging.warn(msg)
-                else:
-                    msg = "Failed to incr key: %s" % key
-                    logging.warn(msg)
-
         except Exception, e:
             msg = "Failed to create: fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
             logging.error(e)
@@ -1030,39 +1014,24 @@ def msg(request):
 
             txt = text[:140]
         
-            pq, created = BatchQueue.objects.get_or_create(name=nick)
-            if created:
-                msg = 'FID:%s, BatchQueue auto-created, no siteid: %s' % (fid,nick)
-                logging.warn(msg)
-                pq.save()
-
             ip = request.META['REMOTE_ADDR']
-            f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
-            if created:
-                msg = "Factory auto-created: %s" % fid
-                logging.warn(msg)
+            f = Factory.objects.get(name=fid)
             if cycle:
                 f.last_cycle = cycle
-            f.save()
+                f.save()
         
-
             try:
-                l = Label.objects.get(name=label, fid=f, batchqueue=pq)
-            except:
-                msg = 'PAL except msg() pq:%s' % pq
-                logging.error(msg)
-                l = Label(name=label, fid=f, batchqueue=pq)
-                created = True
+                lab = Label.objects.get(name=label, fid=f)
 
-            if created:
-                msg = "Label auto-created: %s" % label
+            except:
+                msg = "Failed to get Label: %s (fid: %s)" % (name, f)
                 logging.warn(msg)
         
             try:
-                l.msg = txt
-                l.save()
+                lab.msg = txt
+                lab.save()
             except Exception, e:
-                msg = "Failed to update the %s label: %s" % (created,l)
+                msg = "Failed to update the label: %s" % lab
                 logging.error(msg)
                 logging.error(e)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
