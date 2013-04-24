@@ -22,16 +22,18 @@
   {% else %}
     <dd>-
   {% endif %}
-  <dt>Last cycle
-  <dd>{{ factory.last_modified|timesince_human }}
   <dt>Email
   {% if factory.email %}
     <dd>{{ factory.email }}
   {% else %}
     <dd>-
   {% endif %}
-  <dt>Logs
-  <dd><a href={{ factory.url }}>{{ factory.url }}</a>
+  <dt>Links
+  <dd>
+  <ul class="inline">
+    <li><a href="{{ factory.url }}">logs</a>
+    <li><a href="{{ factory.url }}/queues.conf">queues.conf</a>
+  </ul>
 </dl>
 </div>
 
