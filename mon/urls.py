@@ -6,7 +6,6 @@ urlpatterns = patterns('apfmon.mon.views',
 # rendered views
 #    (r'^$', 'offline'),
     (r'^$', 'index'),
-    (r'^clouds/?$', 'cloudindex'),
     (r'^cloud/(?P<name>[a-zA-Z]+)/?$', 'cloud'),
     (r'^factory/(?P<fid>\S*)/?$', 'factory'),
 #    (r'^t/?$', 'total'),

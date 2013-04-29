@@ -516,22 +516,14 @@ def action(request):
     txt = txt[:140]
 
     pq = get_object_or_404(BatchQueue, name=nick)
-
-    f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
-    if created:
-        msg = "Factory auto-created: %s" % fid
-        logging.warn(msg)
-
-    l, created = Label.objects.get_or_create(name=label, fid=f, batchqueue=pq)
-    if created:
-        msg = "Label auto-created: %s" % label
-        logging.warn(msg)
+    f = get_object_or_404(Factory, name=fid)
+    lab = get_object_or_404(Label, name=label, fid=f)
 
     try:
-        l.msg = txt
-        l.save()
+        lab.msg = txt
+        lab.save()
     except Exception, e:
-        msg = "Failed to update label: %s" % l
+        msg = "Failed to update label: %s" % lab
         print msg, e
         return HttpResponseBadRequest(msg, mimetype="text/plain")
 
@@ -632,6 +624,8 @@ def index(request):
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
 
     factories = Factory.objects.all().order_by('name')
+    clouds = Site.objects.values_list('cloud', flat=True).order_by('cloud').distinct()
+
     rows = []
     for f in factories:
         if f.last_modified < dtfail: continue
@@ -649,8 +643,12 @@ def index(request):
 
         rows.append(row)
 
+    status = red.get('apfmon:status')
+
     context = {
             'rows' : rows,
+            'clouds' : clouds,
+            'status' : status,
             }
 
     return render_to_response('mon/index.html', context)
@@ -678,10 +676,8 @@ def cloud(request, name):
     rows = []
 
     for site in sites:
-
         pandaqs = BatchQueue.objects.filter(wmsqueue__site=site)
         for pandaq in pandaqs:
-
             elogmatch = ELOGREGEX.match(pandaq.comment)
             ggusmatch = GGUSREGEX.match(pandaq.comment)
             savmatch = SAVANNAHREGEX.match(pandaq.comment)
@@ -884,13 +880,13 @@ def cr(request):
     
         pq, created = BatchQueue.objects.get_or_create(name=nick)
         if created:
-            msg = 'FID:%s, BatchQueue auto-created, no siteid: %s' % (fid,nick)
+            msg = 'PAL FID:%s, BatchQueue auto-created, no siteid: %s' % (fid,nick)
             logging.error(msg)
             pq.save()
     
         f, created = Factory.objects.get_or_create(name=fid, defaults={'ip':ip})
         if created:
-            msg = "Factory auto-created: %s" % fid
+            msg = "PAL Factory auto-created: %s" % fid
             logging.error(msg)
         f.last_ncreated = ncreated
         f.save()
@@ -899,8 +895,8 @@ def cr(request):
             l = Label.objects.get(name=label, fid=f, batchqueue=pq)
         except:
             l = Label(name=label, fid=f, batchqueue=pq)
-            created = True
-            msg = "Label auto-created: %s" % l.name
+            l.save()
+            msg = "PAL Label cr() auto-created: %s" % l
             logging.error(msg)
             
         try:
@@ -909,7 +905,7 @@ def cr(request):
             j.save()
 
         except Exception, e:
-            msg = "Failed to create: fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
+            msg = "Failed to create cr(): fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
             logging.error(e)
             logging.error(msg)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
@@ -1024,8 +1020,9 @@ def msg(request):
                 lab = Label.objects.get(name=label, fid=f)
 
             except:
-                msg = "Failed to get Label: %s (fid: %s)" % (name, f)
+                msg = "Failed to get msg() Label: %s (fid: %s)" % (label, f)
                 logging.warn(msg)
+                raise Http404
         
             try:
                 lab.msg = txt
@@ -1063,7 +1060,9 @@ def query(request, q=None):
     """
     Search for a string in pandaq
     """
+    
     if q:
+        result = red.lpush('apfmon:query', q)
         qset = (
             Q(name__icontains=q) |
             Q(batchqueue__name__icontains=q) |
@@ -1092,7 +1091,12 @@ def site(request, sid):
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
 
     # all labels serving this site
-    labels = Label.objects.filter(batchqueue__wmsqueue__site=s)
+    wmsqueues = WMSQueue.objects.filter(site=s)
+    labels = []
+#PAL
+#    for wmsqueue in wmsqueues:
+#        labels = Label.objects.filter(batchqueue__wmsqueue=wmsqueue.name)
+#        alllabels.append(labels)
 
     rows = []
     for label in labels:
@@ -1247,49 +1251,6 @@ def label(request, lid, p=1):
             }
 
     return render_to_response('mon/label.html', context)
-
-# UI
-def cloudindex(request):
-    """
-    Rendered view which shows a table of activity
-    for each cloud with counts of number of active factories
-    """
-
-    clouds = Site.objects.values_list('cloud', flat=True).order_by('cloud').distinct()
-    dt = datetime.now(pytz.utc) - timedelta(minutes=10)
-    dtfail = datetime.now(pytz.utc) - timedelta(hours=1)
-    dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
-    dtdead = datetime.now(pytz.utc) - timedelta(days=10)
-
-    crows = []
-    #    labels = Label.objects.all()
-    for cloud in clouds:
-
-        factive = []
-        labels = Label.objects.filter(batchqueue__wmsqueue__site__cloud=cloud)
-
-        factories = []
-        ncreated = 0
-        for label in labels:
-            if label.fid not in factories:
-                if label.fid.last_modified < dtdead: continue
-                factories.append(label.fid)
-                if label.fid.last_modified > dtwarn:
-                    factive.append(label.fid)
-
-        row = {
-            'cloud'     : cloud,
-            'labels'    : labels,
-            'factories' : factories,
-            'factive'   : factive,
-            'ncreated'  : ncreated,
-            }
-
-        crows.append(row)
-
-    context = { 'crows' : crows }
-
-    return render_to_response('mon/cloudindex.html', context)
 
 def test(request):
 
