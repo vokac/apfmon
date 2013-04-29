@@ -5,10 +5,12 @@
 {% block content %}
 
 {% comment %}
-<div class="alert alert-info">
-  <strong>Note:</strong> DNS switch to new backend has been made
-</div>
 {% endcomment %}
+{% if status %}
+<div class="alert alert-info">
+  <strong>Note:</strong>{{ status }}
+</div>
+{% endif %}
 
 <h2>ATLAS pilot factory monitor</h2>
 

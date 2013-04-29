@@ -1,4 +1,5 @@
 {% load humanize %}
+{% load url from future %}
 {% load timesince_human %}
 <!DOCTYPE html">
 <html lang="en">
@@ -28,21 +29,26 @@
 <div class="container">
   <ul class="nav nav-pills">
     <li>
-      <a href="{% url apfmon.mon.views.index %}">Home</a> 
+      <a href="{% url 'apfmon.mon.views.index' %}">Home</a> 
     </li>
-    <li>
-       <a href="{% url apfmon.mon.views.cloudindex %}">Clouds</a>
-    </li>
+    {% for cloud in clouds %}
+      <li>
+        <a href="{% url 'apfmon.mon.views.cloud' cloud %}">{{ cloud|upper }}</a>
+      </li>
+    {% endfor %}
 {% comment %}
     <li>
-       <a href="{% url apfmon.mon.views.queues %}">Queues</a>
+       <a href="{% url 'apfmon.mon.views.cloudindex' %}">Clouds</a>
+    </li>
+    <li>
+       <a href="{% url 'apfmon.mon.views.queues' %}">Queues</a>
     </li>
 {% endcomment %}
     <li>
-      <a href="{% url apfmon.mon.views.fault %}">Faults</a>
+      <a href="{% url 'apfmon.mon.views.fault' %}">Faults</a>
     </li>
     <li>
-       <a href="{% url apfmon.mon.views.help %}">Help</a>
+       <a href="{% url 'apfmon.mon.views.help' %}">Help</a>
     </li>
 {% comment %}
     <li>

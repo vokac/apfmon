@@ -13,12 +13,16 @@
   <dt>Factory</dt>
   <dd><a href="{% url 'apfmon.mon.views.factory' row.label.fid.id %}">{{ row.label.fid }}</a>
   <dt>Batch queue</dt>
-  <dd><a href="{% url 'apfmon.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a>
+  {% if pandaq.name %}
+    <dd><a href="{% url 'apfmon.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a></dd>
+  {% else %}
+    <dd class=muted><a href="{% url 'apfmon.mon.views.pandaq' pandaq.id %}">&lt;no name?, no name!&gt;</a></dd>
+  {% endif %}
   <dt>Queue</dt>
   <dd>-
   <dt>Localqueue</dt>
   <dd>-
-  <dt>Activity
+  <dt>Last modified
   <dd>{{ row.label.last_modified|timesince_human }}
   <dt>Counts
   <dd>

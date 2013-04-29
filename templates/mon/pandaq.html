@@ -9,7 +9,11 @@
 <div class=row-fluid>
 <dl class="dl-horizontal dl-compact">
   <dt>Batch queue</dt>
-  <dd>{{ pandaq }}
+  {% if pandaq.name %}
+    <dd>{{ pandaq }}
+  {% else %}
+    <dd class=muted>&lt;no name!&gt; id={{ pandaq.id }}
+  {% endif %}
   <dt>WMS queue</dt>
   <dd>{{ pandaq.wmsqueue|default:"-" }}
   <dt>Site</dt>
