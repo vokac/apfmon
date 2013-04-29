@@ -6,27 +6,19 @@ from apfmon.kit.models import Site
 from apfmon.kit.models import BatchQueue
 from apfmon.kit.models import WMSQueue
 
-#import csv
 import logging
 import pytz
-#import re
 import redis
 import statsd
-#import string
-#import sys
 import time
-#from operator import itemgetter
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
-#from django.db.models import Count
-#from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.conf import settings
 from django.core.cache import cache
 #from django.views.decorators.cache import cache_page
 from django.core.mail import mail_managers
-#from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
@@ -356,10 +348,6 @@ def labels(request):
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
         logging.debug(msg)
 
-#        mail_managers('PUT /api/labels from: %s' % ip,
-#                      'PUT /api/labels from: %s' % ip,
-#                      fail_silently=False)
-
         try:
             data = json.loads(request.body)
         except ValueError, e:
@@ -404,7 +392,7 @@ def labels(request):
                                                          fid=f,
                                                          batchqueue=bq)
             except:
-                msg = "Exception get/create label: %s, fid: %s, bq:" % (name,f,bq)
+                msg = "Exception get/create label: %s, fid: %s, bq: %s" % (name,f,bq)
                 logging.error(msg)
                 continue
                 
@@ -413,8 +401,6 @@ def labels(request):
                 nupdated += 1
                 if bq != label.batchqueue:
                     label.batchqueue = bq
-                if wmsqueue != label.wmsqueue:
-                    label.wmsqueue = wmsqueue 
                 if resource != label.resource:
                     label.resource = resource 
                 if localqueue != label.localqueue:
