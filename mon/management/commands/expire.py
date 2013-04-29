@@ -26,7 +26,7 @@ class Command(NoArgsCommand):
     def handle(self, *args, **options):
             ctimeout = 6
             rtimeout = 72
-            etimeout = 630
+            etimeout = 30
             ftimeout = 24# 96
             expire2days = 172800
             expire7days = 604800
