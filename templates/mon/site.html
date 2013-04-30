@@ -8,7 +8,7 @@
 <table class="table table-compact table-striped">
 <tr>
 <th>Factory
-<th>batchqueue (pandaqueue)
+<th>Label
 <th>when
 <th>message
 </tr>
@@ -16,7 +16,7 @@
 
 <tr class="{% cycle odd,even %}">
   <td class=colhdr nowrap><a href="{% url apfmon.mon.views.factory row.label.fid.id %}">{{ row.label.fid }}</a>
-  <td><a href="{% url apfmon.mon.views.pandaq row.label.batchqueue.id %}">{{ row.label.batchqueue }}</a>
+  <td><a href="{% url apfmon.mon.views.label row.label.id %}">{{ row.label }}</a>
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
   <td class=note>{{ row.label.msg }}
 </tr>

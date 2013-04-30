@@ -6,9 +6,9 @@
 
 <h2>Cloud view - {{ cloud }}</h2>
 
-<h4>Active factories serving this cloud</h3>
+<h4>Active factories serving this cloud:</h4>
 <p>
-<ul style=list-style-type:none>
+<ul class=unstyled>
 {% for f in factive %}
   <li><a href="{% url 'apfmon.mon.views.factory' f.id %}">{{ f }}</a>
 {% endfor %}
@@ -16,10 +16,9 @@
 </p>
 
 {% if finactive %}
-<h4>Inactive factories serving this cloud</h3>
+<h4>Inactive factories serving this cloud:</h4>
 <p>
-<ul style=list-style-type:none>
-<li>Inactive factories serving this cloud:
+<ul class=unstyled>
 {% for f in finactive %}
   <li><a href="{% url 'apfmon.mon.views.factory' f.id %}">{{ f }}</a>
 {% endfor %}
@@ -67,8 +66,6 @@
     {% endif %}
   </tr>
   {% endifequal %}
-  {% comment %}
-  {% endcomment %}
   
   {% endfor %}
 {% endfor %}
@@ -76,5 +73,3 @@
 </table>
 
 {% endblock %}
-{% comment %}
-{% endcomment %}
