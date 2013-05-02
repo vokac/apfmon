@@ -905,7 +905,7 @@ def cr(request):
         f.save()
     
         try: 
-            lab = Label.objects.get(name=label, fid=f, batchqueue=pq)
+            lab = Label.objects.get(name=label, fid=f)
         except:
             lab = Label(name=label, fid=f, batchqueue=pq)
             lab.save()
@@ -1117,12 +1117,7 @@ def site(request, sid):
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
 
     # all labels serving this site
-    wmsqueues = WMSQueue.objects.filter(site=s)
-    labels = []
-#PAL
-#    for wmsqueue in wmsqueues:
-#        labels = Label.objects.filter(batchqueue__wmsqueue=wmsqueue.name)
-#        alllabels.append(labels)
+    labels = Label.objects.filter(batchqueue__wmsqueue__site=s)
 
     rows = []
     for label in labels:
@@ -1146,7 +1141,6 @@ def site(request, sid):
                 }
 
         row['label'] = label
-        pandaqs = BatchQueue.objects.filter(label=label)
         rows.append(row)
 
     context = {
