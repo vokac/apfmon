@@ -9,32 +9,34 @@
 <div class=row-fluid>
 <dl class="dl-horizontal dl-compact">
   <dt>Label</dt>
-  <dd>{{ row.label }}
+  <dd>{{ label }}
   <dt>Factory</dt>
-  <dd><a href="{% url 'apfmon.mon.views.factory' row.label.fid.id %}">{{ row.label.fid }}</a>
+  <dd><a href="{% url 'apfmon.mon.views.factory' label.fid.id %}">{{ label.fid }}</a>
   <dt>Batch queue</dt>
-  {% if pandaq.name %}
-    <dd><a href="{% url 'apfmon.mon.views.pandaq' pandaq.id %}">{{ pandaq }}</a></dd>
+  {% if label.batchqueue.name %}
+    <dd><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a></dd>
   {% else %}
-    <dd class=muted><a href="{% url 'apfmon.mon.views.pandaq' pandaq.id %}">&lt;no name?, no name!&gt;</a></dd>
+    <dd class=muted><a href="{% url 'apfmon.mon.views.pandaq' batchqueue.id %}">&lt;no name?, no name!&gt;</a></dd>
   {% endif %}
   <dt>Queue</dt>
   <dd>-
   <dt>Localqueue</dt>
   <dd>-
   <dt>Last modified
-  <dd>{{ row.label.last_modified|timesince_human }}
+  <dd>{{ label.last_modified|timesince_human }}
   <dt>Counts
   <dd>
   <ul class="inline">
-    <li>created:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'CREATED' %}">{{ row.jobcount.created }}</a>
-    <li>running:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'RUNNING' %}">{{ row.jobcount.running }}</a>
-    <li>exiting:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'EXITING' %}">{{ row.jobcount.exiting }}</a>
-    <li>done:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'DONE' %}">{{ row.jobcount.done }}</a>
-    <li>fault:<a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'FAULT' %}">{{ row.jobcount.fault }}</a>
+    <li>created:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'CREATED' %}">{{ counts.created }}</a>
+    <li>running:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'RUNNING' %}">{{ counts.running }}</a>
+    <li>exiting:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'EXITING' %}">{{ counts.exiting }}</a>
+    <li>done:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'DONE' %}">{{ counts.done }}</a>
+    <li>fault:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'FAULT' %}">{{ counts.fault }}</a>
   </ul>
   <dt>Last message</dt>
-  <dd class={{ row.activity }}>{{ row.label.msg }}
+  <dd class={{ status }}>{{ label.msg }}
+  <dt>Activity</dt>
+  <dd>{{ activity }}
 </dl>
 </div>
 
@@ -79,5 +81,6 @@
 </table>
 </div>
 </div>
+
 
 {% endblock %}
