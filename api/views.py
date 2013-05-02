@@ -7,6 +7,7 @@ from apfmon.kit.models import BatchQueue
 from apfmon.kit.models import WMSQueue
 
 import logging
+import math
 import pytz
 import redis
 import statsd
@@ -33,6 +34,7 @@ ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire2days = 172800
 expire7days = 604800
+expire3hrs = 3*3600
 
 def job(request, id):
     """
@@ -196,6 +198,20 @@ def jobs(request):
                 nfailed += 1
                 continue
     
+            # this awesome section populates a ring-counter with the number
+            # of jobs per label over the last 2hrs with 5 min buckets
+            # giving 24 buckets
+            span = 7200
+            interval = 300
+            key = ':'.join(('jobcount',f.name,lab.name))
+            bucket = '%s' % math.floor((time.time() % span) / interval)
+            next1bucket = '%s' % math.floor((time.time()+interval % span) / interval)
+            next2bucket = '%s' % math.floor((time.time()+(2*interval) % span) / interval)
+            pipe = red.pipeline()
+            pipe.hincrby(key, bucket, 1)
+            pipe.hdel(key, next1bucket, next2bucket)
+            pipe.expire(key, expire3hrs)
+            pipe.execute() 
             
             jid = ':'.join((f.name,cid))
             j = Job(jid=jid, cid=cid, state='created', label=lab)
@@ -447,6 +463,15 @@ def labels(request):
 
         data = list(labels.values(*fields))
 
+        # make an ordered jobcount list from the redis hash
+        key = ':'.join(('jobcount',l.fid.name,l.name))
+        n = span / interval
+        buckets = []
+        for i in range(n):
+            t = time.time() - (i * interval)
+            buckets.append(math.floor((t % span) / interval))
+        jobcount = red.hmget(key, buckets)
+    
         for d in data:
             jobs = Job.objects.filter(label=d['id'])
             d['ncreated'] = jobs.filter(state='created').count()
@@ -456,6 +481,7 @@ def labels(request):
             d['nfault'] =   jobs.filter(state='fault').count()
             d['factory'] = d['fid__name']
             del d['fid__name']
+            d['activity'] = jobcount
             
         return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,

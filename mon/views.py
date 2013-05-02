@@ -8,13 +8,14 @@ from apfmon.kit.models import WMSQueue
 
 import csv
 import logging
+import math
 import pytz
 import re
 import redis
 import statsd
 import string
 import sys
-from time import time, mktime
+import time
 from operator import itemgetter
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
@@ -49,6 +50,9 @@ ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire2days = 172800
 expire7days = 604800
+expire3hrs = 3*3600
+span = 7200
+interval = 300
 
 # Flows
 # 1. CREATED <- condor_id (Entry)
@@ -380,7 +384,7 @@ def rn(request, fid, cid):
     Handle 'rn' signal from a running job
     """
     stat = 'apfmon.rn'
-    start = time()
+    start = time.time()
 
     try:
         f = Factory.objects.get(name=fid)
@@ -403,7 +407,7 @@ def rn(request, fid, cid):
 
     if j.state == 'created':
         msg = "%s -> RUNNING" % j.state
-        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire7days)
 
@@ -411,17 +415,17 @@ def rn(request, fid, cid):
         if j.flag:
             j.flag = False
             msg = "RUNNING now, flag cleared"
-            element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
+            element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
             red.rpush(j.jid, element)
         j.save()
-        c2r = time() - mktime(j.created.timetuple())
+        c2r = time.time() - time.mktime(j.created.timetuple())
         name = str(j.label.name).replace(':','_')
         stat = 'apfmon.c2r.%s' % name
         ss.timing(stat,int(c2r))
 
     else:
         msg = "%s -> RUNNING (WARN: state not CREATED)" % j.state
-        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire2days)
 
@@ -429,7 +433,7 @@ def rn(request, fid, cid):
         j.flag = True
         j.save()
 
-    elapsed = time() - start
+    elapsed = time.time() - start
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -439,7 +443,7 @@ def ex(request, fid, cid, sc=None):
     Handle 'ex' signal from exiting wrapper
     """
     stat = 'apfmon.ex'
-    start = time()
+    start = time.time()
     
     try:
         f = Factory.objects.get(name=fid)
@@ -461,7 +465,7 @@ def ex(request, fid, cid, sc=None):
 
     if j.state in ['done', 'fault']:
         msg = "Terminal: %s, no state change allowed." % j.state
-        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire2days)
 
@@ -470,7 +474,7 @@ def ex(request, fid, cid, sc=None):
 
     elif j.state == 'running':
         msg = "%s -> EXITING statuscode: %s" % (j.state, sc)
-        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
         red.expire(j.jid, expire2days)
 
@@ -483,7 +487,7 @@ def ex(request, fid, cid, sc=None):
 
     else:
         msg = "%s -> EXITING STATUSCODE: %s (WARN: state not RUNNING)" % (j.state, sc)
-        element = "%f %s %s" % (time(), request.META['REMOTE_ADDR'], msg)
+        element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
 
         j.state = 'exiting'
@@ -493,7 +497,7 @@ def ex(request, fid, cid, sc=None):
         j.save()
 
 
-    elapsed = time() - start
+    elapsed = time.time() - start
     ss.timing(stat,int(elapsed))
     return HttpResponse("OK", mimetype="text/plain")
 
@@ -697,18 +701,27 @@ def cloud(request, name):
 
             jobs = Job.objects.filter(label__batchqueue=pandaq)
 
+            # dull messages
             cssclass = pandaq.state 
-            if pandaq.type in ['SPECIAL_QUEUE']:
-                cssclass = 'mute'
+#            if pandaq.type in ['SPECIAL_QUEUE']:
+#                cssclass = 'muted'
+
+            dull = [
+                    'HC.Blacklist.set.online',
+                    'HC.Blacklist.set.test',
+                    ]
+            msgclass = cssclass
+            if pandaq.comment in dull:
+                msgclass = 'muted'
 
             row = {
-                    'site' : site,
-                    'url' : url,
-                    'prefix' : prefix,
-                    'suffix' : suffix,
-                    'pandaq' : pandaq,
-#                    'running' : nrunning,
-                    'class' : cssclass,
+                    'site'     : site,
+                    'url'      : url,
+                    'prefix'   : prefix,
+                    'suffix'   : suffix,
+                    'pandaq'   : pandaq,
+                    'class'    : cssclass,
+                    'msgclass' : msgclass,
                     }
             rows.append(row)
 
@@ -838,7 +851,7 @@ def cr(request):
     (cid, nick, fid, label)
     """
     stat = 'apfmon.cr'
-    start = time()
+    start = time.time()
 
     if 'CONTENT_LENGTH' in request.META.keys():
         length = request.META['CONTENT_LENGTH']
@@ -892,25 +905,38 @@ def cr(request):
         f.save()
     
         try: 
-            l = Label.objects.get(name=label, fid=f, batchqueue=pq)
+            lab = Label.objects.get(name=label, fid=f, batchqueue=pq)
         except:
-            l = Label(name=label, fid=f, batchqueue=pq)
-            l.save()
-            msg = "PAL Label cr() auto-created: %s" % l
+            lab = Label(name=label, fid=f, batchqueue=pq)
+            lab.save()
+            msg = "PAL Label cr() auto-created: %s" % lab
             logging.error(msg)
             
         try:
             jid = ':'.join((f.name,cid))
-            j = Job(jid=jid, cid=cid, state='created', label=l)
+            j = Job(jid=jid, cid=cid, state='created', label=lab)
             j.save()
 
+            # this awesome section populates a ring-counter with the number
+            # of jobs per label over the last 2hrs with 5 min buckets
+            # giving 24 buckets
+            key = ':'.join(('jobcount',f.name,lab.name))
+            bucket = '%s' % math.floor((time.time() % span) / interval)
+            next1bucket = '%s' % math.floor(((time.time()+interval) % span) / interval)
+            next2bucket = '%s' % math.floor(((time.time()+(2*interval)) % span) / interval)
+            pipe = red.pipeline()
+            pipe.hincrby(key, bucket, 1)
+            pipe.hdel(key, next1bucket, next2bucket)
+            pipe.expire(key, expire3hrs)
+            pipe.execute()
+
         except Exception, e:
-            msg = "Failed to create cr(): fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,l, jid)
+            msg = "Failed to create cr(): fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,lab,jid)
             logging.error(e)
             logging.error(msg)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
     
-    elapsed = time() - start
+    elapsed = time.time() - start
     ss.timing(stat,int(elapsed))
 
     txt = 'job' if len(data) == 1 else 'jobs'
@@ -1185,12 +1211,11 @@ def label(request, lid, p=1):
     Rendered view of a single Label with job details
     """
 
-    l = get_object_or_404(Label, id=lid)
+    lab = get_object_or_404(Label, id=lid)
 
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     # factories with labels serving selected pandaq
 
-    row = {}
     ncreated = 0
     nsubmitted = 0
     nrunning = 0
@@ -1198,7 +1223,7 @@ def label(request, lid, p=1):
     ndone = 0
     nfault = 0
 
-    jobs = Job.objects.filter(label=l)
+    jobs = Job.objects.filter(label=lab)
     ncreated = jobs.filter(state='created').count()
     nrunning = jobs.filter(state='running').count()
     nexiting = jobs.filter(state='exiting').count()
@@ -1206,7 +1231,7 @@ def label(request, lid, p=1):
     nfault = jobs.filter(state='fault').count()
     nmiss = jobs.filter(state='done', result=20).count()
     
-    row['jobcount'] = {
+    counts = {
             'created' : ncreated,
             'running' : nrunning,
             'exiting' : nexiting,
@@ -1215,39 +1240,34 @@ def label(request, lid, p=1):
             'miss' : nmiss,
             }
 
-    row['label'] = l
-    
-    statdone = 'pass'
-    if nexiting == 0:
-        statdone = 'fail'
-    elif nexiting <= 5:
-        statdone = 'warn'
-    
-    statfault = 'hot'
-    if nfault == 0:
-        statfault = 'pass'
-
-    row['statdone'] = statdone
-    row['statfault'] = statfault
-
     activewarn = datetime.now(pytz.utc) - timedelta(minutes=5)
     activeerror = datetime.now(pytz.utc) - timedelta(minutes=10)
-    row['activity'] = 'ok'
-    if activewarn > l.last_modified:
-        row['activity'] = 'warn'
-    if activeerror > l.last_modified:
-        row['activity'] = 'fail'
+    status = 'ok'
+    if activewarn > lab.last_modified:
+        status = 'warn'
+    if activeerror > lab.last_modified:
+        status = 'fail'
 
     pages = Paginator(Job.objects.filter(label=lid).order_by('-last_modified'), 200)
     jobs = Job.objects.filter(label=lid).order_by('-last_modified')[:200]
+    
+    # make an ordered jobcount list from the redis hash
+    key = ':'.join(('jobcount',lab.fid.name,lab.name))
+    n = span / interval
+    buckets = []
+    for i in range(n):
+        t = time.time() - (i * interval)
+        buckets.append(math.floor((t % span) / interval))
+    activity = red.hmget(key, buckets)
 
     context = {
-            'label' : l,
-            'pandaq' : l.batchqueue,
-            'row' : row,
-            'jobs' : jobs,
-            'pages' : pages,
-            'page' : pages.page(p),
+            'label'    : lab,
+            'jobs'     : jobs,
+            'pages'    : pages,
+            'page'     : pages.page(p),
+            'status'   : status,
+            'activity' : activity,
+            'counts'   : counts,
             }
 
     return render_to_response('mon/label.html', context)
