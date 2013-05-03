@@ -1192,9 +1192,14 @@ def fault(request):
         if q['n'] == 1: sololist.append(q)
 
     sortedrows = sorted(rows, key=itemgetter('flagfrac'), reverse=True) 
+
+    # find orphan labels (not associated with a batchqueue)
+    orphans = Label.objects.filter(batchqueue=None)
+
     context = {
-        'rows' : sortedrows[:20],
+        'rows'     : sortedrows[:20],
         'sololist' : sololist,
+        'orphans'  : orphans,
         }
 
     return render_to_response('mon/fault.html', context)
@@ -1246,7 +1251,8 @@ def label(request, lid, p=1):
     jobs = Job.objects.filter(label=lid).order_by('-last_modified')[:200]
     
     # make an ordered jobcount list from the redis hash
-    key = ':'.join(('jobcount',lab.fid.name,lab.name))
+    lid = ':'.join((lab.fid.name,lab.name))
+    key = ':'.join(('jobcount',lid))
     n = span / interval
     buckets = []
     for i in range(n):
@@ -1256,6 +1262,7 @@ def label(request, lid, p=1):
 
     context = {
             'label'    : lab,
+            'lid'      : lid,
             'jobs'     : jobs,
             'pages'    : pages,
             'page'     : pages.page(p),

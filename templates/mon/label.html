@@ -9,18 +9,18 @@
 <div class=row-fluid>
 <dl class="dl-horizontal dl-compact">
   <dt>Label</dt>
-  <dd>{{ label }}
-  <dt>Factory</dt>
+  <dd>{{ label }} (<a href="{% url 'apfmon.api.views.label' lid %}">json</a>)
+  <dt>Factory
   <dd><a href="{% url 'apfmon.mon.views.factory' label.fid.id %}">{{ label.fid }}</a>
-  <dt>Batch queue</dt>
+  <dt>Batch queue
   {% if label.batchqueue.name %}
-    <dd><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a></dd>
+    <dd><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a>
   {% else %}
-    <dd class=muted><a href="{% url 'apfmon.mon.views.pandaq' batchqueue.id %}">&lt;no name?, no name!&gt;</a></dd>
+    <dd class=muted>&lt;unknown&gt;
   {% endif %}
-  <dt>Queue</dt>
+  <dt>Queue
   <dd>-
-  <dt>Localqueue</dt>
+  <dt>Localqueue
   <dd>-
   <dt>Last modified
   <dd>{{ label.last_modified|timesince_human }}
@@ -34,7 +34,11 @@
     <li>fault:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'FAULT' %}">{{ counts.fault }}</a>
   </ul>
   <dt>Last message</dt>
-  <dd class={{ status }}>{{ label.msg }}
+  {% if label.msg %}
+    <dd class={{ status }}>{{ label.msg }}
+  {% else %}
+    <dd>-
+  {% endif %}
   <dt>Activity</dt>
   <dd>{{ activity }}
 </dl>
