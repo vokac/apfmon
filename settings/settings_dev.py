@@ -47,3 +47,5 @@ REDIS = {
     'host': 'py-stor',
     'port': 6379,
 }
+
+APFMONURL = 'http://localhost:8000/api/'
