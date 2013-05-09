@@ -84,8 +84,8 @@ def job(request, id):
                                         request.META['REMOTE_ADDR'],
                                         msg)
                 red.rpush(job.jid, element)
-
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
+
             job.state = 'running'
             job.save()
             msg = "State change: created->running"
@@ -103,6 +103,10 @@ def job(request, id):
             if job.state != 'running':
                 msg = "Invalid state transition: %s->%s" % (
                                                 job.state, newstate)
+                element = "%f %s %s" % (time.time(),
+                                        request.META['REMOTE_ADDR'],
+                                        msg)
+                red.rpush(job.jid, element)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = 'exiting'
