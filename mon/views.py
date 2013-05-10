@@ -5,6 +5,7 @@ from apfmon.mon.models import Label
 from apfmon.kit.models import Site
 from apfmon.kit.models import BatchQueue
 from apfmon.kit.models import WMSQueue
+from apfmon.kit.models import CLOUDS
 
 import csv
 import logging
@@ -45,6 +46,10 @@ GGUSREGEX = re.compile('(.*ggus[^0-9]*)([0-9]+)', re.IGNORECASE)
 ELOGURL = 'https://atlas-logbook.cern.ch/elog/ATLAS+Computer+Operations+Logbook/%s'
 GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
 SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
+#CLOUDS = [ 'CA', 'CERN', 'DE', 'ES', 'FR', 'IT', 'ND', 'NL', 'RU', 'TW', 'UK', 'US']
+CLOUDLIST = []
+for item in CLOUDS:
+  CLOUDLIST.append(item[0])
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
@@ -628,7 +633,6 @@ def index(request):
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
 
     factories = Factory.objects.all().order_by('name')
-    clouds = Site.objects.values_list('cloud', flat=True).order_by('cloud').distinct()
 
     rows = []
     for f in factories:
@@ -651,7 +655,7 @@ def index(request):
 
     context = {
             'rows' : rows,
-            'clouds' : clouds,
+            'clouds' : CLOUDLIST,
             'status' : status,
             }
 
@@ -926,7 +930,7 @@ def cr(request):
             next2bucket = '%s' % math.floor(((time.time()+(2*interval)) % span) / interval)
             pipe = red.pipeline()
             pipe.hincrby(key, bucket, 1)
-            pipe.hdel(key, next1bucket, next2bucket)
+            pipe.hmset(key, next1bucket, 0, next2bucket, 0)
             pipe.expire(key, expire3hrs)
             pipe.execute()
 
@@ -1259,6 +1263,9 @@ def label(request, lid, p=1):
         t = time.time() - (i * interval)
         buckets.append(math.floor((t % span) / interval))
     activity = red.hmget(key, buckets)
+    def makezero(value): return int(0 if value is None else value)
+    activity = map(makezero, activity)
+    activity.reverse()
 
     context = {
             'label'    : lab,

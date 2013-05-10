@@ -209,7 +209,7 @@ def jobs(request):
             next2bucket = '%s' % math.floor((time.time()+(2*interval) % span) / interval)
             pipe = red.pipeline()
             pipe.hincrby(key, bucket, 1)
-            pipe.hdel(key, next1bucket, next2bucket)
+            pipe.hmset(key, next1bucket, 0, next2bucket, 0)
             pipe.expire(key, expire3hrs)
             pipe.execute() 
             
