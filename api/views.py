@@ -305,6 +305,15 @@ def label(request, id=None):
         for t in truth:
             lab[t] = '-'
 
+        key = ':'.join(('jobcount',lab['factory'],lab['name']))
+        n = span / interval
+        buckets = []
+        for i in range(n):
+            t = time.time() - (i * interval)
+            buckets.append(math.floor((t % span) / interval))
+        jobcount = red.hmget(key, buckets)
+
+        lab['activity'] = jobcount
 
         return HttpResponse(json.dumps(lab,
                             cls=DjangoJSONEncoder,
