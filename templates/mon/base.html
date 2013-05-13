@@ -11,21 +11,21 @@
     <meta name="description" content="Monitor ATLAS pilot factories and job wrappers">
     <meta name="author" content="p.love@lancaster.ac.uk">
 
-<!--    <link href="/static/css/bootstrap.css" rel="stylesheet">
--->
-    <link href="{% static "css/bootstrap.css" %}" rel="stylesheet">
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
+
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
     <script src="/static/js/bootstrap.min.js"></script>
     <script src="http://d3js.org/d3.v3.min.js"></script>
-
-<!--
-    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
-    <style>
-      body {
-        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-      }
-    </style>
--->
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $("abbr[rel=tooltip]").tooltip({
+              'selector': '',
+              'placement': 'top',
+              'container': 'body',
+        });
+      });
+    </script>
 
 </head>
 
