@@ -52,17 +52,17 @@
     <td class=note>{{ row.pandaq.last_modified|timesince_human }}
 {% endcomment %}
     {% if row.url %}
-      <td class="note {{ row.class }}"
+      <td class="{{ row.class }}"
           title="{{ row.pandaq.last_modified|timesince_human }}">
           {{ row.prefix }}<a href="{{ row.url }}">{{ row.suffix }}</a>
     {% else %}
-      {% ifequal row.pandaq.comment 'empty.comment' %}
-        <td class="note {{ row.class }}" 
-      {% else %}
-        <td class="note {{ row.class }}" 
+      {% ifnotequal row.pandaq.comment 'None' %}
+        <td class="{{ msgclass }}" 
           title="{{ row.pandaq.last_modified|timesince_human }}">
           {{ row.pandaq.comment }}
-      {% endifequal %}
+      {% else %}
+        <td class="{{ msgclass }}">- 
+      {% endifnotequal %}
     {% endif %}
   </tr>
   {% endifequal %}

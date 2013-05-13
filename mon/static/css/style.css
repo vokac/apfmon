@@ -83,6 +83,10 @@ h1              { border-bottom: 2px solid #eee; }
   background-color: #e0eeee;
 }
 
+.bar {
+  fill: #ccc;
+}
+
 .muted {
   color: #dcdcdc;
 }

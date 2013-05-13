@@ -7,6 +7,7 @@ from apfmon.kit.models import BatchQueue
 from apfmon.kit.models import WMSQueue
 
 import logging
+import math
 import pytz
 import redis
 import statsd
@@ -33,6 +34,9 @@ ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire2days = 172800
 expire7days = 604800
+expire3hrs = 3*3600
+span = 7200
+interval = 300
 
 def job(request, id):
     """
@@ -200,6 +204,18 @@ def jobs(request):
                 nfailed += 1
                 continue
     
+            # this awesome section populates a ring-counter with the number
+            # of jobs per label over the last 2hrs with 5 min buckets
+            # giving 24 buckets
+            key = ':'.join(('jobcount',f.name,lab.name))
+            bucket = '%s' % math.floor((time.time() % span) / interval)
+            next1bucket = '%s' % math.floor((time.time()+interval % span) / interval)
+            next2bucket = '%s' % math.floor((time.time()+(2*interval) % span) / interval)
+            pipe = red.pipeline()
+            pipe.hincrby(key, bucket, 1)
+            pipe.hmset(key, {next1bucket:0, next2bucket:0})
+            pipe.expire(key, expire3hrs)
+            pipe.execute() 
             
             jid = ':'.join((f.name,cid))
             j = Job(jid=jid, cid=cid, state='created', label=lab)
@@ -293,6 +309,15 @@ def label(request, id=None):
         for t in truth:
             lab[t] = '-'
 
+        key = ':'.join(('jobcount',lab['factory'],lab['name']))
+        n = span / interval
+        buckets = []
+        for i in range(n):
+            t = time.time() - (i * interval)
+            buckets.append(math.floor((t % span) / interval))
+        jobcount = red.hmget(key, buckets)
+
+        lab['activity'] = jobcount
 
         return HttpResponse(json.dumps(lab,
                             cls=DjangoJSONEncoder,
@@ -358,7 +383,7 @@ def labels(request):
             msg = str(e)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
 
-        msg = "Number of labels in JSON data: %d (%s)" % (len(data), ip)
+        msg = "FRI Number of labels in JSON data: %d (%s)" % (len(data), ip)
         logging.debug(msg)
 
         nupdated = 0
@@ -369,14 +394,14 @@ def labels(request):
             try:
                 name = d['name']
                 factory = d['factory']
-                batchqueue = d['batchqueue']
-                wmsqueue = d['wmsqueue']
-                resource = d['resource']
-                localqueue = d['localqueue']
             except KeyError, e:
                 msg = "KeyError in label: %s" % str(e)
                 logging.warn(msg)
                 continue
+
+            batchqueue = d.get('batchqueue', None)
+            resource = d.get('resource', None)
+            localqueue = d.get('localqueue', None)
 
             try:
                 f = Factory.objects.get(name=factory)
@@ -385,35 +410,30 @@ def labels(request):
                 logging.warn(msg)
                 continue
                 
-            bq, created = BatchQueue.objects.get_or_create(name=batchqueue)
-
-            if created:
-                msg = "BatchQueue auto-created: %s" % batchqueue
-                logging.warn(msg)
-
             try: 
-                label, created = Label.objects.get_or_create(name=name,
-                                                         fid=f,
-                                                         batchqueue=bq)
+                label, created = Label.objects.get_or_create(name=name, fid=f)
             except:
-                msg = "Exception get/create label: %s, fid: %s, bq: %s" % (name,f,bq)
+                msg = "FRI Exception get/create label: %s, fid: %s" % (name,f)
                 logging.error(msg)
                 continue
                 
-
-            if not created:
-                nupdated += 1
-                if bq != label.batchqueue:
-                    label.batchqueue = bq
-                if resource != label.resource:
-                    label.resource = resource 
-                if localqueue != label.localqueue:
-                    label.localqueue = localqueue 
-                label.save()
-            else:
-                msg = "Label auto-created: %s" % label.name
+            if created:
+                msg = "FRI Label auto-created: %s" % label.name
                 logging.warn(msg)
                 ncreated += 1
+            else:
+                nupdated += 1
+
+            if batchqueue:
+                bq, created = BatchQueue.objects.get_or_create(name=batchqueue)
+                if bq != label.batchqueue:
+                    label.batchqueue = bq
+            
+            if resource and resource != label.resource:
+                label.resource = resource 
+            if localqueue and localqueue != label.localqueue:
+                label.localqueue = localqueue 
+            label.save()
 
         txt = 'label' if len(data) == 1 else 'labels'
         context = 'Created %d/%d %s, %d updated' % (ncreated, len(data), txt, nupdated)
@@ -447,11 +467,14 @@ def labels(request):
         else:
             labels = labels[start:end]
 
-        fields = ('id','name','fid__name','msg','last_modified','resource','localqueue')
+        fields = ('id','name','fid__name','msg','last_modified','resource')
 
         data = list(labels.values(*fields))
 
+    
         for d in data:
+            # make an ordered jobcount list from the redis hash
+            
             jobs = Job.objects.filter(label=d['id'])
             d['ncreated'] = jobs.filter(state='created').count()
             d['nrunning'] = jobs.filter(state='running').count()
@@ -460,6 +483,16 @@ def labels(request):
             d['nfault'] =   jobs.filter(state='fault').count()
             d['factory'] = d['fid__name']
             del d['fid__name']
+
+            key = ':'.join(('jobcount',d['factory'],d['name']))
+            n = span / interval
+            buckets = []
+            for i in range(n):
+                t = time.time() - (i * interval)
+                buckets.append(math.floor((t % span) / interval))
+            jobcount = red.hmget(key, buckets)
+
+            d['activity'] = jobcount
             
         return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,

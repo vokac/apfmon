@@ -1,6 +1,7 @@
 {% load humanize %}
 {% load url from future %}
 {% load timesince_human %}
+{% load staticfiles %}
 <!DOCTYPE html">
 <html lang="en">
 <head>
@@ -12,16 +13,19 @@
 
     <link href="/static/css/bootstrap.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
-    <script src="/static/js/bootstrap.min.js"></script>
 
-<!--
-    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
-    <style>
-      body {
-        padding-top: 60px; /* 60px to make the container go all the way to the bottom of the topbar */
-      }
-    </style>
--->
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        $("abbr[rel=tooltip]").tooltip({
+              'selector': '',
+              'placement': 'top',
+              'container': 'body',
+        });
+      });
+    </script>
 
 </head>
 
@@ -33,32 +37,17 @@
     </li>
     {% for cloud in clouds %}
       <li>
-        <a href="{% url 'apfmon.mon.views.cloud' cloud %}">{{ cloud|upper }}</a>
+        <a href="{% url 'apfmon.mon.views.cloud' cloud %}">{{ cloud|lower }}</a>
       </li>
     {% endfor %}
-{% comment %}
-    <li>
-       <a href="{% url 'apfmon.mon.views.cloudindex' %}">Clouds</a>
-    </li>
-    <li>
-       <a href="{% url 'apfmon.mon.views.queues' %}">Queues</a>
-    </li>
-{% endcomment %}
     <li>
       <a href="{% url 'apfmon.mon.views.fault' %}">Faults</a>
     </li>
     <li>
        <a href="{% url 'apfmon.mon.views.help' %}">Help</a>
     </li>
-{% comment %}
-    <li>
-       <a style="color:#aa4343">Notice: CERN factories intervention is ongoing<a>
-    </li>
-{% endcomment %}
   </ul>
 
-{% comment %}
-{% endcomment %}
     {% block content %}{% endblock %}
     {% block footer %}
     {% endblock %}

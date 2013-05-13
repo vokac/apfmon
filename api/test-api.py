@@ -6,12 +6,12 @@ import os
 import random
 import requests
 import unittest
+from django.conf import settings
 
-APFMONURL = os.environ.get('APFMON_URL', 'http://localhost/api/')
 
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
-    return APFMONURL + '/'.join(suffix)
+    return settings.APFMONURL + '/'.join(suffix)
 
 class APFmonTestCase(unittest.TestCase):
 

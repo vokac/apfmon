@@ -46,13 +46,30 @@
 <th title="Panda queue">Panda queue
 <th class=num title="Factory count">Factory count
 {% for solo in sololist %}
-<tr class="{% cycle odd,even %}">
+<tr>
   <td nowrap><a href="{% url 'apfmon.mon.views.pandaq' solo.batchqueue__id %}">{{ solo.batchqueue__name }}
   <td class=num>{{ solo.n }}
 {% endfor %}
-
 </table>
 </div>
 </div>
+
+<h2>Orphan Labels without associated BatchQueue</h2>
+
+<div class=row-fluid>
+<div class=span8>
+<table class="table table-compact">
+<tr>
+<th title="Factory name">Factory
+<th title="Label name">Label
+{% for label in orphans %}
+<tr>
+  <td>{{ label.fid}}
+  <td><a href="{% url 'apfmon.mon.views.label' label.id %}">{{ label }}
+{% endfor %}
+</table>
+</div>
+</div>
+
 
 {% endblock %}

@@ -1,8 +1,5 @@
 # Django settings for atl project.
 
-DEBUG = False
-TEMPLATE_DEBUG = DEBUG
-
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
@@ -25,15 +22,6 @@ USE_L10N = True
 
 # If you set this to False, Django will not use timezone-aware datetimes.
 USE_TZ = True
-
-# Absolute filesystem path to the directory that will hold user-uploaded files.
-# Example: "/home/media/media.lawrence.com/media/"
-#MEDIA_ROOT = '/var/www/html/atl/media'
-
-# URL that handles the media served from MEDIA_ROOT. Make sure to use a
-# trailing slash.
-# Examples: "http://media.lawrence.com/media/", "http://example.com/media/"
-#MEDIA_URL = 'http://apfmon.lancs.ac.uk/media/'
 
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
@@ -73,8 +61,21 @@ MIDDLEWARE_CLASSES = (
 #    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+)
+
+DEBUG_TOOLBAR_PANELS = (
+    'debug_toolbar.panels.version.VersionDebugPanel',
+    'debug_toolbar.panels.timer.TimerDebugPanel',
+    'debug_toolbar.panels.settings_vars.SettingsVarsDebugPanel',
+    'debug_toolbar.panels.headers.HeaderDebugPanel',
+    'debug_toolbar.panels.request_vars.RequestVarsDebugPanel',
+    'debug_toolbar.panels.template.TemplateDebugPanel',
+    'debug_toolbar.panels.sql.SQLDebugPanel',
+    'debug_toolbar.panels.signals.SignalDebugPanel',
+    'debug_toolbar.panels.logger.LoggingPanel',
 )
 
 ROOT_URLCONF = 'apfmon.urls'
@@ -86,7 +87,7 @@ TEMPLATE_DIRS = (
     '/home/atl/apfmon/templates',
 )
 
-#PAL debug: INTERNAL_IPS = ('0.0.0.0','148.88.67.14','128.141.152.11')
+INTERNAL_IPS = ('0.0.0.0','148.88.188.127')
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'apfmon.wsgi.application'
@@ -94,7 +95,7 @@ WSGI_APPLICATION = 'apfmon.wsgi.application'
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
+#    'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -107,7 +108,7 @@ INSTALLED_APPS = (
     'apfmon.api',
     'django.contrib.humanize',
     'django_extensions',
-#    'debug_toolbar',
+    'debug_toolbar',
 )
 
 # A sample logging configuration. The only tangible logging
