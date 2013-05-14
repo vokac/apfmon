@@ -222,6 +222,9 @@ def jobs(request):
             j.save()
             ncreated += 1
 
+        f = Factory.objects.get(name=factory)
+        f.last_ncreated = ncreated
+        f.save()
         txt = 'job' if len(jobs) == 1 else 'jobs'
         context = 'Created %d/%d %s, %d not created' % (ncreated, len(jobs), txt, nfailed)
         status = 201 if ncreated else 200
