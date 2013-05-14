@@ -647,6 +647,7 @@ def index(request):
         row = {
             'factory' : f,
             'active' : active,
+            'activity' : f.last_ncreated,
             }
 
         rows.append(row)
@@ -922,16 +923,19 @@ def cr(request):
             j.save()
 
             # this awesome section populates a ring-counter with the number
-            # of jobs per label over the last 2hrs with 5 min buckets
-            # giving 24 buckets
-            key = ':'.join(('jobcount',f.name,lab.name))
+            # of jobs per label over the last 2hrs (24 * 5 min buckets)
+            labelkey = ':'.join(('jobcount',f.name,lab.name))
+            factorykey = ':'.join(('jobcount',f.name))
             bucket = '%s' % math.floor((time.time() % span) / interval)
             next1bucket = '%s' % math.floor(((time.time()+interval) % span) / interval)
             next2bucket = '%s' % math.floor(((time.time()+(2*interval)) % span) / interval)
             pipe = red.pipeline()
-            pipe.hincrby(key, bucket, 1)
-            pipe.hmset(key, {next1bucket:0, next2bucket:0})
-            pipe.expire(key, expire3hrs)
+            pipe.hincrby(labelkey, bucket, 1)
+            pipe.hincrby(factorykey, bucket, 1)
+            pipe.hmset(labelkey, {next1bucket:0, next2bucket:0})
+            pipe.hmset(factorykey, {next1bucket:0, next2bucket:0})
+            pipe.expire(labelkey, expire3hrs)
+            pipe.expire(factorykey, expire3hrs)
             pipe.execute()
 
         except Exception, e:
