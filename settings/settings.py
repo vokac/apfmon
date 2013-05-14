@@ -177,6 +177,8 @@ REDIS = {
     'port': 6379,
 }
 
+APFMONURL = 'http://localhost/api/'
+
 try:
     from settings_local import *
 except ImportError:
