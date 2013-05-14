@@ -31,6 +31,8 @@ class Command(NoArgsCommand):
             expire2days = 172800
             expire7days = 604800
             start = time.time()
+            nonterminal = ['created', 'running', 'exiting']
+            terminal = ['done', 'fault']
         
             # created state
             deltat = datetime.now(pytz.utc) - timedelta(hours=ctimeout)
@@ -49,7 +51,7 @@ class Command(NoArgsCommand):
             
             # flagged jobs
             deltat = datetime.now(pytz.utc) - timedelta(hours=ftimeout)
-            fjobs = Job.objects.filter(last_modified__lt=deltat, flag=True)
+            fjobs = Job.objects.filter(state__in=nonterminal,last_modified__lt=deltat, flag=True)
             self.logger.info("Stale flagged: %d" % fjobs.count())
         
             for j in cjobs:
