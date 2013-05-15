@@ -1264,7 +1264,26 @@ def label(request, lid, p=1):
     
     # make an ordered jobcount list from the redis hash
     lid = ':'.join((lab.fid.name,lab.name))
-    key = ':'.join(('jobcount',lid))
+    labelkey = ':'.join(('jobcount',lid))
+
+    context = {
+            'label'    : lab,
+            'lid'      : lid,
+            'jobs'     : jobs,
+            'pages'    : pages,
+            'page'     : pages.page(p),
+            'status'   : status,
+            'activity' : getactivity(labelkey),
+            'counts'   : counts,
+            }
+
+    return render_to_response('mon/label.html', context)
+
+def getactivity(key):
+    """
+    Helper function to massage the redis activity output. Takes a
+    redis hash key and returns a list of integers.
+    """
     n = span / interval
     buckets = []
     for i in range(n):
@@ -1275,18 +1294,7 @@ def label(request, lid, p=1):
     activity = map(makezero, activity)
     activity.reverse()
 
-    context = {
-            'label'    : lab,
-            'lid'      : lid,
-            'jobs'     : jobs,
-            'pages'    : pages,
-            'page'     : pages.page(p),
-            'status'   : status,
-            'activity' : activity,
-            'counts'   : counts,
-            }
-
-    return render_to_response('mon/label.html', context)
+    return activity
 
 def test(request):
 
