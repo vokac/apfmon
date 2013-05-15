@@ -1094,6 +1094,7 @@ def query(request, q=None):
     """
     Search for a string in pandaq
     """
+    dt = datetime.now(pytz.utc) - timedelta(days=7)
     
     if q:
         result = red.lpush('apfmon:query', q)
@@ -1105,8 +1106,10 @@ def query(request, q=None):
             # can add other search params here, eg. SITE name
         )
         labels = Label.objects.filter(qset).order_by('fid', 'name')
+        labels = labels.filter(last_modified__gt=dt)
     else:
         labels = []
+
 
     context = {
         'labels' : labels,
@@ -1122,10 +1125,11 @@ def site(request, sid):
     Note: this is a Site not a PandaSite
     """
     s = get_object_or_404(Site, id=int(sid))
-    dt = datetime.now(pytz.utc) - timedelta(hours=1)
+    dt = datetime.now(pytz.utc) - timedelta(days=7)
 
     # all labels serving this site
     labels = Label.objects.filter(batchqueue__wmsqueue__site=s)
+    labels = labels.filter(last_modified__gt=dt)
 
     rows = []
     for label in labels:
