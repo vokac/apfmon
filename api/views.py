@@ -390,7 +390,7 @@ def labels(request):
             msg = str(e)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
 
-        msg = "FRI Number of labels in JSON data: %d (%s)" % (len(data), ip)
+        msg = "Number of json objects PUT /api/labels: %d (%s)" % (len(data), ip)
         logging.debug(msg)
 
         nupdated = 0
@@ -420,12 +420,12 @@ def labels(request):
             try: 
                 label, created = Label.objects.get_or_create(name=name, fid=f)
             except:
-                msg = "FRI Exception get/create label: %s, fid: %s" % (name,f)
+                msg = "Exception get_or_create /api/labels: %s, fid: %s" % (name,f)
                 logging.error(msg)
                 continue
                 
             if created:
-                msg = "FRI Label auto-created: %s" % label.name
+                msg = "Label auto-created: %s" % label.name
                 logging.warn(msg)
                 ncreated += 1
             else:
@@ -545,7 +545,7 @@ def factory(request, id):
         f = get_object_or_404(Factory, name=id)
 
         fields = ('id', 'name', 'email', 'url', 'version', 'last_modified',
-                  'last_startup')
+                  'last_startup', 'ip')
         f = Factory.objects.filter(name=id).values(*fields)[0]
 
         return HttpResponse(json.dumps(f, 
