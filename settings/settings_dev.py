@@ -33,19 +33,4 @@ GRAPHITE = {
     'port': 8125
 }
 
-GRAPHITE = {
-    'host': 'localhost',
-    'port': 8125,
-}
-
-MEMCACHED = {
-    'host': 'localhost',
-    'port': 11211,
-}
-
-REDIS = {
-    'host': 'py-stor',
-    'port': 6379,
-}
-
 APFMONURL = 'http://localhost:8000/api/'
