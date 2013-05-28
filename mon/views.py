@@ -49,7 +49,7 @@ SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
 #CLOUDS = [ 'CA', 'CERN', 'DE', 'ES', 'FR', 'IT', 'ND', 'NL', 'RU', 'TW', 'UK', 'US']
 CLOUDLIST = []
 for item in CLOUDS:
-  CLOUDLIST.append(item[0])
+    CLOUDLIST.append(item[0])
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
@@ -152,7 +152,7 @@ def job1(request, fid, cid):
 
     return render_to_response('mon/job.html', context)
 
-@cache_page(60 * 10)
+@cache_page(60 * 1)
 def factory(request, fid):
     """
     Rendered view of Factory instance. Lists all factory labels with
@@ -286,11 +286,15 @@ def factory(request, fid):
 
         rows.append(row)
 
+
+    key = ':'.join(('jobcount',f.name))
+
     context = {
-            'rows' : rows,
-            'jobs' : jobs,
-            'pandaqs' : pandaqs,
-            'factory' : f,
+            'rows'     : rows,
+            'jobs'     : jobs,
+            'pandaqs'  : pandaqs,
+            'factory'  : f,
+            'activity' : getactivity(key),
             }
 
     return render_to_response('mon/factory.html', context)
@@ -736,6 +740,7 @@ def cloud(request, name):
             'cloud' : name,
             'sites' : sites,
             'rows' : rows,
+            'clouds' : CLOUDLIST,
             }
 
 
@@ -939,7 +944,8 @@ def cr(request):
             pipe.execute()
 
         except Exception, e:
-            msg = "Failed to create cr(): fid=%s cid=%s state=created label=%s jid=%s" % (f,cid,lab,jid)
+            fields = (f, cid, lab, jid)
+            msg = "Failed to create cr(): fid=%s cid=%s state=created label=%s jid=%s" % fields
             logging.error(e)
             logging.error(msg)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
@@ -1010,7 +1016,7 @@ def msg(request):
     (nick, fid, label, text)
     """
 
-    ip=request.META['REMOTE_ADDR']
+    ip = request.META['REMOTE_ADDR']
 
     jdecode = json.JSONDecoder()
 
@@ -1072,7 +1078,9 @@ def msg(request):
 # UI
 def help(request):
 
-    context = {}
+    context = {
+            'clouds' : CLOUDLIST,
+            }
     return render_to_response('mon/help.html', context)
 
 # APIv1
@@ -1114,6 +1122,7 @@ def query(request, q=None):
     context = {
         'labels' : labels,
         'query'  : q,
+        'clouds' : CLOUDLIST,
     }
     return render_to_response('mon/query.html', context)
 
@@ -1158,63 +1167,79 @@ def site(request, sid):
     context = {
             'site' : s,
             'rows' : rows,
+            'clouds' : CLOUDLIST,
             }
 
 
     return render_to_response('mon/site.html', context)
 
 # UI
-def fault(request):
+def report(request):
     """
-    List Labels which have FAULT jobs
+    Render a report of suspicious queues
     """
 
-    jobs = Job.objects.filter(state='fault', label__batchqueue__state='online')
-    labels = jobs.values('label__id', 'label__batchqueue').annotate(njob=Count('id'))
-
-    rows = []
-    for lab in labels:
-        lid = lab['label__id']
-        nfault = lab['njob']
-        if nfault < 1: continue
-        nflag = Job.objects.filter(label=lid, flag=True).count()
-        totjob = Job.objects.filter(label=lid).count()
-        flagfrac = 100 * nflag/totjob
-        faultfrac = 100 * nfault/totjob
-
-        try:
-            label = Label.objects.get(id=lid)
-        except Label.DoesNotExist:
-            msg = 'Label does not exist: %s' % lid
-            logging.warn(msg)
-            continue
-        
-        row = {
-            'label' : label,
-            'flagfrac' : flagfrac,
-            'faultfrac' : faultfrac,
-            'totjob' : totjob,
-            }
-        rows.append(row)
-
-    # find panda queues only being serviced by one factory
-    qlist = Label.objects.values('batchqueue__name','batchqueue__id').annotate(n=Count('fid'))
-    sololist = []
-    for q in qlist:
-        if q['n'] == 1: sololist.append(q)
-
-    sortedrows = sorted(rows, key=itemgetter('flagfrac'), reverse=True) 
+#    jobs = Job.objects.filter(state='fault', label__batchqueue__state='online')
+#    labels = jobs.values('label__id', 'label__batchqueue').annotate(njob=Count('id'))
+#
+#
+#    rows = []
+#    for lab in labels:
+#        lid = lab['label__id']
+#        nfault = lab['njob']
+#        if nfault < 1: continue
+#        nflag = Job.objects.filter(label=lid, flag=True).count()
+#        totjob = Job.objects.filter(label=lid).count()
+#        flagfrac = 100 * nflag/totjob
+#        faultfrac = 100 * nfault/totjob
+#
+#        try:
+#            label = Label.objects.get(id=lid)
+#        except Label.DoesNotExist:
+#            msg = 'Label does not exist: %s' % lid
+#            logging.warn(msg)
+#            continue
+#        
+#        row = {
+#            'label' : label,
+#            'flagfrac' : flagfrac,
+#            'faultfrac' : faultfrac,
+#            'totjob' : totjob,
+#            }
+#        rows.append(row)
+#
+#    # find panda queues only being serviced by one factory
+#    qlist = Label.objects.values('batchqueue__name','batchqueue__id').annotate(n=Count('fid'))
+#    sololist = []
+#    for q in qlist:
+#        if q['n'] == 1: sololist.append(q)
+#
+#    sortedrows = sorted(rows, key=itemgetter('flagfrac'), reverse=True) 
 
     # find orphan labels (not associated with a batchqueue)
     orphans = Label.objects.filter(batchqueue=None)
 
+    # find labels with highest number of jobs in created state
+    jobs = Job.objects.filter(state='created')
+    fields = ('label__id','label__name','label__fid__name','label__fid__id')
+    hot = jobs.values(*fields).annotate(count=Count('id'))
+    hot = hot.order_by('-count')[:7]
+
+    jobs = Job.objects.filter(state='fault')
+    fields = ('label__id','label__name','label__fid__name','label__fid__id')
+    bad = jobs.values(*fields).annotate(count=Count('id'))
+    bad = bad.order_by('-count')[:7]
     context = {
-        'rows'     : sortedrows[:20],
-        'sololist' : sololist,
+
+#        'rows'     : sortedrows[:20],
+#        'sololist' : sololist,
         'orphans'  : orphans,
+        'hotlabels'   : hot,
+        'badlabels'   : bad,
+        'clouds' : CLOUDLIST,
         }
 
-    return render_to_response('mon/fault.html', context)
+    return render_to_response('mon/report.html', context)
 
 # UI
 def label(request, lid, p=1):
@@ -1251,21 +1276,24 @@ def label(request, lid, p=1):
             'miss' : nmiss,
             }
 
-    activewarn = datetime.now(pytz.utc) - timedelta(minutes=5)
-    activeerror = datetime.now(pytz.utc) - timedelta(minutes=10)
-    status = 'ok'
+    activewarn = datetime.now(pytz.utc) - timedelta(minutes=10)
+    activeerror = datetime.now(pytz.utc) - timedelta(minutes=30)
+    status = ''
     if activewarn > lab.last_modified:
-        status = 'warn'
+        status = 'text-warning'
     if activeerror > lab.last_modified:
-        status = 'fail'
+        status = 'text-error'
 
-    pages = Paginator(Job.objects.filter(label=lid).order_by('-last_modified'), 200)
+    pages = Paginator(Job.objects.filter(label=lid).order_by('-last_modified'), 40)
     jobs = Job.objects.filter(label=lid).order_by('-last_modified')[:200]
     
     # make an ordered jobcount list from the redis hash
     lid = ':'.join((lab.fid.name,lab.name))
     labelkey = ':'.join(('jobcount',lid))
 
+    key = ':'.join(('status',lab.fid.name,lab.name))
+    msgs = red.lrange(key, 0, -1)
+    print key, msgs
     context = {
             'label'    : lab,
             'lid'      : lid,
@@ -1274,7 +1302,9 @@ def label(request, lid, p=1):
             'page'     : pages.page(p),
             'status'   : status,
             'activity' : getactivity(labelkey),
+            'msgs'     : msgs,
             'counts'   : counts,
+            'clouds' : CLOUDLIST,
             }
 
     return render_to_response('mon/label.html', context)
