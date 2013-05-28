@@ -648,10 +648,14 @@ def index(request):
             active = 'text-warning'
         if f.last_modified > dtwarn:
             active = ''
+
+        nqueue = Label.objects.filter(fid=f).count()
+
         row = {
-            'factory' : f,
-            'active' : active,
+            'factory'  : f,
+            'active'   : active,
             'activity' : f.last_ncreated,
+            'nqueue'   : nqueue,
             }
 
         rows.append(row)
