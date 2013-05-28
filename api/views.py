@@ -336,6 +336,18 @@ def label(request, id=None):
 
         label.msg = status[:140]
         label.save()
+        content = "%f %s %s" % (time.time(),
+                                request.META['REMOTE_ADDR'],
+                                label.msg)
+
+        key = ':'.join(('status',label.fid.name,label.name))
+        pipe = red.pipeline()
+        pipe.rpush(key, content)
+        pipe.expire(key, expire7days)
+        pipe.ltrim(key,-5,-1)
+        pipe.execute()
+
+
         response = HttpResponse(mimetype="text/plain")
         location = "/api/labels/%s" % ':'.join((factory,name))
         response['Location'] = location
