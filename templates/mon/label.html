@@ -5,30 +5,37 @@
 {% block content %}
 
 
-<h2>Label view</h2>
+<h3>Label view</h3>
 
 <div class=row-fluid>
-<dl class="dl-horizontal dl-compact">
-  <dt>Label</dt>
-  <dd>{{ label }} (<a href="{% url 'apfmon.api.views.label' lid %}">json</a>)
-  <dt>Factory
-  <dd><a href="{% url 'apfmon.mon.views.factory' label.fid.id %}">{{ label.fid }}</a>
-  <dt>Batch queue
+<table class="table table-compact table-strong">
+  <tbody>
+  <tr>
+  <td>Label
+  <td>{{ label }} (<a href="{% url 'apfmon.api.views.label' lid %}">json</a>)
+  <tr>
+  <td>Factory
+  <td><a href="{% url 'apfmon.mon.views.factory' label.fid.id %}">{{ label.fid }}</a>
+  <tr>
+  <td>Batch queue
   {% if label.batchqueue.name %}
-    <dd><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a>
+    <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a>
   {% else %}
-    <dd class=muted>&lt;unknown&gt;
+    <td class=muted>&lt;unknown&gt;
   {% endif %}
-  <dt>Resource
+  <tr>
+  <td>Resource
   {% if resource %}
-    <dd>{{ resource }}
+    <td>{{ resource }}
   {% else %}
-    <dd>-
+    <td>-
   {% endif %}
-  <dt>Last modified
-  <dd>{{ label.last_modified|timesince_human }}
-  <dt>Counts
-  <dd>
+  <tr>
+  <td>Last modified
+  <td>{{ label.last_modified|timesince_human }}
+  <tr>
+  <td>Counts
+  <td>
   <ul class="inline">
     <li>created:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'CREATED' %}">{{ counts.created }}</a>
     <li>running:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'RUNNING' %}">{{ counts.running }}</a>
@@ -36,17 +43,27 @@
     <li>done:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'DONE' %}">{{ counts.done }}</a>
     <li>fault:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'FAULT' %}">{{ counts.fault }}</a>
   </ul>
-  <dt>Last message</dt>
+  <tr>
+  <td>
+    <abbr rel="tooltip" data-original-title="Number of jobs created over the last 2 hrs (5 minute buckets)">Activity</abbr>
+  <td id=spark>
+  <tr>
+  <td>Last message
   {% if label.msg %}
-    <dd class={{ status }}>{{ label.msg }}
+    <td class={{ status }}>{{ label.msg }} <a data-toggle="collapse" data-target="#more">&raquo;</a>
   {% else %}
-    <dd>-
+    <td>-
   {% endif %}
-  <dt><abbr rel="tooltip" data-original-title="Number of jobs created over the last 2 hrs (5 minute buckets)">Activity</abbr></dt>
-  <dd id=spark>
-</dl>
+  <div id="more" class="collapse">
+    <ul class="unstyled muted"
+      {% for msg in msgs %}
+        <li>{{ msg }}
+      {% endfor %}
+    </ul>
+  </div>
+  <tbody>
+</table>
 </div>
-<p>
 
 <div class=row-fluid>
 <div class=span8>

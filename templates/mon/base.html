@@ -35,13 +35,19 @@
     <li>
       <a href="{% url 'apfmon.mon.views.index' %}">Home</a> 
     </li>
-    {% for cloud in clouds %}
-      <li>
-        <a href="{% url 'apfmon.mon.views.cloud' cloud %}">{{ cloud|lower }}</a>
-      </li>
-    {% endfor %}
+    <li class="dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+              Cloud
+              <b class="caret"></b>
+            </a>
+      <ul class="dropdown-menu">
+        {% for cloud in clouds %}
+          <li><a href="{% url 'apfmon.mon.views.cloud' cloud %}">{{ cloud|lower }}</a>
+        {% endfor %}
+      </ul>
+    </li>
     <li>
-      <a href="{% url 'apfmon.mon.views.fault' %}">Faults</a>
+      <a href="{% url 'apfmon.mon.views.report' %}">Reports</a>
     </li>
     <li>
        <a href="{% url 'apfmon.mon.views.help' %}">Help</a>

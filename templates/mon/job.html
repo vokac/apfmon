@@ -7,63 +7,67 @@
 {% block content %}
 
 <div class=row-fluid>
-<dl class="dl-horizontal dl-compact">
-  <dt>Factory
-  <dd><a href="{% url 'apfmon.mon.views.factory' factory.id %}">{{ factory }}</a>
-
-  <dt>JobID
-  <dd> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
-
-  <dt>Batch queue
-  <dd><a href="{% url 'apfmon.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
-
-  <dt>Label
-  <dd><a href="{% url 'apfmon.mon.views.label' job.label.id %}">{{ job.label }}</a>
-  <dt>created
-  <dd>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
-
-  <dt>Last modified
-  <dd> {{ job.last_modified|date:"Y-m-d H:i:s" }} ({{ job.last_modified|timesince }} ago)
-
-  <dt>State
-  <dd>{{ job.state }}
-
-  <dt>Payload?
+<table class="table table-compact table-strong">
+  <tbody>
+  <tr>
+  <td>Factory
+  <td><a href="{% url 'apfmon.mon.views.factory' factory.id %}">{{ factory }}</a>
+  <tr>
+  <td>JobID
+  <td> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
+  <tr>
+  <td>Batch queue
+  <td><a href="{% url 'apfmon.mon.views.pandaq' job.label.batchqueue.id %}">{{ job.label.batchqueue }}</a>
+  <tr>
+  <td>Label
+  <td><a href="{% url 'apfmon.mon.views.label' job.label.id %}">{{ job.label }}</a>
+  <tr>
+  <td>created
+  <td>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
+  <tr>
+  <td>Last modified
+  <td> {{ job.last_modified|date:"Y-m-d H:i:s" }} ({{ job.last_modified|timesince }} ago)
+  <tr>
+  <td>State
+  <td>{{ job.state }}
+  <tr>
+  <td>Payload?
   {% if job.result == 20 %}
-    <dd>miss
+    <td>miss
   {% elif job.result == -1 %}
-    <dd>-
+    <td>-
   {% elif job.result == 0 %}
-    <dd>yes
+    <td>yes
   {% else %}
-    <dd>\o/
+    <td>\o/
   {% endif %}
-
-  <dt>Pilotcode
+  <tr>
+  <td>Pilotcode
   {% ifequal job.result -1 %}
-    <dd>-
+    <td>-
   {% else %}
-    <dd>{{ job.result }}
+    <td>{{ job.result }}
   {% endifequal %}
-
-  <dt>Flag
-  <dd>{{ job.flag }}
+  <tr>
+  <td>Flag
+  <td>{{ job.flag }}
 {% for pid in pids %}
-  <dt>PandaId<dd> <a href="http://panda.cern.ch:25980/server/pandamon/query?job={{ pid }}">{{ pid }}</a>
+  <tr>
+  <td>PandaId<td> <a href="http://panda.cern.ch:25980/server/pandamon/query?job={{ pid }}">{{ pid }}</a>
 {% endfor %}
-</dl>
+</table>
 </div>
 
 <div class=row-fluid>
 <div class=span6>
-<table class="table table-compact table-striped">
-<tr class=odd>
-<td>{{ job.created|date:"Y-m-d H:i:s" }}
+<table class="table table-compact">
+<tr>
+<td rel="tooltip" data-original-title="xxxxxxxx">{{ job.created|date:"Y-m-d H:i:s" }}
 <td>{{ factory.ip }}
 <td>CREATED
 </tr>
 {% for m in msgs %}
-<tr class="{% cycle even,odd %}">
+<tr>
 <td>{{ m.received|date:"Y-m-d H:i:s" }}
 <td>{{ m.client }}
 <td>{{ m.msg }}

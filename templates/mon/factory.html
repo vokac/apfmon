@@ -4,39 +4,51 @@
 
 {% block content %}
 
-<h2>Factory view: {{ factory.name }}</h2>
+<h2>Factory view</h2>
 
-<div class=row-fluid>
-<dl class="dl-horizontal dl-compact">
-  <dt>Factory
-  <dd>{{ factory.name }}
-  <dt>Version
+<div class="row-fluid">
+<div class=span6>
+<table class="table table-compact table-strong">
+  <tbody>
+  <tr>
+  <td>Factory
+  <td>{{ factory.name }}
+  <tr>
+  <td>Version
   {% if factory.version %}
-    <dd>{{ factory.version }}
+    <td>{{ factory.version }}
   {% else %}
-    <dd>-
+    <td>-
   {% endif %}
-  <dt>Last startup
+  <tr>
+  <td>Last startup
   {% if factory.last_startup %}
-    <dd>{{ factory.last_startup|timesince_human }}
+    <td>{{ factory.last_startup|timesince_human }}
   {% else %}
-    <dd>-
+    <td>-
   {% endif %}
-  <dt>Email
+  <tr>
+  <td>Email
   {% if factory.email %}
-    <dd>{{ factory.email }}
+    <td>{{ factory.email }}
   {% else %}
-    <dd>-
+    <td>-
   {% endif %}
-  <dt>Links
-  <dd>
+  <tr>
+  <td>
+    <abbr rel="tooltip" data-original-title="Number of jobs created over the last 2 hrs (5 minute buckets)">Activity</abbr>
+
+  <td id=spark>
+  <tr>
+  <td>Links
+  <td>
   <ul class="inline">
     <li><a href="{{ factory.url }}">logs</a>
     <li><a href="{{ factory.url }}/queues.conf">queues.conf</a>
   </ul>
-</dl>
+</table>
 </div>
-
+</div>
 
 <table class="table table-compact table-striped">
 <tr>
@@ -54,7 +66,7 @@
 </tr>
 {% if rows %}
 {% for row in rows %}
-<tr class="{% cycle odd,even %}">
+<tr>
   <td class=colhdr>
     <a href="{% url 'apfmon.mon.views.label' row.label.id %}">{{ row.label }}</a>
   <td class={{ row.statcr }}><a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
@@ -77,5 +89,62 @@
 </table>
 </div>
 </div>
+
+<script>
+
+var data = {{ activity }}
+var width = 144;
+var height = 12;
+var padding = 0.2;
+var ymargin = 1;
+
+// scale for x axis
+var w = d3.scale.linear()
+    .domain([-2, 0])
+    .range([0, width]);
+
+// scale bar position
+var x = d3.scale.ordinal()
+    .domain(d3.range(data.length))
+    .rangeBands([0, width], padding);
+
+// scale bar height to data maximum
+var y = d3.scale.linear()
+    .domain([0, d3.max(data)])
+    .range([0, height]);
+
+var spark = d3.select("#spark").append("svg")
+    .attr("width", width+32)
+    .attr("height", height+6)
+  .append("g")
+    .attr("transform", "translate(1,4)");
+
+spark.append("line")
+    .attr("x1", w(-2))
+    .attr("x2", w(0))
+    .attr("y1", height-ymargin)
+    .attr("y2", height-ymargin)
+    .style("stroke", "#ccc");
+
+spark.append("text")
+    .attr("x", w(0)+x.rangeBand())
+    .attr("y", height-ymargin)
+    .attr("fill", "#ccc")
+    .attr("title","Number of jobs created in last 5 minutes")
+    .text(data[data.length-1]);
+
+spark.selectAll("rect")
+    .data(data)
+  .enter().append("rect")
+    .attr("x", function(d, i) { return x(i)})
+    .attr("y", function(d) { return height - ymargin - y(d)})
+    .attr("width", x.rangeBand())
+    .attr("height", function(d) { return y(d) })
+    .attr("title", function(d) { return d })
+    .attr("rx", 1)
+    .attr("ry", 1)
+    .attr("class", "bar");
+
+</script>
 
 {% endblock %}
