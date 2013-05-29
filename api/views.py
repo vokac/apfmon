@@ -6,6 +6,7 @@ from apfmon.kit.models import Site
 from apfmon.kit.models import BatchQueue
 from apfmon.kit.models import WMSQueue
 
+import json
 import logging
 import math
 import pytz
@@ -24,11 +25,6 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
 
-try:
-    import json as json
-except ImportError, err:
-    logging.error('Cannot import json, using simplejson')
-    import simplejson as json
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
@@ -324,7 +320,7 @@ def label(request, id=None):
             buckets.append(math.floor((t % span) / interval))
         jobcount = red.hmget(key, buckets)
 
-        lab['activity'] = jobcount
+        lab['activity'] = getactivity(key)
 
         return HttpResponse(json.dumps(lab,
                             cls=DjangoJSONEncoder,
@@ -499,7 +495,7 @@ def labels(request):
                 buckets.append(math.floor((t % span) / interval))
             jobcount = red.hmget(key, buckets)
 
-            d['activity'] = jobcount
+            d['activity'] = getactivity(key)
             
         return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,
@@ -650,13 +646,36 @@ def factories(request):
               'last_startup')
     factories = Factory.objects.values(*fields).order_by('name')
 
-#    factories = Factory.objects.values().order_by('name')
     for f in factories:
         active = True if f['last_modified'] > dtactive else False
         f['active'] = active
+
+        # get factory activity from redis
+        key = ':'.join(('jobcount',f['name']))
+        f['activity'] = getactivity(key)
+
+        
 
     return HttpResponse(json.dumps(list(factories), 
                         cls=DjangoJSONEncoder,
                         sort_keys=True,
                         indent=2),
                         mimetype="application/json")
+
+def getactivity(key):
+    """
+    Helper function to massage the redis activity output. Takes a
+    redis hash key and returns a list of integers.
+    """
+    n = span / interval
+    buckets = []
+    for i in range(n):
+        t = time.time() - (i * interval)
+        buckets.append(math.floor((t % span) / interval))
+    activity = red.hmget(key, buckets)
+    def makezero(value): return int(0 if value is None else value)
+    activity = map(makezero, activity)
+    activity.reverse()
+
+    return activity
+
