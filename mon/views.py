@@ -601,14 +601,22 @@ def stats(request):
         url = l.fid.url
         nhit = Job.objects.filter(state='done', label=l, result=0).count()
         nmiss = Job.objects.filter(state='done', label=l, result=20).count()
+
+        if l.batchqueue:
+            bqname = l.batchqueue.name 
+            bqid = l.batchqueue.id 
+        else:
+            bqname = ""
+            bqid = ""
+
         row = {
             'label' : l.name,
             'labelid' : l.id,
             'factory' : l.fid.name,
             'factoryid' : l.fid.id,
             'factoryver' : l.fid.version,
-            'pandaq' : l.batchqueue.name,
-            'pandaqid' : l.batchqueue.id,
+            'pandaq' : bqname,
+            'pandaqid' : bqid,
             'ndone' : ndone,
             'nfault' : nfault,
             'nhit' : nhit,
