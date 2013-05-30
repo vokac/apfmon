@@ -4,13 +4,16 @@
 
 {% block content %}
 
+{% comment %}
 <h2>Queues needing attention</h2>
 <p>
 The queues listed below have unusual number of jobs in a particular state which
 may indicate a problem with the queue.
 </p>
 
-<h2>Queues with high fraction of jobs in CREATED state</h2>
+{% endcomment %}
+
+<h2>Queues with high number of jobs in CREATED state</h2>
 
 <div class=row-fluid>
 <div class=span8>
@@ -32,7 +35,7 @@ may indicate a problem with the queue.
 </div>
 
 
-<h2>Queues with high fraction of jobs in FAULT state</h2>
+<h2>Queues with high number of jobs in FAULT state</h2>
 
 <div class=row-fluid>
 <div class=span8>
@@ -40,7 +43,7 @@ may indicate a problem with the queue.
 <tr>
 <th title="Label name, unique to each factory">Label
 <th title="Factory name">factory
-<th class=num title="Fraction of jobs in FAULT state">% fault
+<th class=num title="Fraction of jobs in FAULT state">fault
 </tr>
 {% for label in badlabels %}
 
@@ -61,6 +64,7 @@ may indicate a problem with the queue.
 </div>
 </div>
 
+{% comment %}
 <h2>Service view - Panda queues with only one Factory</h2>
 
 <div class=row-fluid>
@@ -77,6 +81,7 @@ may indicate a problem with the queue.
 </table>
 </div>
 </div>
+{% endcomment %}
 
 <h2>Orphan Labels without associated BatchQueue</h2>
 
