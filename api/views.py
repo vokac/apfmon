@@ -56,11 +56,16 @@ def job(request, id):
         msglist = red.lrange(job.jid, 0, -1)
 
         jobfields = ('jid', 'cid', 'created', 'flag',
-                   'label__name', 'last_modified',
+                   'label__name', 'label__fid__name', 'last_modified',
                    'result', 'state')
         j = Job.objects.filter(jid=id).values(*jobfields)[0]
 
         j['messages'] = msglist
+        j['factory'] = j['label__fid__name']
+        del j['label__fid__name']
+        j['label'] = j['label__name']
+        del j['label__name']
+
 
         response = HttpResponse(json.dumps(j, 
                                 cls=DjangoJSONEncoder,
@@ -97,6 +102,8 @@ def job(request, id):
             response = HttpResponse(mimetype="text/plain")
             location = "/api/jobs/%s" % job.jid
             response['Location'] = location
+            msg = request.build_absolute_uri(location)
+            response.write(msg)
             return response
 
         elif newstate == 'exiting':
@@ -118,7 +125,9 @@ def job(request, id):
                                     msg)
             red.rpush(job.jid, element)
             red.expire(job.jid, expire2days)
-            return HttpResponse(mimetype="text/plain")
+            location = "/api/jobs/%s" % job.jid
+            msg = request.build_absolute_uri(location)
+            return HttpResponse(msg, mimetype="text/plain")
 
         else:
             msg = "Invalid data: %s" % dict(request.POST)
