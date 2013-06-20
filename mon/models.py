@@ -72,7 +72,7 @@ class Factory(models.Model):
     name = models.CharField(max_length=64, blank=True)
     ip = models.IPAddressField(blank=True)
     email = models.EmailField(blank=True)
-    url = models.URLField(blank=True, verify_exists=False, default=DEFAULTURL)
+    url = models.URLField(blank=True, default=DEFAULTURL)
     version = models.CharField(max_length=64, blank=True)
     factory_type = models.CharField(max_length=20, choices=FACTORYTYPES, default='AutoPyFactory')
     last_modified = models.DateTimeField(auto_now=True, editable=False)
