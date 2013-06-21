@@ -118,7 +118,7 @@ def job1(request, fid, cid):
         # msg is a string with format:
         # "<epoch_time> <client_ip> <some message with spaces>"
         (t, ip, txt) = msg.split(' ',2)
-        msg = {'received' : datetime.fromtimestamp(float(t)),
+        msg = {'received' : datetime.fromtimestamp(float(t), pytz.utc),
                'client'   : ip,
                'msg'      : txt, 
              }
@@ -140,7 +140,6 @@ def job1(request, fid, cid):
     logurl = log % (f.url, date, dir, job.cid)
 
     
-    # datetime.fromtimestamp(time.time())
     context = {
                 'outurl'  : outurl,
                 'errurl'  : errurl,
@@ -262,14 +261,16 @@ def factory(request, fid):
         if nfault >= 50:
             statfault = 'hot'
 
-        delayed = datetime.now(pytz.utc) - timedelta(minutes=5)
-        stale = datetime.now(pytz.utc) - timedelta(minutes=30)
-        activity = 'ok'
-        if delayed > lab.last_modified:
-            activity = 'warn'
-        if stale > lab.last_modified:
-            activity = 'stale'
-    
+        dtwarn = datetime.now(pytz.utc) - timedelta(minutes=60)
+        dterror = datetime.now(pytz.utc) - timedelta(minutes=120)
+
+        # this 'active' string map to a html classes
+        active = 'text-error'
+        if lab.last_modified > dterror:
+            active = 'text-warning'
+        if lab.last_modified > dtwarn:
+            active = ''
+
         row = {
             'label' : lab,
             'pandaq' : lab.batchqueue,
@@ -281,7 +282,7 @@ def factory(request, fid):
             'statcr' : statcr,
             'statdone' : statdone,
             'statfault' : statfault,
-            'activity' : activity,
+            'active' : active,
             }
 
         rows.append(row)
@@ -295,6 +296,7 @@ def factory(request, fid):
             'pandaqs'  : pandaqs,
             'factory'  : f,
             'activity' : getactivity(key),
+            'clouds' : CLOUDLIST,
             }
 
     return render_to_response('mon/factory.html', context)
@@ -356,8 +358,8 @@ def pandaq(request, qid, p=1):
         row['statdone'] = statdone
         row['statfault'] = statfault
 
-        dtwarn = datetime.now(pytz.utc) - timedelta(minutes=5)
-        dtstale = datetime.now(pytz.utc) - timedelta(minutes=10)
+        dtwarn = datetime.now(pytz.utc) - timedelta(minutes=15)
+        dtstale = datetime.now(pytz.utc) - timedelta(minutes=60)
 
         active = 'stale'
         if lab.last_modified > dtstale:
@@ -378,6 +380,7 @@ def pandaq(request, qid, p=1):
             'jobs' : jobs,
             'pages' : pages,
             'page' : pages.page(p),
+            'clouds' : CLOUDLIST,
             }
 
     return render_to_response('mon/pandaq.html', context)
@@ -610,19 +613,20 @@ def stats(request):
             bqid = ""
 
         row = {
-            'label' : l.name,
-            'labelid' : l.id,
-            'factory' : l.fid.name,
-            'factoryid' : l.fid.id,
+            'label'      : l.name,
+            'labelid'    : l.id,
+            'factory'    : l.fid.name,
+            'factoryid'  : l.fid.id,
             'factoryver' : l.fid.version,
-            'pandaq' : bqname,
-            'pandaqid' : bqid,
-            'ndone' : ndone,
-            'nfault' : nfault,
-            'nhit' : nhit,
-            'nmiss' : nmiss,
-            'logurl' : logurl,
-            'timestamp' : datetime.now(pytz.utc).strftime('%F %H:%M:%S UTC'),
+            'resource'   : l.resource,
+            'pandaq'     : bqname,
+            'pandaqid'   : bqid,
+            'ndone'      : ndone,
+            'nfault'     : nfault,
+            'nhit'       : nhit,
+            'nmiss'      : nmiss,
+            'logurl'     : logurl,
+            'timestamp'  : datetime.now(pytz.utc).strftime('%F %H:%M:%S UTC'),
             }
         rows.append(row)
 
@@ -657,7 +661,7 @@ def index(request):
         if f.last_modified > dtwarn:
             active = ''
 
-        nqueue = Label.objects.filter(fid=f).count()
+        nqueue = Label.objects.filter(fid=f, last_modified__gt=dterror).count()
 
         row = {
             'factory'  : f,
@@ -1230,24 +1234,24 @@ def report(request):
 #    sortedrows = sorted(rows, key=itemgetter('flagfrac'), reverse=True) 
 
     # find orphan labels (not associated with a batchqueue)
-    orphans = Label.objects.filter(batchqueue=None)
+#    orphans = Label.objects.filter(batchqueue=None)
 
     # find labels with highest number of jobs in created state
-    jobs = Job.objects.filter(state='created')
-    fields = ('label__id','label__name','label__fid__name','label__fid__id')
-    hot = jobs.values(*fields).annotate(count=Count('id'))
-    hot = hot.order_by('-count')[:7]
+#    jobs = Job.objects.filter(state='created')
+#    fields = ('label__id','label__name','label__fid__name','label__fid__id')
+#    hot = jobs.values(*fields).annotate(count=Count('id'))
+#    hot = hot.order_by('-count')[:17]
 
     jobs = Job.objects.filter(state='fault')
     fields = ('label__id','label__name','label__fid__name','label__fid__id')
     bad = jobs.values(*fields).annotate(count=Count('id'))
-    bad = bad.order_by('-count')[:7]
+    bad = bad.order_by('-count')[:17]
     context = {
 
 #        'rows'     : sortedrows[:20],
 #        'sololist' : sololist,
-        'orphans'  : orphans,
-        'hotlabels'   : hot,
+#        'orphans'  : orphans,
+#        'hotlabels'   : hot,
         'badlabels'   : bad,
         'clouds' : CLOUDLIST,
         }
@@ -1305,8 +1309,21 @@ def label(request, lid, p=1):
     labelkey = ':'.join(('jobcount',lid))
 
     key = ':'.join(('status',lab.fid.name,lab.name))
-    msgs = red.lrange(key, 0, -1)
-    print key, msgs
+    msglist = red.lrange(key, 0, -1)
+    msglist.reverse()
+
+    msgs = []
+    for msg in msglist:
+        # msg is a string with format:
+        # "<epoch_time> <client_ip> <some message with spaces>"
+        (t, ip, txt) = msg.split(' ',2)
+        msg = {'received' : datetime.fromtimestamp(float(t), pytz.utc),
+               'client'   : ip,
+               'msg'      : txt,
+             }
+
+        msgs.append(msg)
+
     context = {
             'label'    : lab,
             'lid'      : lid,
@@ -1317,7 +1334,7 @@ def label(request, lid, p=1):
             'activity' : getactivity(labelkey),
             'msgs'     : msgs,
             'counts'   : counts,
-            'clouds' : CLOUDLIST,
+            'clouds'   : CLOUDLIST,
             }
 
     return render_to_response('mon/label.html', context)
