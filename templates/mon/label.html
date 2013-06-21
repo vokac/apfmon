@@ -25,8 +25,8 @@
   {% endif %}
   <tr>
   <td>Resource
-  {% if resource %}
-    <td>{{ resource }}
+  {% if label.resource %}
+    <td>{{ label.resource }}
   {% else %}
     <td>-
   {% endif %}
@@ -57,7 +57,7 @@
   <div id="more" class="collapse">
     <ul class="unstyled muted"
       {% for msg in msgs %}
-        <li>{{ msg }}
+        <li>{{ msg.msg }} ({{ msg.received|timesince_human }})
       {% endfor %}
     </ul>
   </div>

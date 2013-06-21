@@ -13,6 +13,8 @@ may indicate a problem with the queue.
 
 {% endcomment %}
 
+
+{% comment %}
 <h2>Queues with high number of jobs in CREATED state</h2>
 
 <div class=row-fluid>
@@ -34,6 +36,7 @@ may indicate a problem with the queue.
 </div>
 </div>
 
+{% endcomment %}
 
 <h2>Queues with high number of jobs in FAULT state</h2>
 
@@ -83,6 +86,7 @@ may indicate a problem with the queue.
 </div>
 {% endcomment %}
 
+{% comment %}
 <h2>Orphan Labels without associated BatchQueue</h2>
 
 <div class=row-fluid>
@@ -99,6 +103,7 @@ may indicate a problem with the queue.
 </table>
 </div>
 </div>
+{% endcomment %}
 
 
 {% endblock %}

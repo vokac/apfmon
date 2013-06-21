@@ -8,10 +8,31 @@
 href="https://twiki.cern.ch/twiki/bin/viewauth/Atlas/CentralServiceExpertOnCall#Pilot_factories">AMOD
 twiki</a>.
 
-<h2>Job states</h2>
+
+<h2>FAQ</h2>
+
+<dl>
+<dt>Where can I find the latest wrapper script?
+<dd>
+<p><pre><code># Get it from the HEAD version of autopyfactory
+$ svn co svn+ssh://svn.cern.ch/reps/panda/panda-autopyfactory/current
+$ cat current/libexec/runpilot3-wrapper.sh-example
+</code></pre></p>
+<dt>Where can I find the latest AGIS script?
+<dd>
+<p><pre><code># Get it from the HEAD version of autopyfactory
+# This will generate queues.conf using data from AGIS
+$ svn co svn+ssh://svn.cern.ch/reps/panda/panda-autopyfactory/current
+$ cat current/misc/apf-agis-config
+</code></pre></p>
+</dl>
+
+
+<h2>Job states - these are specific to the monitor</h2>
 
 <img src="/static/img/apfmon-states.png">
 
+<p>
 <ul>
 <li><dfn>CREATED: condor_submit executed, condor_id returned
 <li><dfn>RUNNING: pilot wrapper has started on Worker Node
@@ -19,8 +40,9 @@ twiki</a>.
 <li><dfn>DONE: condor jobstate is Completed (or Removed)
 <li><dfn>FAULT: condor jobstate indicates a fault, or job has become stale
 </ul>
+</p>
 
-<h2>APIv2</h2>
+<h2>APIv2 - developers only</h2>
 
 <h3>Resources</h3>
 
