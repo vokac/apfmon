@@ -24,7 +24,7 @@
   <td>Label
   <td><a href="{% url 'apfmon.mon.views.singleitem' factory.name job.label.name %}">{{ job.label }}</a>
   <tr>
-  <td>created
+  <td>Created
   <td>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)
   <tr>
   <td>Last modified
