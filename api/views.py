@@ -546,6 +546,8 @@ def factory(request, id):
     Delete a factory, restricted to localhost
     """
 
+    # check for valid chars [\w-_]
+
     ip = request.META['REMOTE_ADDR']
     if 'CONTENT_LENGTH' in request.META.keys():
         length = request.META['CONTENT_LENGTH']

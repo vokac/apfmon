@@ -1,31 +1,27 @@
-from django.conf.urls.defaults import *
-#from django.views.generic import list_detail
-#from django.views.generic.date_based import archive_index
+from django.conf.urls import patterns
 
 urlpatterns = patterns('apfmon.mon.views',
-# rendered views
-#    (r'^$', 'offline'),
     (r'^$', 'index'),
+# rendered views
     (r'^cloud/(?P<name>[a-zA-Z]+)/?$', 'cloud'),
     (r'^factory/(?P<fid>\S*)/?$', 'factory'),
-#    (r'^t/?$', 'total'),
     (r'^queues/?$', 'queues'),
     (r'^l/(?P<lid>\d*)/page/(?P<p>\d*)$', 'label'),
     (r'^l/(?P<lid>\d*)/+$', 'label'),
     (r'^report/?$', 'report'),
-    (r'^site/(?P<sid>\d*)$', 'site'),
-#    (r'^history/(?P<qid>\d*)/?$', 'history'),
+    (r'^site/(?P<sid>\S*)$', 'site'),
     (r'^help/?$', 'help'),
     (r'^q/(?P<qid>\d*)/page/(?P<p>\d*)$', 'pandaq'),
-    (r'^q/(?P<qid>\d*)/+$', 'pandaq'),
+    (r'^q/(?P<qid>\S*)/+$', 'pandaq'),
     (r'^job1/(?P<fid>\S*)/(?P<cid>\S*)/?$', 'job1'),
     (r'^jobs1/(?P<lid>\d*)/(?P<state>[A-Z]*)/page/(?P<p>\d*)$', 'jobs1'),
     (r'^jobs1/(?P<lid>\d*)/(?P<state>[A-Z]*)/?$', 'jobs1'),
-    # these rrd time periods: 1h 6h 1d 1w 1m 1y
-#    (r'^img/states-(?P<t>\d[hdwmy])-(?P<fid>\d*)-(?P<qid>\d*).png$', 'img'),
     (r'^debug/$', 'debug'),
     (r'^test/$', 'test'),
     (r'^stats/$', 'stats'),
+# human ui, note these are basically a catchall pattern
+    (r'(?P<fname>[\w-]*)/(?P<item>\S*)/?$', 'singleitem'),
+    (r'(?P<fname>[\w-]*)/?$', 'singlefactory'),
 
 # non-rendered views
     (r'^c/$', 'cr'),

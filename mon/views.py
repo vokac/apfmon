@@ -1,6 +1,7 @@
 from apfmon.mon.models import Factory
 from apfmon.mon.models import Job
 from apfmon.mon.models import Label
+from apfmon.mon.models import STATES
 
 from apfmon.kit.models import Site
 from apfmon.kit.models import BatchQueue
@@ -33,6 +34,7 @@ from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
+from django.utils.encoding import smart_text
 
 try:
     import json as json
@@ -46,10 +48,13 @@ GGUSREGEX = re.compile('(.*ggus[^0-9]*)([0-9]+)', re.IGNORECASE)
 ELOGURL = 'https://atlas-logbook.cern.ch/elog/ATLAS+Computer+Operations+Logbook/%s'
 GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
 SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
-#CLOUDS = [ 'CA', 'CERN', 'DE', 'ES', 'FR', 'IT', 'ND', 'NL', 'RU', 'TW', 'UK', 'US']
 CLOUDLIST = []
 for item in CLOUDS:
     CLOUDLIST.append(item[0])
+STATELIST = []
+for item in STATES:
+    STATELIST.append(item[0])
+
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
@@ -147,6 +152,7 @@ def job1(request, fid, cid):
                 'factory' : f,
                 'job'     : job,
                 'msgs'    : msgs,
+                'clouds' : CLOUDLIST,
                 }
 
     return render_to_response('mon/job.html', context)
@@ -304,9 +310,13 @@ def factory(request, fid):
 def pandaq(request, qid, p=1):
     """
     Rendered view of panda queue for all factories
+    qid can now be batchqueue name or id
     """
 
-    q = get_object_or_404(BatchQueue, id=qid)
+    try:
+        q = BatchQueue.objects.get(name=qid)
+    except BatchQueue.DoesNotExist:
+        q = get_object_or_404(BatchQueue, id=qid)
 
     labels = Label.objects.filter(batchqueue=q)
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
@@ -371,8 +381,8 @@ def pandaq(request, qid, p=1):
 
         rows.append(row)
 
-    pages = Paginator(Job.objects.filter(label__batchqueue=qid).order_by('-last_modified'), 100)
-    jobs = Job.objects.filter(label__batchqueue=qid).order_by('-last_modified')[:100]
+    pages = Paginator(Job.objects.filter(label__batchqueue=q).order_by('-last_modified'), 100)
+    jobs = Job.objects.filter(label__batchqueue=q).order_by('-last_modified')[:100]
 
     context = {
             'pandaq' : q,
@@ -1109,7 +1119,8 @@ def search(request):
 
     # see Simple generic views in django docs
 
-    url = reverse('apfmon.mon.views.query', args=(query,))
+    # smart_text to ensure unicode
+    url = reverse('apfmon.mon.views.query', args=(smart_text(query),))
     logging.debug(url)
     return HttpResponseRedirect(url)
 
@@ -1148,8 +1159,17 @@ def site(request, sid):
     Rendered view of Site page showing table of Pandaqs for this Site
     including stats from all factories
     Note: this is a Site not a PandaSite
+
+    sid can now be the sitename as well as the siteID
     """
-    s = get_object_or_404(Site, id=int(sid))
+
+    try:
+        sint = int(sid)
+        s = get_object_or_404(Site, id=sint)
+    except ValueError:
+        s = get_object_or_404(Site, name=sid)
+        
+
     dt = datetime.now(pytz.utc) - timedelta(days=7)
 
     # all labels serving this site
@@ -1259,7 +1279,85 @@ def report(request):
     return render_to_response('mon/report.html', context)
 
 # UI
-def label(request, lid, p=1):
+def singletest(request, fname, item):
+    """
+    Rendered view of a single item, either label or job
+    """
+
+    try:
+        label = Label.objects.get(name=item)
+        lid = ':'.join((label.fid.name,label.name))
+
+        context = {
+            'label' : '/api/labels/%s' % lid
+            }
+        return render_to_response('mon/singlelabel.html', context)
+    except:
+        pass
+
+    try:
+        job = Job.objects.get(fid=fname, cid=item)
+    except:
+        # return 404, neither label or job found
+        pass
+
+    
+    # make an ordered jobcount list from the redis hash
+    labelkey = ':'.join(('jobcount',lid))
+
+    key = ':'.join(('status',lab.fid.name,lab.name))
+    msgs = red.lrange(key, 0, -1)
+    print key, msgs
+    context = {
+            'label'    : lab,
+            'lid'      : lid,
+            'jobs'     : jobs,
+            'pages'    : pages,
+            'page'     : pages.page(p),
+            'status'   : status,
+            'activity' : getactivity(labelkey),
+            'msgs'     : msgs,
+            'counts'   : counts,
+            'clouds' : CLOUDLIST,
+            }
+
+    return render_to_response('mon/label.html', context)
+
+# UI
+def singlefactory(request, fname):
+    """
+    Rendered view of a single Label or Job
+    """
+    f = get_object_or_404(Factory, name=fname)
+
+    return factory(request, f.id)
+
+# UI
+def singleitem(request, fname, item):
+    """
+    Rendered view of a single Label or Job
+    """
+
+    try:
+        lab = Label.objects.get(fid__name=fname,name=item)
+        state = request.GET.get('state', None)
+        return label(request, lab.id, state)
+
+    except Label.DoesNotExist:
+        # continue and try to get a Job
+        pass
+
+    try:
+        job = Job.objects.get(label__fid__name=fname, cid=item)
+
+        return job1(request, job.label.fid.id, job.cid)
+    except Job.DoesNotExist:
+        msg = 'Neither label or job found'
+        logging.warn(msg)
+        raise Http404
+
+# UI
+def label(request, lid, state=None):
     """
     Rendered view of a single Label with job details
     """
@@ -1283,14 +1381,16 @@ def label(request, lid, p=1):
     ndone = jobs.filter(state='done').count()
     nfault = jobs.filter(state='fault').count()
     nmiss = jobs.filter(state='done', result=20).count()
+    total = jobs.count()
     
     counts = {
             'created' : ncreated,
             'running' : nrunning,
             'exiting' : nexiting,
-            'done' : ndone,
-            'fault' : nfault,
-            'miss' : nmiss,
+            'done'    : ndone,
+            'fault'   : nfault,
+            'miss'    : nmiss,
+            'total'   : total,
             }
 
     activewarn = datetime.now(pytz.utc) - timedelta(minutes=10)
@@ -1301,8 +1401,10 @@ def label(request, lid, p=1):
     if activeerror > lab.last_modified:
         status = 'text-error'
 
-    pages = Paginator(Job.objects.filter(label=lid).order_by('-last_modified'), 40)
-    jobs = Job.objects.filter(label=lid).order_by('-last_modified')[:200]
+    if state in STATELIST:
+        jobs = Job.objects.filter(label=lab, state=state).order_by('-last_modified')[:100]
+    else:
+        jobs = Job.objects.filter(label=lab).order_by('-last_modified')[:100]
     
     # make an ordered jobcount list from the redis hash
     lid = ':'.join((lab.fid.name,lab.name))
@@ -1328,13 +1430,14 @@ def label(request, lid, p=1):
             'label'    : lab,
             'lid'      : lid,
             'jobs'     : jobs,
-            'pages'    : pages,
-            'page'     : pages.page(p),
+#            'pages'    : pages,
+#            'page'     : pages.page(p),
             'status'   : status,
             'activity' : getactivity(labelkey),
             'msgs'     : msgs,
             'counts'   : counts,
             'clouds'   : CLOUDLIST,
+            'state'    : state,
             }
 
     return render_to_response('mon/label.html', context)

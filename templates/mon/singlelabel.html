@@ -4,6 +4,11 @@
 
 {% block content %}
 
+{% comment %}
+This is a template for the new UI, getting data via API
+{% endcomment %}
+
+
 
 <h3>Label view</h3>
 
@@ -15,18 +20,18 @@
   <td>{{ label }} (<a href="{% url 'apfmon.api.views.label' lid %}">json</a>)
   <tr>
   <td>Factory
-  <td><a href="{% url 'apfmon.mon.views.singlefactory' label.fid.name %}">{{ label.fid }}</a>
+  <td><a href="{% url 'apfmon.mon.views.factory' label.fid.id %}">{{ label.fid }}</a>
   <tr>
   <td>Batch queue
   {% if label.batchqueue.name %}
-    <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.name %}">{{ label.batchqueue }}</a>
+    <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a>
   {% else %}
     <td class=muted>&lt;unknown&gt;
   {% endif %}
   <tr>
   <td>Resource
-  {% if label.resource %}
-    <td>{{ label.resource }}
+  {% if resource %}
+    <td>{{ resource }}
   {% else %}
     <td>-
   {% endif %}
@@ -37,12 +42,11 @@
   <td>Counts
   <td>
   <ul class="inline">
-    <li>created:<a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}?state=created">{{ counts.created }}</a>
-    <li>running:<a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}?state=running">{{ counts.running }}</a>
-    <li>exiting:<a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}?state=exiting">{{ counts.exiting }}</a>
-    <li>done:<a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}?state=done">{{ counts.done }}</a>
-    <li>fault:<a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}?state=fault">{{ counts.fault }}</a>
-    <li>TOTAL:<a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}">{{ counts.total }}</a>
+    <li>created:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'CREATED' %}">{{ counts.created }}</a>
+    <li>running:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'RUNNING' %}">{{ counts.running }}</a>
+    <li>exiting:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'EXITING' %}">{{ counts.exiting }}</a>
+    <li>done:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'DONE' %}">{{ counts.done }}</a>
+    <li>fault:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'FAULT' %}">{{ counts.fault }}</a>
   </ul>
   <tr>
   <td>
@@ -58,7 +62,7 @@
   <div id="more" class="collapse">
     <ul class="unstyled muted"
       {% for msg in msgs %}
-        <li>{{ msg.msg }} ({{ msg.received|timesince_human }})
+        <li>{{ msg }}
       {% endfor %}
     </ul>
   </div>
@@ -71,18 +75,14 @@
 <table class="table table-compact table-striped">
 <tr>
   <th>Job
-  {% if state %}
-    <th>state={{ state }}
-  {% else %}
-    <th>state
-  {% endif %}
+  <th>state
   <th>payload?
   <th>created
   <th>last modified
 </tr>
-{% for j in jobs %}
+{% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td><a href={% url 'apfmon.mon.views.singleitem' j.label.fid.name j.cid %}>{{ j.cid }}</a>
+  <td><a href={% url 'apfmon.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% ifequal j.result 20 %}
     <td>miss
@@ -97,7 +97,6 @@
   <td>{{ j.last_modified|timesince_human}}
 </tr>
 {% endfor %}
-{% comment %}
 <tr>
   <td colspan=6 class=right>
     {% if page.has_previous %}
@@ -109,7 +108,6 @@
     {% endif %}
   </td>
 </tr>
-{% endcomment %}
 </table>
 </div>
 </div>

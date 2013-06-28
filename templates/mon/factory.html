@@ -68,15 +68,13 @@
 {% for row in rows %}
 <tr>
   <td class=colhdr>
-    <a href="{% url 'apfmon.mon.views.label' row.label.id %}">{{ row.label }}</a>
-  <td class={{ row.statcr }}><a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'CREATED' %}">{{ row.ncreated }}</a>
-  <td><a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'RUNNING' %}">{{ row.nrunning }}</a>
-  <td><a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'EXITING' %}">{{ row.nexiting }}</a>
-  <td><a href="{% url 'apfmon.mon.views.jobs1' row.label.id 'DONE' %}">{{ row.ndone }}</a>
+    <a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}">{{ row.label }}</a>
+  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=created">{{ row.ncreated }}</a>
+  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=running">{{ row.nrunning}}</a>
+  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=exiting">{{ row.nexiting }}</a>
+  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=done">{{ row.ndone }}</a>
 {% comment %}
-  <td><a href="{% url apfmon.mon.views.pandaq row.label.pandaq.id %}">{{ row.label.pandaq }}</a>
-  <td class={{ row.statdone }}><a href="{% url apfmon.mon.views.jobs row.label.id 'DONE' %}">{{ row.ndone }}</a>
-  <td class={{ row.statfault }}><a href="{% url apfmon.mon.views.jobs row.label.id 'FAULT' %}">{{ row.nfault }}</a>
+  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=fault">{{ row.nfault }}</a>
 {% endcomment %}
   <td class="{{ row.active }}"><div title="{{ row.label.msg }}">{{ row.label.last_modified|timesince_human }}</div>
 </tr>
