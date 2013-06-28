@@ -1,10 +1,13 @@
 SERVER_EMAIL = 'atl@py-front.lancs.ac.uk'
 
 ADMINS = (
-    ('Peter Love', 'p.love@lancaster.ac.uk'),
+#    ('Peter Love', 'p.love@lancaster.ac.uk'),
+    ('Peter Love', 'atl@py-front.lancs.ac.uk'),
 )
 
 MANAGERS = ADMINS
+
+ALLOWED_HOSTS = [ 'apfmon.lancs.ac.uk' ]
 
 DATABASES = {
     'default': {
