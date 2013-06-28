@@ -7,7 +7,7 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-ALLOWED_HOSTS = [ 'apfmon.lancs.ac.uk' ]
+ALLOWED_HOSTS = [ 'apfmon.lancs.ac.uk', 'py-front.lancs.ac.uk' ]
 
 DATABASES = {
     'default': {
