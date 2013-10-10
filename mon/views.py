@@ -59,6 +59,7 @@ for item in STATES:
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire2days = 172800
+expire5days = 432000
 expire7days = 604800
 expire3hrs = 3*3600
 span = 7200
@@ -316,7 +317,8 @@ def pandaq(request, qid, p=1):
     try:
         q = BatchQueue.objects.get(name=qid)
     except BatchQueue.DoesNotExist:
-        q = get_object_or_404(BatchQueue, id=qid)
+        id = qid.rstrip('/')
+        q = get_object_or_404(BatchQueue, id=id)
 
     labels = Label.objects.filter(batchqueue=q)
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
@@ -431,7 +433,7 @@ def rn(request, fid, cid):
         msg = "%s -> RUNNING" % j.state
         element = "%f %s %s" % (time.time(), request.META['REMOTE_ADDR'], msg)
         red.rpush(j.jid, element)
-        red.expire(j.jid, expire7days)
+        red.expire(j.jid, expire5days)
 
         j.state = 'running'
         if j.flag:
@@ -1352,7 +1354,7 @@ def singleitem(request, fname, item):
 
         return job1(request, job.label.fid.id, job.cid)
     except Job.DoesNotExist:
-        msg = 'Neither label or job found'
+        msg = 'Neither label or job found: %s %s' % (fname, item)
         logging.warn(msg)
         raise Http404
 

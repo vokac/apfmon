@@ -29,6 +29,7 @@ class Command(NoArgsCommand):
             etimeout = 30
             ftimeout = 24# 96
             expire2days = 172800
+            expire5days = 432000
             expire7days = 604800
             start = time.time()
             nonterminal = ['created', 'running', 'exiting']
@@ -61,7 +62,7 @@ class Command(NoArgsCommand):
                 msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 red.rpush(j.jid, element)
-                red.expire(j.jid, expire7days)
+                red.expire(j.jid, expire5days)
                 j.flag = True
                 j.save()
         
@@ -71,7 +72,7 @@ class Command(NoArgsCommand):
                 msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 red.rpush(j.jid, element)
-                red.expire(j.jid, expire7days)
+                red.expire(j.jid, expire5days)
                 j.flag = True
                 j.save()
         

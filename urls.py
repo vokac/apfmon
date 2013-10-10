@@ -8,6 +8,7 @@ urlpatterns = patterns('',
     (r'^admin/', include(admin.site.urls)),
     (r'^kit/', include('apfmon.kit.urls')),
     (r'^api/', include('apfmon.api.urls')),
+    (r'^mon/', include('apfmon.mon.urls')),
     (r'^', include('apfmon.mon.urls')),
 )
 

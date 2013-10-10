@@ -12,16 +12,13 @@ urlpatterns = patterns('apfmon.mon.views',
     (r'^site/(?P<sid>\S*)$', 'site'),
     (r'^help/?$', 'help'),
     (r'^q/(?P<qid>\d*)/page/(?P<p>\d*)$', 'pandaq'),
-    (r'^q/(?P<qid>\S*)/+$', 'pandaq'),
+    (r'^q/(?P<qid>\S*)/?$', 'pandaq'),
     (r'^job1/(?P<fid>\S*)/(?P<cid>\S*)/?$', 'job1'),
     (r'^jobs1/(?P<lid>\d*)/(?P<state>[A-Z]*)/page/(?P<p>\d*)$', 'jobs1'),
     (r'^jobs1/(?P<lid>\d*)/(?P<state>[A-Z]*)/?$', 'jobs1'),
-    (r'^debug/$', 'debug'),
-    (r'^test/$', 'test'),
-    (r'^stats/$', 'stats'),
-# human ui, note these are basically a catchall pattern
-    (r'(?P<fname>[\w-]*)/(?P<item>\S*)/?$', 'singleitem'),
-    (r'(?P<fname>[\w-]*)/?$', 'singlefactory'),
+    (r'^debug/?$', 'debug'),
+    (r'^test/?$', 'test'),
+    (r'^stats/?$', 'stats'),
 
 # non-rendered views
     (r'^c/$', 'cr'),
@@ -33,6 +30,9 @@ urlpatterns = patterns('apfmon.mon.views',
     (r'^search/$', 'search'),
     (r'^query/(?P<q>.*)/$', 'query'),
 
+# human ui, note these are basically a catchall pattern
+    (r'(?P<fname>[\w-]*)/(?P<item>\S*[^/])$', 'singleitem'),
+    (r'(?P<fname>[\w-]*)$', 'singlefactory'),
 )
 
 """

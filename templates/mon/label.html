@@ -84,15 +84,15 @@
 <tr class="{% cycle odd,even %}">
   <td><a href={% url 'apfmon.mon.views.singleitem' j.label.fid.name j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
-  {% ifequal j.result 20 %}
+  {% if j.result == 20 %}
     <td>miss
-  {% endifequal %}
-  {% ifequal j.result 0 %}
+  {% elif j.result == 0 %}
     <td>yes
-  {% endifequal %}
-  {% ifequal j.result -1 %}
+  {% elif j.result == -1 %}
     <td>-
-  {% endifequal %}
+  {% else %}
+    <td>{{ j.result }}
+  {% endif %}
   <td>{{ j.created|timesince_human}}
   <td>{{ j.last_modified|timesince_human}}
 </tr>

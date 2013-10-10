@@ -5,6 +5,31 @@
 {% block content %}
 
 {% comment %}
+{% endcomment %}
+<h3>List of queues with high number of pilot faults</h3>
+<p>
+
+This page is intended to highlight queues which have problems with basic job
+submission from the pilot factories.  The solution is either with the site
+admins or with the cloud support. These errors are unseen by the production
+system but can degrade the factories so fixing these problems is welcome.</p>
+
+<p>
+For brevity only several queues are listed and these most likely need some
+action. A little investigation is required to understand the errors but
+typically the errors on all FAULT jobs are the same. A rough procedure is to do
+the following:
+
+<ol>
+<li>Click on the 'fault' count to show jobs for that Label
+<li>Click the ID of a recent job
+<li>Click on stdlog to see condor log
+<li>If an error is seen such as CREAM ERROR, report via GGUS to the site with link to the stdlog and include the short error message with the ticket.
+<li>If necessary, feel free to include <a href="mailto:atlas-adc-expert@cern.ch">ADC Experts</a> in the ticket
+</ol>
+</p>
+
+{% comment %}
 <h2>Queues needing attention</h2>
 <p>
 The queues listed below have unusual number of jobs in a particular state which
@@ -38,22 +63,21 @@ may indicate a problem with the queue.
 
 {% endcomment %}
 
-<h2>Queues with high number of jobs in FAULT state</h2>
 
 <div class=row-fluid>
 <div class=span8>
 <table class="table table-compact">
 <tr>
-<th title="Label name, unique to each factory">Label
+<th title="Queue label, unique to each factory">Label
 <th title="Factory name">factory
-<th class=num title="Fraction of jobs in FAULT state">fault
+<th class=num title="Number of jobs in FAULT state">fault
 </tr>
 {% for label in badlabels %}
 
 <tr>
-  <td nowrap><a href="{% url 'apfmon.mon.views.label' label.label__id %}">{{ label.label__name }}</a>
-  <td><a href="{% url 'apfmon.mon.views.factory' label.label__fid__id %}">{{ label.label__fid__name }}</a>
-  <td class=num><a href="{% url 'apfmon.mon.views.jobs1' label.label__id 'CREATED' %}">{{ label.count }}</a>
+  <td nowrap><a href="{% url 'apfmon.mon.views.singleitem' label.label__fid__name label.label__name %}">{{ label.label__name }}</a>
+  <td><a href="{% url 'apfmon.mon.views.singlefactory' label.label__fid__name %}">{{ label.label__fid__name }}</a>
+  <td class=num><a href="{% url 'apfmon.mon.views.singleitem' label.label__fid__name label.label__name %}?state=fault">{{ label.count }}</a>
 {% comment %}
   <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
 </tr>

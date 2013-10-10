@@ -9,6 +9,7 @@
 href="https://twiki.cern.ch/twiki/bin/viewauth/Atlas/CentralServiceExpertOnCall#Pilot_factories">AMOD
 twiki</a>
 <li>AutoPyFactory installation and configuration: <a href="https://www.racf.bnl.gov/experiments/usatlas/griddev/AutoPyFactory">BNL documentation</a>
+<li>BNL <a href="http://dev.racf.bnl.gov/yum/grid/production/rhel/">repository</a>
 </ul>
 
 <h2>FAQ</h2>
@@ -16,9 +17,7 @@ twiki</a>
 <dl>
 <dt>Where can I find the latest wrapper script?
 <dd>
-<p><pre><code># Get it from the HEAD version of autopyfactory
-$ svn co svn+ssh://svn.cern.ch/reps/panda/panda-autopyfactory/current
-$ cat current/libexec/runpilot3-wrapper.sh-example
+<p><pre><code>$ wget http://www.hep.lancs.ac.uk/~love/runpilot3-wrapper-oct02.sh
 </code></pre></p>
 <dt>Where can I find the latest AGIS script?
 <dd>
@@ -275,43 +274,6 @@ r = requests.post(url, data=payload)
   <dt>Notes
   <dd>The {id} is constructed from colon separated Factory name and Label name. 
 </dl>
-</div>
-
-<h2>Old API - deprecated</h2>
-
-<div class=row-fluid>
-<table class=table>
-<tr>
-  <th style="text-align: left">Endpoint
-  <th style="text-align: left">Description
-  <th style="text-align: left">Format
-</tr>
-<tr>
-  <td class=left>/h/
-  <td class=left>hello from factory at start-up
-  <td class=left>POST with keys: factoryId,monitorURL,factoryOwner,baseLogDirUrl,versionTag
-</tr>
-<tr>
-  <td class=left>/c/
-  <td class=left>list of created jobids
-  <td class=left>JSON-encoded list of tuples: (cid, nick, fid, label)
-</tr>
-<tr>
-  <td class=left>/m/
-  <td class=left>list of messages to describe status of 'label'
-  <td class=left>JSON-encoded list of tuples: (nick, fid, label, text)
-</tr>
-<tr>
-  <td class=left>/$APFFID/$APFCID/rn/ 
-  <td class=left>ping when job wrapper starts on worker node
-  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
-</tr>
-<tr>
-  <td class=left>/$APFFID/$APFCID/ex/ 
-  <td class=left>ping when job wrapper exits
-  <td class=left>GET request with APFFID=factoryId, APFCID=jobid
-</tr>
-</table>
 </div>
 
 {% endblock %}
