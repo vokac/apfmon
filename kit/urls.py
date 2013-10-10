@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import *
+from django.conf.urls import patterns
 #from django.views.generic import list_detail
 #from django.views.generic.date_based import archive_index
 

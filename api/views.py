@@ -29,6 +29,7 @@ from django.core.exceptions import MultipleObjectsReturned
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire2days = 172800
+expire5days = 432000
 expire7days = 604800
 expire3hrs = 3*3600
 span = 7200
@@ -49,7 +50,16 @@ def job(request, id):
 
     ip = request.META['REMOTE_ADDR']
 
-    job = get_object_or_404(Job, jid=id)
+    try:
+        job = Job.objects.get(jid=id)
+    except Job.DoesNotExist:
+        response = HttpResponse(mimetype="text/plain", status=404)
+        location = "/api/jobs/%s" % id
+        response['Location'] = location
+        msg = "Not found: " + request.build_absolute_uri(location)
+        response.write(msg)
+        return response
+        
 
     if request.method == 'GET':
 
@@ -98,7 +108,7 @@ def job(request, id):
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(job.jid, element)
-            red.expire(job.jid, expire7days)
+            red.expire(job.jid, expire5days)
             response = HttpResponse(mimetype="text/plain")
             location = "/api/jobs/%s" % job.jid
             response['Location'] = location
@@ -352,7 +362,7 @@ def label(request, id=None):
         key = ':'.join(('status',label.fid.name,label.name))
         pipe = red.pipeline()
         pipe.rpush(key, content)
-        pipe.expire(key, expire7days)
+        pipe.expire(key, expire5days)
         pipe.ltrim(key,-5,-1)
         pipe.execute()
 
@@ -387,6 +397,7 @@ def labels(request):
     """
 
     ip = request.META['REMOTE_ADDR']
+
     if 'CONTENT_LENGTH' in request.META.keys():
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
