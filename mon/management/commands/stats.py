@@ -31,6 +31,8 @@ class Command(NoArgsCommand):
     logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
+        start = time.time()
+
         stats = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
         
         flagcount = Job.objects.filter(flag=True).count()
@@ -62,3 +64,6 @@ class Command(NoArgsCommand):
         for v in set(vers): 
           stat = 'apfmon.factory.' + v.replace('.','_')
           stats.gauge(stat, vers.count(v))
+
+        elapsed = time.time() - start
+        stats.timing('apfmon.stats',int(1000*elapsed))
