@@ -88,7 +88,7 @@ class Command(NoArgsCommand):
         
             for j in ejobs:
                 # move EXITING jobs to DONE state
-                msg = "%s -> DONE" % j.state
+                msg = "State change: %s -> DONE" % j.state
                 self.logger.debug(msg)
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 red.rpush(j.jid, element)

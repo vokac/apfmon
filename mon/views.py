@@ -1463,9 +1463,16 @@ def getactivity(key):
 
 def test(request):
 
-    jobs = Job.objects.all()
+    
+    jobs = Job.objects.filter(state='fault')
+    fields = ('label__id','label__name','label__fid__name','label__fid__id')
+    bad = jobs.values(*fields).annotate(count=Count('id'))
+    bad = bad.order_by('-count')[:17]
 
-    context = {}
+    context = {
+        'badlabels'   : bad,
+        'clouds' : CLOUDLIST,
+        }
     return render_to_response('mon/test.html', context)
 
 def debug(request):
