@@ -90,6 +90,7 @@ def job(request, id):
     if request.method == 'POST':
         newstate = request.POST.get('state', None)
         rc = request.POST.get('rc', None)
+        joblog = ':'.join(('joblog',job.jid))
 
         if newstate == 'running':
             if job.state != 'created':
@@ -98,7 +99,7 @@ def job(request, id):
                 element = "%f %s %s" % (time.time(),
                                         request.META['REMOTE_ADDR'],
                                         msg)
-                red.rpush(job.jid, element)
+                red.rpush(joblog, element)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = 'running'
@@ -107,8 +108,8 @@ def job(request, id):
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
-            red.rpush(job.jid, element)
-            red.expire(job.jid, expire5days)
+            red.rpush(joblog, element)
+            red.expire(joblog, expire5days)
             response = HttpResponse(mimetype="text/plain")
             location = "/api/jobs/%s" % job.jid
             response['Location'] = location
@@ -123,7 +124,7 @@ def job(request, id):
                 element = "%f %s %s" % (time.time(),
                                         request.META['REMOTE_ADDR'],
                                         msg)
-                red.rpush(job.jid, element)
+                red.rpush(joblog, element)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = 'exiting'
@@ -133,8 +134,8 @@ def job(request, id):
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
-            red.rpush(job.jid, element)
-            red.expire(job.jid, expire2days)
+            red.rpush(joblog, element)
+            red.expire(joblog, expire2days)
             location = "/api/jobs/%s" % job.jid
             msg = request.build_absolute_uri(location)
             return HttpResponse(msg, mimetype="text/plain")
@@ -222,8 +223,9 @@ def jobs(request):
             # this awesome section populates a ring-counter with the number
             # of jobs per label over the last 2hrs with 5 min buckets
             # giving 24 buckets
-            labelkey = ':'.join(('jobcount',f.name,lab.name))
-            factorykey = ':'.join(('jobcount',f.name))
+            # two ring counters 'ringl', 'ringf'
+            labelkey = ':'.join(('ringl',f.name,lab.name))
+            factorykey = ':'.join(('ringf',f.name))
             bucket = '%s' % math.floor((time.time() % span) / interval)
             next1bucket = '%s' % math.floor(((time.time()+interval) % span) / interval)
             next2bucket = '%s' % math.floor(((time.time()+(2*interval)) % span) / interval)
@@ -331,13 +333,12 @@ def label(request, id=None):
         for t in truth:
             lab[t] = '-'
 
-        key = ':'.join(('jobcount',lab['factory'],lab['name']))
+        key = ':'.join(('ringl',lab['factory'],lab['name']))
         n = span / interval
         buckets = []
         for i in range(n):
             t = time.time() - (i * interval)
             buckets.append(math.floor((t % span) / interval))
-        jobcount = red.hmget(key, buckets)
 
         lab['activity'] = getactivity(key)
 
@@ -353,11 +354,15 @@ def label(request, id=None):
             msg = "Invalid data: %s" % dict(request.POST)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
 
+        # still hitting DB here, to be removed
         label.msg = status[:140]
         label.save()
+        # have 1024 chars for fullmsg coming from sched plugins
+        # but only write to redis
+        fullmsg = status[:1024]
         content = "%f %s %s" % (time.time(),
                                 request.META['REMOTE_ADDR'],
-                                label.msg)
+                                fullmsg)
 
         key = ':'.join(('status',label.fid.name,label.name))
         pipe = red.pipeline()
@@ -502,7 +507,7 @@ def labels(request):
         else:
             labels = labels[start:end]
 
-        fields = ('id','name','fid__name','msg','last_modified','resource')
+        fields = ('id','name','batchqueue__name','fid__name','msg','last_modified','resource')
 
         data = list(labels.values(*fields))
 
@@ -517,15 +522,16 @@ def labels(request):
             d['ndone'] =    jobs.filter(state='done').count()
             d['nfault'] =   jobs.filter(state='fault').count()
             d['factory'] = d['fid__name']
+            d['pandaq'] = d['batchqueue__name']
+            del d['batchqueue__name']
             del d['fid__name']
 
-            key = ':'.join(('jobcount',d['factory'],d['name']))
+            key = ':'.join(('lring',d['factory'],d['name']))
             n = span / interval
             buckets = []
             for i in range(n):
                 t = time.time() - (i * interval)
                 buckets.append(math.floor((t % span) / interval))
-            jobcount = red.hmget(key, buckets)
 
             d['activity'] = getactivity(key)
             
@@ -591,9 +597,9 @@ def factory(request, id):
         data = json.loads(request.body)
 
         defaults = {
-                'email'   : data['email'],
-                'url'     : data['url'],
-                'version' : data['version'],
+                'email'   : data.get('email', 'unknown@example.com'),
+                'url'     : data.get('url', 'http://localhost/'),
+                'version' : data.get('version', 'unknown'),
                 'ip'      : ip,
                 }
 
@@ -684,8 +690,7 @@ def factories(request):
         active = True if f['last_modified'] > dtactive else False
         f['active'] = active
 
-        # get factory activity from redis
-        key = ':'.join(('jobcount',f['name']))
+        key = ':'.join(('fring',f['name']))
         f['activity'] = getactivity(key)
 
         
