@@ -1,3 +1,8 @@
+"""
+Using the given timeouts, set flags and move jobs to final states.
+
+"""
+
 from django.core.management.base import BaseCommand, CommandError, NoArgsCommand
 from apfmon.mon.models import Job
 from django.conf import settings
@@ -29,6 +34,7 @@ class Command(NoArgsCommand):
             etimeout = 30
             ftimeout = 24# 96
             expire2days = 172800
+            expire3days = 259200
             expire5days = 432000
             expire7days = 604800
             start = time.time()
@@ -61,8 +67,9 @@ class Command(NoArgsCommand):
                 self.logger.info(j.jid)
                 msg = "In CREATED state >%dhrs so flagging the job" % ctimeout 
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
-                red.rpush(j.jid, element)
-                red.expire(j.jid, expire5days)
+                key = ':'.join(('joblog',j.jid))
+                red.rpush(key, element)
+                red.expire(key, expire5days)
                 j.flag = True
                 j.save()
         
@@ -71,31 +78,42 @@ class Command(NoArgsCommand):
                 if j.flag: continue
                 msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
-                red.rpush(j.jid, element)
-                red.expire(j.jid, expire5days)
+                key = ':'.join(('joblog',j.jid))
+                red.rpush(key, element)
+                red.expire(key, expire5days)
                 j.flag = True
-                j.save()
-        
-            for j in fjobs:
-                # move flagged jobs to FAULT state
-                msg = "Job flagged for >%dhrs so setting state to FAULT" % ftimeout
-                self.logger.debug(msg)
-                element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
-                red.rpush(j.jid, element)
-                red.expire(j.jid, expire2days)
-                j.state = 'fault'
                 j.save()
         
             for j in ejobs:
                 # move EXITING jobs to DONE state
+                j.state = 'done'
+                j.save()
                 msg = "State change: %s -> DONE" % j.state
                 self.logger.debug(msg)
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
-                red.rpush(j.jid, element)
-                red.expire(j.jid, expire2days)
-                j.state = 'done'
-                j.save()
+                key = ':'.join(('joblog',j.jid))
+                red.rpush(key, element)
+                red.expire(key, expire3days)
+                # add jobid to the done set
+                key = ':'.join(('done',j.label.fid.name,j.label.name))
+                red.sadd(key,j.jid)
+                red.expire(key,expire7days)
 
+            for j in fjobs:
+                # move flagged jobs to FAULT state
+                j.state = 'fault'
+                j.save()
+                msg = "Job flagged for >%dhrs so setting state to FAULT" % ftimeout
+                self.logger.debug(msg)
+                element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+                key = ':'.join(('joblog',j.jid))
+                red.rpush(key, element)
+                red.expire(key, expire3days)
+                # add jobid to the fault set
+                key = ':'.join(('fault',j.label.fid.name,j.label.name))
+                red.sadd(key,j.jid)
+                red.expire(key,expire7days)
+        
             msg = 'stale created: %d' % len(cjobs)
 #            self.stdout.write(msg+'\n')
             msg = 'stale running: %d' % len(rjobs)
