@@ -117,7 +117,8 @@ def job1(request, fid, cid):
     jid = ':'.join((f.name,cid))
     job = get_object_or_404(Job, jid=jid)
 
-    msglist = red.lrange(job.jid, 0, -1)
+    key = ':'.join(('joblog',job.jid))
+    msglist = red.lrange(key, 0, -1)
 
     msgs = []
     for msg in msglist:
@@ -139,7 +140,7 @@ def job1(request, fid, cid):
     err = "%s/%s/%s/%s.err"
     log = "%s/%s/%s/%s.log"
 
-    dir = str(job.label).translate(string.maketrans('/:','__'))
+    dir = str(job.label.name).translate(string.maketrans('/:','__'))
 
     outurl = out % (f.url, date, dir, job.cid)
     errurl = err % (f.url, date, dir, job.cid)
@@ -175,7 +176,7 @@ def factory(request, fid):
     f = get_object_or_404(Factory, id=id)
     pandaqs = BatchQueue.objects.all()
     labels = Label.objects.filter(fid=f, last_modified__gt=dtdead)
-    jobs = Job.objects.filter(label__fid=f)
+    jobs = Job.objects.all()
     dt = datetime.now(pytz.utc) - timedelta(hours=1)
     dtlab = datetime.now(pytz.utc) - timedelta(weeks=3)
 
@@ -295,7 +296,7 @@ def factory(request, fid):
         rows.append(row)
 
 
-    key = ':'.join(('jobcount',f.name))
+    key = ':'.join(('ringf',f.name))
 
     context = {
             'rows'     : rows,
@@ -568,7 +569,6 @@ def stats(request):
     lifetime = 300
     rows = []
     for l in labels:
-        print l
         key = "ldn%d" % l.id
         val = cache.get(key)
         if val is None:
@@ -650,7 +650,7 @@ def stats(request):
 
 # UI
 @cache_page(60 * 1)
-def index(request):
+def test(request):
     """
     Rendered view of front page which shows a table of activity
     for each factories
@@ -663,6 +663,7 @@ def index(request):
     factories = Factory.objects.all().order_by('name')
 
     rows = []
+    activities = []
     for f in factories:
         if f.last_modified < dtfail: continue
 
@@ -675,10 +676,12 @@ def index(request):
 
         nqueue = Label.objects.filter(fid=f, last_modified__gt=dterror).count()
 
+        key = ':'.join(('ringf',f.name))
+        activities.append(getactivity(key))
+
         row = {
             'factory'  : f,
             'active'   : active,
-            'activity' : f.last_ncreated,
             'nqueue'   : nqueue,
             }
 
@@ -688,6 +691,7 @@ def index(request):
 
     context = {
             'rows' : rows,
+            'acts'   : activities,
             'clouds' : CLOUDLIST,
             'status' : status,
             }
@@ -957,8 +961,8 @@ def cr(request):
 
             # this awesome section populates a ring-counter with the number
             # of jobs per label over the last 2hrs (24 * 5 min buckets)
-            labelkey = ':'.join(('jobcount',f.name,lab.name))
-            factorykey = ':'.join(('jobcount',f.name))
+            labelkey = ':'.join(('ringl',f.name,lab.name))
+            factorykey = ':'.join(('ringf',f.name))
             bucket = '%s' % math.floor((time.time() % span) / interval)
             next1bucket = '%s' % math.floor(((time.time()+interval) % span) / interval)
             next2bucket = '%s' % math.floor(((time.time()+(2*interval)) % span) / interval)
@@ -1212,69 +1216,73 @@ def site(request, sid):
     return render_to_response('mon/site.html', context)
 
 # UI
-@cache_page(60 * 1)
+#@cache_page(60 * 1)
 def report(request):
     """
     Render a report of suspicious queues
     """
 
-#    jobs = Job.objects.filter(state='fault', label__batchqueue__state='online')
-#    labels = jobs.values('label__id', 'label__batchqueue').annotate(njob=Count('id'))
-#
-#
-#    rows = []
-#    for lab in labels:
-#        lid = lab['label__id']
-#        nfault = lab['njob']
-#        if nfault < 1: continue
-#        nflag = Job.objects.filter(label=lid, flag=True).count()
-#        totjob = Job.objects.filter(label=lid).count()
-#        flagfrac = 100 * nflag/totjob
-#        faultfrac = 100 * nfault/totjob
-#
-#        try:
-#            label = Label.objects.get(id=lid)
-#        except Label.DoesNotExist:
-#            msg = 'Label does not exist: %s' % lid
-#            logging.warn(msg)
-#            continue
-#        
-#        row = {
-#            'label' : label,
-#            'flagfrac' : flagfrac,
-#            'faultfrac' : faultfrac,
-#            'totjob' : totjob,
-#            }
-#        rows.append(row)
-#
-#    # find panda queues only being serviced by one factory
-#    qlist = Label.objects.values('batchqueue__name','batchqueue__id').annotate(n=Count('fid'))
-#    sololist = []
-#    for q in qlist:
-#        if q['n'] == 1: sololist.append(q)
-#
-#    sortedrows = sorted(rows, key=itemgetter('flagfrac'), reverse=True) 
-
-    # find orphan labels (not associated with a batchqueue)
-#    orphans = Label.objects.filter(batchqueue=None)
-
-    # find labels with highest number of jobs in created state
-#    jobs = Job.objects.filter(state='created')
+#PAL
+#    jobs = Job.objects.filter(state='fault')
 #    fields = ('label__id','label__name','label__fid__name','label__fid__id')
-#    hot = jobs.values(*fields).annotate(count=Count('id'))
-#    hot = hot.order_by('-count')[:17]
+#    bad = jobs.values(*fields).annotate(count=Count('id'))
+#    bad = bad.order_by('-count')[:30]
+    bad = []
 
-    jobs = Job.objects.filter(state='fault')
-    fields = ('label__id','label__name','label__fid__name','label__fid__id')
-    bad = jobs.values(*fields).annotate(count=Count('id'))
-    bad = bad.order_by('-count')[:17]
+    # redis, how bout using sorted sets with a score based on number of fault?
+    dt = datetime.now(pytz.utc) - timedelta(minutes=120)
+    labels = Label.objects.filter(last_modified__gt=dt)
+    results = []
+    foo = []
+    for label in labels:
+        jobs = Job.objects.filter(label=label)
+        created = jobs.filter(state='created', created__gt=dt).count()
+#        if created < 100: continue
+        fault = jobs.filter(state='fault').count()
+        if fault <= 100: continue
+        done = jobs.filter(state='done').count()
+        total = done+fault
+        if total:
+            per = int(100*fault/total)
+        else:
+            per = 0
+
+        if per < 90: continue
+
+        # redis tallies
+        key = ':'.join(('fault', label.fid.name, label.name))
+        rfault = red.scard(key)
+        key = ':'.join(('done', label.fid.name, label.name))
+        rdone = red.scard(key)
+        rtotal = rdone+rfault
+        if rtotal:
+            rper = int(100*rfault/rtotal)
+        else:
+            rper = 0
+        result = {
+            'id'      : label.id,
+            'name'    : label.name,
+            'factory' : label.fid.name,
+            'fid'     : label.fid.id,
+            'total'   : total,
+            'created' : created,
+            'done'    : done,
+            'fault'   : fault,
+            'per'     : per,
+            'rfault'  : rfault,
+        }
+        results.append(result)
+
+        foo = sorted(results, key=itemgetter('per', 'created'), reverse=True)
+    
+
     context = {
-
 #        'rows'     : sortedrows[:20],
 #        'sololist' : sololist,
 #        'orphans'  : orphans,
 #        'hotlabels'   : hot,
         'badlabels'   : bad,
+        'results'     : foo,
         'clouds' : CLOUDLIST,
         }
 
@@ -1305,7 +1313,7 @@ def singletest(request, fname, item):
 
     
     # make an ordered jobcount list from the redis hash
-    labelkey = ':'.join(('jobcount',lid))
+    labelkey = ':'.join(('ringl',lid))
 
     key = ':'.join(('status',lab.fid.name,lab.name))
     msgs = red.lrange(key, 0, -1)
@@ -1349,8 +1357,9 @@ def singleitem(request, fname, item):
         # continue and try to get a Job
         pass
 
+    jid = ':'.join((fname, item))
     try:
-        job = Job.objects.get(label__fid__name=fname, cid=item)
+        job = Job.objects.get(jid=jid)
 
         return job1(request, job.label.fid.id, job.cid)
     except Job.DoesNotExist:
@@ -1410,7 +1419,7 @@ def label(request, lid, state=None):
     
     # make an ordered jobcount list from the redis hash
     lid = ':'.join((lab.fid.name,lab.name))
-    labelkey = ':'.join(('jobcount',lid))
+    labelkey = ':'.join(('ringl',lid))
 
     key = ':'.join(('status',lab.fid.name,lab.name))
     msglist = red.lrange(key, 0, -1)
@@ -1426,7 +1435,22 @@ def label(request, lid, state=None):
                'msg'      : txt,
              }
 
+        # now for >= 2.3 factories the message content changed
+        # so munge the new msg content
+
+        # eg. new msg 'ready=1,offset=0,pend=0,ret=1;Scale=1,factor=0.25,ret=1;MaxPCycle:in=1,max=100,out=1;MinPerCycle=1,min=0,ret=1;MaxPending:in=1,pend=0,max=25,ret=1'
+
+        statuslist = txt.split(';')
+        if statuslist:
+            # new message content
+            msg['msg'] = statuslist[-1]
+
         msgs.append(msg)
+
+    if msgs:
+        lastmsg = msgs[0]['msg']
+    else:
+        lastmsg = lab.msg
 
     context = {
             'label'    : lab,
@@ -1435,6 +1459,7 @@ def label(request, lid, state=None):
 #            'pages'    : pages,
 #            'page'     : pages.page(p),
             'status'   : status,
+            'lastmsg'  : lastmsg,
             'activity' : getactivity(labelkey),
             'msgs'     : msgs,
             'counts'   : counts,
@@ -1458,22 +1483,9 @@ def getactivity(key):
     def makezero(value): return int(0 if value is None else value)
     activity = map(makezero, activity)
     activity.reverse()
-
-    return activity
-
-def test(request):
-
     
-    jobs = Job.objects.filter(state='fault')
-    fields = ('label__id','label__name','label__fid__name','label__fid__id')
-    bad = jobs.values(*fields).annotate(count=Count('id'))
-    bad = bad.order_by('-count')[:17]
 
-    context = {
-        'badlabels'   : bad,
-        'clouds' : CLOUDLIST,
-        }
-    return render_to_response('mon/test.html', context)
+    return activity[2:]
 
 def debug(request):
     """
@@ -1499,3 +1511,51 @@ def debug(request):
 
     return render_to_response('mon/debug.html', context)
 
+
+@cache_page(60 * 1)
+def index(request):
+    """
+    Rendered view of front page which shows a table of activity
+    for each factories
+    """
+    dtfail = datetime.now(pytz.utc) - timedelta(days=10)
+    dterror = datetime.now(pytz.utc) - timedelta(hours=1)
+    dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
+
+    factories = Factory.objects.all().order_by('name')
+
+    rows = []
+    activities = []
+    for f in factories:
+        if f.last_modified < dtfail: continue
+
+        # this 'active' string map to a html classes
+        active = 'text-error'
+        if f.last_modified > dterror:
+            active = 'text-warning'
+        if f.last_modified > dtwarn:
+            active = ''
+
+        key = ':'.join(('ringf',f.name))
+        buckets = getactivity(key)
+        activities.append(buckets)
+        lastbucket = buckets[-1]
+
+        row = {
+            'factory'    : f,
+            'active'     : active,
+            'lastbucket' : lastbucket,
+            }
+
+        rows.append(row)
+
+    status = red.get('apfmon:status')
+
+    context = {
+            'rows' : rows,
+            'acts'   : activities,
+            'clouds' : CLOUDLIST,
+            'status' : status,
+            }
+
+    return render_to_response('mon/index.html', context)
