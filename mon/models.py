@@ -69,7 +69,7 @@ class Factory(models.Model):
     """
     Represent a factory instance
     """
-    name = models.CharField(max_length=64, blank=True)
+    name = models.CharField(max_length=64, blank=True, db_index=True)
     ip = models.IPAddressField(blank=True)
     email = models.EmailField(blank=True)
     url = models.URLField(blank=True, default=DEFAULTURL)
