@@ -29,19 +29,6 @@ the following:
 </ol>
 </p>
 
-{% comment %}
-<h2>Queues needing attention</h2>
-<p>
-The queues listed below have unusual number of jobs in a particular state which
-may indicate a problem with the queue.
-</p>
-
-{% endcomment %}
-
-
-{% comment %}
-<h2>Queues with high number of jobs in CREATED state</h2>
-
 <div class=row-fluid>
 <div class=span8>
 <table class="table table-compact">
@@ -49,85 +36,23 @@ may indicate a problem with the queue.
 <th title="Label name, unique to each factory">Label
 <th title="Factory name">factory
 <th class=num title="Number of jobs in created state">created
+<th class=num title="Number of jobs in created state">done
+<th class=num title="Number of jobs in created state">fault
+<th class=num title="Number of jobs in created state">%
 </tr>
-{% for label in hotlabels %}
+{% for row in results %}
 
 <tr>
-  <td nowrap><a href="{% url 'apfmon.mon.views.label' label.label__id %}">{{ label.label__name }}</a>
-  <td><a href="{% url 'apfmon.mon.views.factory' label.label__fid__id %}">{{ label.label__fid__name }}</a>
-  <td class=num><a href="{% url 'apfmon.mon.views.jobs1' label.label__id 'CREATED' %}">{{ label.count }}</a>
+  <td nowrap><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}">{{ row.name }}</a>
+  <td><a href="{% url 'apfmon.mon.views.singlefactory' row.factory %}">{{ row.factory }}</a>
+  <td class=num>{{ row.created }}
+  <td class=num><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}?state=done">{{ row.done }}</a>
+  <td class=num><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}?state=fault">{{ row.fault }}</a>
+  <td class=num>{{ row.per }}
+  <td class=num>{{ row.rfault }}
 {% endfor %}
 </table>
 </div>
 </div>
-
-{% endcomment %}
-
-
-<div class=row-fluid>
-<div class=span8>
-<table class="table table-compact">
-<tr>
-<th title="Queue label, unique to each factory">Label
-<th title="Factory name">factory
-<th class=num title="Number of jobs in FAULT state">fault
-</tr>
-{% for label in badlabels %}
-
-<tr>
-  <td nowrap><a href="{% url 'apfmon.mon.views.singleitem' label.label__fid__name label.label__name %}">{{ label.label__name }}</a>
-  <td><a href="{% url 'apfmon.mon.views.singlefactory' label.label__fid__name %}">{{ label.label__fid__name }}</a>
-  <td class=num><a href="{% url 'apfmon.mon.views.singleitem' label.label__fid__name label.label__name %}?state=fault">{{ label.count }}</a>
-{% comment %}
-  <td nowrap class={{ row.activity }}>{{ row.label.last_modified|timesince }} ago
-</tr>
-<tr class=even>
-  <td></td>
-  <td colspan=7 class=right>{{ row.label.msg }}
-</tr>
-{% endcomment %}
-{% endfor %}
-</table>
-</div>
-</div>
-
-{% comment %}
-<h2>Service view - Panda queues with only one Factory</h2>
-
-<div class=row-fluid>
-<div class=span8>
-<table class="table table-compact">
-<tr>
-<th title="Panda queue">Panda queue
-<th class=num title="Factory count">Factory count
-{% for solo in sololist %}
-<tr>
-  <td nowrap><a href="{% url 'apfmon.mon.views.pandaq' solo.batchqueue__id %}">{{ solo.batchqueue__name }}
-  <td class=num>{{ solo.n }}
-{% endfor %}
-</table>
-</div>
-</div>
-{% endcomment %}
-
-{% comment %}
-<h2>Orphan Labels without associated BatchQueue</h2>
-
-<div class=row-fluid>
-<div class=span8>
-<table class="table table-compact">
-<tr>
-<th title="Factory name">Factory
-<th title="Label name">Label
-{% for label in orphans %}
-<tr>
-  <td>{{ label.fid}}
-  <td><a href="{% url 'apfmon.mon.views.label' label.id %}">{{ label }}
-{% endfor %}
-</table>
-</div>
-</div>
-{% endcomment %}
-
 
 {% endblock %}

@@ -1,29 +1,116 @@
 {% extends "mon/base.html" %}
+{% load url from future %}
+{% load timesince_human %}
 
 {% block content %}
 
-<h2>Test page - nothing to see here</h2>
+{% if status %}
+<div class="alert alert-info">
+  <strong>Note:</strong> {{ status }}
+</div>
+{% endif %}
 
-<form id="viewTypes">
-  <b>View mode: </b>
-    <label for="viewTypeTimeline"><input type="radio" name="viewType" id="viewTypeTimeline" value="timelineView" checked>Timeline</label>
-    <label for="viewTypeOutline"><input type="radio" name="viewType" id="viewTypeOutline" value="outlineView" >Outline</label>
-    <noscript><input type="submit" value="Go!"></noscript>
-</form>
+<h2>ATLAS pilot factory monitor</h2>
 
-<ul>
-{% for job in jobs %}
-  <li>{{ job }}
+<div class="row">
+  <div class="span6">
+    <form class="well form-search" action="{% url 'apfmon.mon.views.search' %}" method="GET" name="search">
+      <input type="text" class="input-large search-query" placeholder="Site or queue name" name="q" value="{{ query|escape }}">
+      <button type="submit" class="btn">Search</button>
+    </form>
+  </div>
+</div>
+
+
+<div class="row-fluid">
+<div class=span6>
+<table class="table table-compact table-striped"> 
+<tr>
+<th title="factory name">Factory
+<th title="Activity over last 2hrs, 5 minute buckets">activity
+<th class=num title="Activity in last 5 minutes">recently
+<th class=num title="age of last modification">when
+<th class=num title="factory version">version
+</tr>
+{% for row in rows %}
+<tr>
+  <td><a href="{% url 'apfmon.mon.views.singlefactory' row.factory.name %}">{{ row.factory }}</a>
+  <td id=spark>
+  <td class=num>{{ row.lastbucket }}
+  <td class="num {{ row.active }}">{{ row.factory.last_modified|timesince_human }}
+  {% if row.factory.version %}
+    <td class=num>{{ row.factory.version }}
+  {% else %}
+    <td class=num>-
+  {% endif %}
+</tr>
+{% empty %}
+<tr>
+  <td colspan=4 class=note>No factories found.
 {% endfor %}
-</ul>
 
-<div class=hidden>
-<p>
-Click to see <a href="{% url apfmon.mon.views.queues %}">complete list of panda queues</a>
+</table>
+
+</div>
 </div>
 
 <script>
-$('div').removeClass('hiddn')
+
+var data = {{ acts }}
+var width = 90;
+var height = 12;
+var padding = 0.2;
+var ymargin = 0;
+
+// scale for x axis
+var w = d3.scale.linear()
+    .domain([-2, 0])
+    .range([0, width]);
+
+// scale bar position
+var x = d3.scale.ordinal()
+    .domain(d3.range(data[1].length))
+    .rangeBands([0, width], padding);
+
+// scale bar height to data maximum
+var y = d3.scale.linear()
+    .range([0, height]);
+
+var spark = d3.selectAll("#spark")
+    .data(data)
+  .append("svg")
+    .attr("width", width)
+    .attr("height", height+4)
+  .append("g")
+    .attr("transform", "translate(0,4)");
+
+spark.append("line")
+    .attr("x1", w(-2))
+    .attr("x2", w(0))
+    .attr("y1", height-ymargin)
+    .attr("y2", height-ymargin)
+    .style("stroke", "#ccc");
+
+//spark.append("text")
+//    .attr("x", w(0)+x.rangeBand())
+//    .attr("y", height-ymargin)
+//    .attr("fill", "#ccc")
+//    .attr("title","Number of jobs created in last 5 minutes")
+//    .text(function(d, i) { return d[d.length-1]; });
+
+spark.selectAll("rect")
+    .data(function(d) { return d; })
+  .enter().append("rect")
+    .attr("x", function(d, i) { return x(i)})
+    .attr("y", function(d, i) { return height - ymargin - y.domain([0, d3.max(d3.select(this.parentNode).datum())])(d)})
+    .attr("width", x.rangeBand())
+    .attr("height", function(d, i) { return y.domain([0, d3.max(d3.select(this.parentNode).datum())])(d)  })
+    .attr("title", function(d) { return d; })
+    .attr("i", function(d, i) { return i; })
+    .attr("rx", 1)
+    .attr("ry", 1)
+    .attr("class", "bar");
+
 </script>
 
 {% endblock %}
