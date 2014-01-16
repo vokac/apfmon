@@ -15,7 +15,7 @@ from datetime import timedelta, datetime
 
 """
 Remove jobs from DB which have been in DONE/FAULT state for
-a set number of hours
+a set number of minutes
 """
 
 red = redis.StrictRedis(host=settings.REDIS['host'], port=6379, db=0)
@@ -24,32 +24,43 @@ stats = statsd.StatsClient(settings.GRAPHITE['host'],
                            settings.GRAPHITE['port'])
 
 class Command(BaseCommand):
-    args = '<hours>'
+    args = '<minutes>'
     help = 'Remove jobs from DB older than supplied time'
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
         t = int(args[0])
-        dt = datetime.now(pytz.utc) - timedelta(hours=t)
+        dt = datetime.now(pytz.utc) - timedelta(minutes=t)
         djobs = Job.objects.filter(state='done', last_modified__lt=dt)
         fjobs = Job.objects.filter(state='fault', last_modified__lt=dt)
-        ndone = djobs.count()
-        nfault = fjobs.count()
         start = time.time()
         
+        # remove these joblog:jid keys (job messages)
+        djobids = list(djobs.values_list('jid', flat=True))
+        fjobids = list(fjobs.values_list('jid', flat=True))
+        keylist = []
+        for j in djobids+fjobids:
+            key = ':'.join(('joblog',j))
+            keylist.append(key)
+        red.delete(keylist)
+
+        # remove jid from done:label set
+        for j in djobs:
+            key = ':'.join(('done',j.label.fid.name,j.label.name))
+            red.srem(key, j)
+            
+        # remove jid from fault:label set
+        for j in fjobs:
+            key = ':'.join(('fault',j.label.fid.name,j.label.name))
+            red.srem(key, j)
+
+        ndone = djobs.count()
+        nfault = fjobs.count()
         msg = 'DONE: %d' % ndone
-#        self.stdout.write(msg+'\n')
         msg = 'FAULT: %d' % nfault
-#        self.stdout.write(msg+'\n')
         djobs.delete()
         fjobs.delete()
-
-        # remove messages from redis
-        jobids = djobs.values_list('jid', flat=True)
-        red.delete(jobids)
-        jobids = fjobs.values_list('jid', flat=True)
-        red.delete(jobids)
 
         elapsed = time.time() - start
 #        self.stdout.write(str(int(1000*elapsed))+'\n')
