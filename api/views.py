@@ -100,6 +100,7 @@ def job(request, id):
                                         request.META['REMOTE_ADDR'],
                                         msg)
                 red.rpush(joblog, element)
+                red.expire(joblog, expire5days)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = 'running'
@@ -125,6 +126,7 @@ def job(request, id):
                                         request.META['REMOTE_ADDR'],
                                         msg)
                 red.rpush(joblog, element)
+                red.expire(joblog, expire5days)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = 'exiting'
@@ -135,7 +137,7 @@ def job(request, id):
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(joblog, element)
-            red.expire(joblog, expire2days)
+            red.expire(joblog, expire5days)
             location = "/api/jobs/%s" % job.jid
             msg = request.build_absolute_uri(location)
             return HttpResponse(msg, mimetype="text/plain")
@@ -334,12 +336,6 @@ def label(request, id=None):
             lab[t] = '-'
 
         key = ':'.join(('ringl',lab['factory'],lab['name']))
-        n = span / interval
-        buckets = []
-        for i in range(n):
-            t = time.time() - (i * interval)
-            buckets.append(math.floor((t % span) / interval))
-
         lab['activity'] = getactivity(key)
 
         return HttpResponse(json.dumps(lab,
@@ -527,12 +523,6 @@ def labels(request):
             del d['fid__name']
 
             key = ':'.join(('lring',d['factory'],d['name']))
-            n = span / interval
-            buckets = []
-            for i in range(n):
-                t = time.time() - (i * interval)
-                buckets.append(math.floor((t % span) / interval))
-
             d['activity'] = getactivity(key)
             
         return HttpResponse(json.dumps(data,
