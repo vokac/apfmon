@@ -1,3 +1,5 @@
+#DEBUG = True
+
 SERVER_EMAIL = 'atl@py-front.lancs.ac.uk'
 
 ADMINS = (
