@@ -1,7 +1,6 @@
 """
 Using the given timeouts, set flags and move jobs to final states.
 Retrieve condor logs to aid flagging faulty jobs
-
 """
 
 from django.core.management.base import BaseCommand, CommandError, NoArgsCommand
@@ -36,12 +35,11 @@ patterns = [
              '(CREAM_Delegate Error: .*)',
 #             'CREAM_Delegate Error:.*FaultDetail=\[(.*)\]',
              '(Globus error.*)',
-             '(Job was aborted by the user.*)', 
              '(globus_ftp_client:.*error.*)',
+             '(Job was aborted by the user.*)', 
             ]
 _ALL = re.compile('|'.join(p for p in patterns))
-print _ALL.pattern
-
+_DONE= re.compile('(Job terminated.*)')
 
 class Command(NoArgsCommand):
     args = '<...>'
@@ -61,9 +59,10 @@ class Command(NoArgsCommand):
             msg = 'Number in CREATED state > %d minutes: %d' % (ctimeout, cnt)
             self.logger.info(msg)
             
-            nhit = 0
+            nerr = 0
+            ndone = 0
             nmiss = 0
-            for j in cjobs:
+            for j in cjobs[:1000]:
                 url = '/'.join((j.label.fid.url,
                                 str(j.created.date()),
                                 j.label.name, j.cid+'.log'))
@@ -91,9 +90,10 @@ class Command(NoArgsCommand):
                     
 
                 errmatch = _ALL.findall(r.text)
+                donematch = _DONE.findall(r.text)
                 if errmatch:
-                    nhit += 1
-                    msg = 'HIT: %s' % joburl
+                    nerr += 1
+                    msg = 'ERROR: %s' % joburl
                     self.logger.debug(msg)
 
                     msg = "Error seen (see stdlog) setting state %s -> fault" % j.state
@@ -117,12 +117,36 @@ class Command(NoArgsCommand):
                     key = ':'.join(('fault',j.label.fid.name,j.label.name))
                     red.sadd(key,j.jid)
                     red.expire(key,expire7days)
+                elif donematch:
+                    ndone += 1
+                    msg = 'DONE: %s' % joburl
+                    self.logger.debug(msg)
+
+                    msg = "Job terminated without error (see stdlog) setting state %s -> done" % j.state
+                    element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+                    key = ':'.join(('joblog',j.jid))
+                    red.rpush(key, element)
+                    red.expire(key, expire5days)
+                    j.state = 'done'
+                    j.save()
+                    for dns in donematch:
+                        for dn in dns:
+                            if not dn: continue
+                            msg = 'MSG: %s' % err
+                            msg = dn[:140]
+                            element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+                            red.rpush(key, element)
+
+                    # add jobid to the done set
+                    key = ':'.join(('done',j.label.fid.name,j.label.name))
+                    red.sadd(key,j.jid)
+                    red.expire(key,expire7days)
                 else:
                     msg = 'MISS: %s' % url
                     self.logger.debug(msg)
                     nmiss += 1
         
-            msg = 'hit:%d miss:%d' % (nhit, nmiss)
+            msg = 'error:%d done:%d miss:%d' % (nerr, ndone, nmiss)
             self.logger.info(msg)
             msg = 'Number in CREATED state > %d minutes: %d' % (ctimeout, cnt)
             self.logger.info(msg)
