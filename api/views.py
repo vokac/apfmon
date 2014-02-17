@@ -242,8 +242,14 @@ def jobs(request):
             
             jid = ':'.join((f.name,cid))
             j = Job(jid=jid, cid=cid, state='created', label=lab)
-            j.save()
-            ncreated += 1
+            try:
+                j.save()
+                ncreated += 1
+            except IntegrityError,e:
+                msg = "Duplicate key seen? Condor probably retrying a job"
+                logging.warn(msg)
+                msg = str(e)
+                logging.error(msg)
 
         f = Factory.objects.get(name=factory)
         f.last_ncreated = ncreated
