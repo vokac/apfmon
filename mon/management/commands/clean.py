@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError, NoArgsCommand
-from apfmon.mon.models import Job
+from apfmon.mon.models import Job, Factory, Label
 from django.conf import settings
 from django.core.cache import cache
 
@@ -67,3 +67,19 @@ class Command(BaseCommand):
         stats.timing('apfmon.clean',int(1000*elapsed))
         stats.gauge('apfmon.dclean',ndone)
         stats.gauge('apfmon.fclean',nfault)
+
+        # remove stale factories
+        ndays = 7
+        dt = datetime.now(pytz.utc) - timedelta(days=ndays)
+        fs = Factory.objects.filter(last_modified__lt=dt)
+        msg = 'Deleting %d stale factories, last_modified > %d days ago' % (fs.count(), ndays)
+        self.logger.info(msg)
+        fs.delete()
+
+        # remove stale labels
+        ndays = 7
+        dt = datetime.now(pytz.utc) - timedelta(days=7)
+        ls = Label.objects.filter(last_modified__lt=dt)
+        msg = 'Deleting %d stale labels, last_modified > %d days ago' % (ls.count(), ndays)
+        self.logger.info(msg)
+        ls.delete()
