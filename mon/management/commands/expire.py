@@ -61,7 +61,8 @@ class Command(NoArgsCommand):
             fjobs = Job.objects.filter(state__in=nonterminal,last_modified__lt=deltat, flag=True)
             self.logger.info("Stale flagged: %d" % fjobs.count())
         
-            for j in cjobs:
+            # remove this once handled elsewhere
+            for j in cjobs[:5000]:
                 # flag stale created jobs
                 if j.flag: continue
                 self.logger.info(j.jid)
@@ -73,7 +74,7 @@ class Command(NoArgsCommand):
                 j.flag = True
                 j.save()
         
-            for j in rjobs:
+            for j in rjobs[:5000]:
                 # flag stale running jobs
                 if j.flag: continue
                 msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
@@ -84,12 +85,12 @@ class Command(NoArgsCommand):
                 j.flag = True
                 j.save()
         
-            for j in ejobs:
+            for j in ejobs[:5000]:
                 # move EXITING jobs to DONE state
+                msg = "State change: %s -> done" % j.state
+                self.logger.debug(msg)
                 j.state = 'done'
                 j.save()
-                msg = "State change: %s -> DONE" % j.state
-                self.logger.debug(msg)
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 key = ':'.join(('joblog',j.jid))
                 red.rpush(key, element)
@@ -99,12 +100,12 @@ class Command(NoArgsCommand):
                 red.sadd(key,j.jid)
                 red.expire(key,expire7days)
 
-            for j in fjobs:
+            for j in fjobs[:5000]:
                 # move flagged jobs to FAULT state
-                j.state = 'fault'
-                j.save()
                 msg = "Job flagged for >%dhrs so setting state to FAULT" % ftimeout
                 self.logger.debug(msg)
+                j.state = 'fault'
+                j.save()
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 key = ':'.join(('joblog',j.jid))
                 red.rpush(key, element)
@@ -115,13 +116,13 @@ class Command(NoArgsCommand):
                 red.expire(key,expire7days)
         
             msg = 'stale created: %d' % len(cjobs)
-#            self.stdout.write(msg+'\n')
+            self.logger.info(msg)
             msg = 'stale running: %d' % len(rjobs)
-#            self.stdout.write(msg+'\n')
+            self.logger.info(msg)
             msg = 'flag->fault: %d' % len(fjobs)
-#            self.stdout.write(msg+'\n')
+            self.logger.info(msg)
             msg = 'exiting->done: %d' % len(ejobs)
-#            self.stdout.write(msg+'\n')
+            self.logger.info(msg)
 
             elapsed = time.time() - start
             stats.timing('apfmon.expire',int(1000*elapsed))
