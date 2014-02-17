@@ -257,6 +257,11 @@ def factory(request, fid):
                 logging.warn(msg)
         ndone = val
 
+        # this via redis
+        key = ':'.join(('fault', lab.fid.name, lab.name))
+        nfault = red.scard(key)
+
+
         statcr = 'pass'
         if ncreated >= 500:
             statcr = 'warn'
@@ -309,6 +314,7 @@ def factory(request, fid):
 
     return render_to_response('mon/factory.html', context)
 
+@cache_page(60 * 5)
 def pandaq(request, qid, p=1):
     """
     Rendered view of panda queue for all factories
@@ -1135,8 +1141,6 @@ def query(request, q=None):
     """
     Search for a string in pandaq
     """
-    dt = datetime.now(pytz.utc) - timedelta(days=7)
-    
     if q:
         result = red.lpush('apfmon:query', q)
         qset = (
@@ -1147,10 +1151,8 @@ def query(request, q=None):
             # can add other search params here, eg. SITE name
         )
         labels = Label.objects.filter(qset).order_by('fid', 'name')
-        labels = labels.filter(last_modified__gt=dt)
     else:
         labels = []
-
 
     context = {
         'labels' : labels,
