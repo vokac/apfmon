@@ -57,6 +57,7 @@
 <th title="count of running wrappers">running
 <th title="count of exiting wrappers">exiting
 <th title="count of done wrappers, last 2h">done
+<th title="count of fault wrappers, last 2h">fault
 {% comment %}
 <th title="last hr">done
 <th title="last hr">fault
@@ -73,6 +74,7 @@
   <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=running">{{ row.nrunning}}</a>
   <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=exiting">{{ row.nexiting }}</a>
   <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=done">{{ row.ndone }}</a>
+  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=fault">{{ row.nfault }}</a>
 {% comment %}
   <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=fault">{{ row.nfault }}</a>
 {% endcomment %}

@@ -16,13 +16,20 @@
   <td><a href="{% url 'apfmon.mon.views.singlefactory' factory.name %}">{{ factory }}</a>
   <tr>
   <td>JobID
-  <td> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>, only recent logs)
+  <td> {{ job.cid }} (<a href="{{ outurl }}">stdout</a>, <a href="{{ errurl }}">stderr</a>, <a href="{{ logurl }}">stdlog</a>)
   <tr>
   <td>Batch queue
   <td><a href="{% url 'apfmon.mon.views.pandaq' job.label.batchqueue.name %}">{{ job.label.batchqueue }}</a>
   <tr>
   <td>Label
   <td><a href="{% url 'apfmon.mon.views.singleitem' factory.name job.label.name %}">{{ job.label }}</a>
+  <tr>
+  <td>Resource
+  {% if job.label.resource %}
+    <td>{{ job.label.resource }}
+  {% else %}
+    <td>-
+  {% endif %}
   <tr>
   <td>Created
   <td>{{ job.created|date:"Y-m-d H:i:s" }} ({{ job.created|timesince }} ago)

@@ -13,22 +13,24 @@
   </div>
 </div>
 
+{% comment %}
+
+{% endcomment %}
+
 <p>
 {% if labels %}
 <table class="table table-compact">
 <th title="Name of factory">Factory
 <th title="Name of site">site
-<th title="Factory label name">label
 <th title="Name of Panda queue">pandaqueue
-<th title="age of last modification">modified
+<th title="Factory label name">label
 </tr>
 {% for label in labels %}
 <tr class="{% cycle odd,even %}">
   <td class="colhdr"><a href="{% url 'apfmon.mon.views.singlefactory' label.fid.name %}">{{ label.fid }}</a>
   <td><a href="{% url 'apfmon.mon.views.site' label.batchqueue.wmsqueue.site.name %}">{{ label.batchqueue.wmsqueue.site }}</a>
-  <td><a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}">{{ label }}</a>
   <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.name %}">{{ label.batchqueue }}</a>
-  <td>{{ label.last_modified|timesince }} ago
+  <td><a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}">{{ label }}</a>
 </tr>
 {% endfor %}
 
