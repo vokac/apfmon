@@ -62,7 +62,7 @@ class Command(NoArgsCommand):
             self.logger.info("Stale flagged: %d" % fjobs.count())
         
             # remove this once handled elsewhere
-            for j in cjobs[:5000]:
+            for j in cjobs[:500]:
                 # flag stale created jobs
                 if j.flag: continue
                 self.logger.info(j.jid)
@@ -74,7 +74,7 @@ class Command(NoArgsCommand):
                 j.flag = True
                 j.save()
         
-            for j in rjobs[:5000]:
+            for j in rjobs[:500]:
                 # flag stale running jobs
                 if j.flag: continue
                 msg = "In RUNNING state >%dhrs so flagging the job" % rtimeout 
@@ -85,7 +85,7 @@ class Command(NoArgsCommand):
                 j.flag = True
                 j.save()
         
-            for j in ejobs[:5000]:
+            for j in ejobs[:500]:
                 # move EXITING jobs to DONE state
                 msg = "State change: %s -> done" % j.state
                 self.logger.debug(msg)
@@ -100,7 +100,7 @@ class Command(NoArgsCommand):
                 red.sadd(key,j.jid)
                 red.expire(key,expire7days)
 
-            for j in fjobs[:5000]:
+            for j in fjobs[:500]:
                 # move flagged jobs to FAULT state
                 msg = "Job flagged for >%dhrs so setting state to FAULT" % ftimeout
                 self.logger.debug(msg)
