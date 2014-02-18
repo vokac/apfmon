@@ -151,23 +151,18 @@ def job(request, id):
             return HttpResponse(msg, mimetype="text/plain")
 
         elif newstate == 'done':
-            if factory.ip != ip:
+            if f.ip != ip:
                 msg = "Factory IP does not match"
                 logging.warn(msg)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
             if job.state != 'exiting':
                 msg = "Invalid state transition: %s->%s" % (
                                                 job.state, newstate)
-                element = "%f %s %s" % (time.time(),
-                                        request.META['REMOTE_ADDR'],
-                                        msg)
-                red.rpush(joblog, element)
-                red.expire(joblog, expire5days)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
 
             job.state = 'done'
             job.save()
-            msg = "State change: exiting->done"
+            msg = "State change: exiting->done  (transition)"
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
@@ -178,13 +173,18 @@ def job(request, id):
             return HttpResponse(msg, mimetype="text/plain")
 
         elif newstate == 'fault':
-            if factory.ip != ip:
+            if job.state == 'fault':
+                msg = "Invalid state transition: %s->%s" % (
+                                                job.state, newstate)
+                logging.warn(msg)
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+            if f.ip != ip:
                 msg = "Factory IP does not match"
                 logging.warn(msg)
                 return HttpResponseBadRequest(msg, mimetype="text/plain")
             job.state = 'fault'
             job.save()
-            msg = "State change: %s->done" % job.state
+            msg = "State change: %s->fault (transition)" % job.state
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
