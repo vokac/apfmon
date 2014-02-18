@@ -37,7 +37,7 @@ interval = 300
 
 def job(request, id):
     """
-    Handle requests from /jobs/{id} resource
+    Handle requests from /jobs/{jid} resource
 
     GET:
     Return a specific job including list of messages
@@ -60,6 +60,14 @@ def job(request, id):
         response.write(msg)
         return response
         
+    (factory, jobid) = id.split(':')
+
+    try:
+        f = Factory.objects.get(name=factory)
+    except Factory.DoesNotExist:
+        msg = "Factory not found: %s" % factory
+        logging.warn(msg)
+        return HttpResponseBadRequest(msg, mimetype="text/plain")
 
     if request.method == 'GET':
 
@@ -142,6 +150,49 @@ def job(request, id):
             msg = request.build_absolute_uri(location)
             return HttpResponse(msg, mimetype="text/plain")
 
+        elif newstate == 'done':
+            if factory.ip != ip:
+                msg = "Factory IP does not match"
+                logging.warn(msg)
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+            if job.state != 'exiting':
+                msg = "Invalid state transition: %s->%s" % (
+                                                job.state, newstate)
+                element = "%f %s %s" % (time.time(),
+                                        request.META['REMOTE_ADDR'],
+                                        msg)
+                red.rpush(joblog, element)
+                red.expire(joblog, expire5days)
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+
+            job.state = 'done'
+            job.save()
+            msg = "State change: exiting->done"
+            element = "%f %s %s" % (time.time(),
+                                    request.META['REMOTE_ADDR'],
+                                    msg)
+            red.rpush(joblog, element)
+            red.expire(joblog, expire5days)
+            location = "/api/jobs/%s" % job.jid
+            msg = request.build_absolute_uri(location)
+            return HttpResponse(msg, mimetype="text/plain")
+
+        elif newstate == 'fault':
+            if factory.ip != ip:
+                msg = "Factory IP does not match"
+                logging.warn(msg)
+                return HttpResponseBadRequest(msg, mimetype="text/plain")
+            job.state = 'fault'
+            job.save()
+            msg = "State change: %s->done" % job.state
+            element = "%f %s %s" % (time.time(),
+                                    request.META['REMOTE_ADDR'],
+                                    msg)
+            red.rpush(joblog, element)
+            red.expire(joblog, expire5days)
+            location = "/api/jobs/%s" % job.jid
+            msg = request.build_absolute_uri(location)
+            return HttpResponse(msg, mimetype="text/plain")
         else:
             msg = "Invalid data: %s" % dict(request.POST)
             return HttpResponseBadRequest(msg, mimetype="text/plain")
