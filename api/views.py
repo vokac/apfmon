@@ -53,7 +53,7 @@ def job(request, id):
     try:
         job = Job.objects.get(jid=id)
     except Job.DoesNotExist:
-        response = HttpResponse(mimetype="text/plain", status=404)
+        response = HttpResponse(content_type="text/plain", status=404)
         location = "/api/jobs/%s" % id
         response['Location'] = location
         msg = "Not found: " + request.build_absolute_uri(location)
@@ -67,7 +67,7 @@ def job(request, id):
     except Factory.DoesNotExist:
         msg = "Factory not found: %s" % factory
         logging.warn(msg)
-        return HttpResponseBadRequest(msg, mimetype="text/plain")
+        return HttpResponseBadRequest(msg, content_type="text/plain")
 
     if request.method == 'GET':
 
@@ -89,7 +89,7 @@ def job(request, id):
                                 cls=DjangoJSONEncoder,
                                 sort_keys=True,
                                 indent=2),
-                                mimetype="application/json")
+                                content_type="application/json")
         location = "/api/jobs/%s" % job.jid
         response['Location'] = location
         return response
@@ -109,7 +109,7 @@ def job(request, id):
                                         msg)
                 red.rpush(joblog, element)
                 red.expire(joblog, expire5days)
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
+                return HttpResponseBadRequest(msg, content_type="text/plain")
 
             job.state = 'running'
             job.save()
@@ -119,7 +119,7 @@ def job(request, id):
                                     msg)
             red.rpush(joblog, element)
             red.expire(joblog, expire5days)
-            response = HttpResponse(mimetype="text/plain")
+            response = HttpResponse(content_type="text/plain")
             location = "/api/jobs/%s" % job.jid
             response['Location'] = location
             msg = request.build_absolute_uri(location)
@@ -135,7 +135,7 @@ def job(request, id):
                                         msg)
                 red.rpush(joblog, element)
                 red.expire(joblog, expire5days)
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
+                return HttpResponseBadRequest(msg, content_type="text/plain")
 
             job.state = 'exiting'
             if rc: job.result = rc
@@ -148,17 +148,17 @@ def job(request, id):
             red.expire(joblog, expire5days)
             location = "/api/jobs/%s" % job.jid
             msg = request.build_absolute_uri(location)
-            return HttpResponse(msg, mimetype="text/plain")
+            return HttpResponse(msg, content_type="text/plain")
 
         elif newstate == 'done':
             if f.ip != ip:
                 msg = "Factory IP does not match"
                 logging.warn(msg)
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
+                return HttpResponseBadRequest(msg, content_type="text/plain")
             if job.state != 'exiting':
                 msg = "Invalid state transition: %s->%s" % (
                                                 job.state, newstate)
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
+                return HttpResponseBadRequest(msg, content_type="text/plain")
 
             job.state = 'done'
             job.save()
@@ -170,44 +170,44 @@ def job(request, id):
             red.expire(joblog, expire5days)
             location = "/api/jobs/%s" % job.jid
             msg = request.build_absolute_uri(location)
-            return HttpResponse(msg, mimetype="text/plain")
+            return HttpResponse(msg, content_type="text/plain")
 
         elif newstate == 'fault':
             if job.state == 'fault':
                 msg = "Invalid state transition: %s->%s" % (
                                                 job.state, newstate)
                 logging.warn(msg)
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
+                return HttpResponseBadRequest(msg, content_type="text/plain")
             if f.ip != ip:
                 msg = "Factory IP does not match"
                 logging.warn(msg)
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
-            job.state = 'fault'
-            job.save()
+                return HttpResponseBadRequest(msg, content_type="text/plain")
             msg = "State change: %s->fault (transition)" % job.state
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(joblog, element)
             red.expire(joblog, expire5days)
+            job.state = 'fault'
+            job.save()
             location = "/api/jobs/%s" % job.jid
             msg = request.build_absolute_uri(location)
-            return HttpResponse(msg, mimetype="text/plain")
+            return HttpResponse(msg, content_type="text/plain")
         else:
             msg = "Invalid data: %s" % dict(request.POST)
-            return HttpResponseBadRequest(msg, mimetype="text/plain")
+            return HttpResponseBadRequest(msg, content_type="text/plain")
 
     if request.method == 'DELETE':
         if ip == '127.0.0.1':
             job.delete()
-            return HttpResponse(mimetype="text/plain")
+            return HttpResponse(content_type="text/plain")
         else: 
             context = "Remote deletion is forbidden"
-            return HttpResponseForbidden(context, mimetype="text/plain")
+            return HttpResponseForbidden(context, content_type="text/plain")
             
 
     context = 'HTTP method not supported: %s' % request.method
-    return HttpResponse(context, mimetype="text/plain")
+    return HttpResponse(context, content_type="text/plain")
 
 def jobs(request):
     """
@@ -246,7 +246,7 @@ def jobs(request):
             jobs = json.loads(request.body)
         except ValueError, e:
             msg = str(e)
-            return HttpResponseBadRequest(msg, mimetype="text/plain")
+            return HttpResponseBadRequest(msg, content_type="text/plain")
 
         msg = "API number of jobs in JSON data: %d (%s)" % (len(jobs), ip)
         logging.debug(msg)
@@ -266,7 +266,7 @@ def jobs(request):
                 msg = "Multiple objects - apfv2 issue?"
                 logging.warn(msg)
                 msg = "Multiple objects error"
-                return HttpResponseBadRequest(msg, mimetype="text/plain")
+                return HttpResponseBadRequest(msg, content_type="text/plain")
             except Label.DoesNotExist:
                 msg = "Label not found: %s, job %s:%s" % (label, factory, cid)
                 logging.warn(msg)
@@ -308,7 +308,7 @@ def jobs(request):
         txt = 'job' if len(jobs) == 1 else 'jobs'
         context = 'Created %d/%d %s, %d not created' % (ncreated, len(jobs), txt, nfailed)
         status = 201 if ncreated else 200
-        return HttpResponse(context, status=status, mimetype="text/plain")
+        return HttpResponse(context, status=status, content_type="text/plain")
 
     if request.method == 'GET':
         jobs = Job.objects.all()
@@ -344,10 +344,10 @@ def jobs(request):
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
-                            mimetype="application/json")
+                            content_type="application/json")
 
     context = 'HTTP method not supported: %s' % request.method
-    return HttpResponse(context, status=405, mimetype="text/plain")
+    return HttpResponse(context, status=405, content_type="text/plain")
 
 def label(request, id=None):
     """
@@ -378,7 +378,7 @@ def label(request, id=None):
         factory, name = id.split(':')
     except ValueError:
         msg = "Invalid %s request" % request.method
-        return HttpResponseBadRequest(msg, mimetype="text/plain")
+        return HttpResponseBadRequest(msg, content_type="text/plain")
         
     label = get_object_or_404(Label, name=name, fid__name=factory)
 
@@ -399,13 +399,13 @@ def label(request, id=None):
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
-                            mimetype="application/json")
+                            content_type="application/json")
 
     if request.method == 'POST':
         status = request.POST.get('status', None)
         if not status:
             msg = "Invalid data: %s" % dict(request.POST)
-            return HttpResponseBadRequest(msg, mimetype="text/plain")
+            return HttpResponseBadRequest(msg, content_type="text/plain")
 
         # still hitting DB here, to be removed
         label.msg = status[:140]
@@ -425,7 +425,7 @@ def label(request, id=None):
         pipe.execute()
 
 
-        response = HttpResponse(mimetype="text/plain")
+        response = HttpResponse(content_type="text/plain")
         location = "/api/labels/%s" % ':'.join((factory,name))
         response['Location'] = location
         return response
@@ -434,13 +434,13 @@ def label(request, id=None):
         if ip == '127.0.0.1':
             label = get_object_or_404(Label, name=name, fid__name=factory)
             label.delete()
-            return HttpResponse(mimetype="text/plain")
+            return HttpResponse(content_type="text/plain")
         else: 
             context = "Remote deletion is forbidden"
-            return HttpResponseForbidden(context, mimetype="text/plain")
+            return HttpResponseForbidden(context, content_type="text/plain")
 
     context = "HTTP method not supported: %s" % request.method
-    return HttpResponse(context, status=405, mimetype="text/plain")
+    return HttpResponse(context, status=405, content_type="text/plain")
 
 
 def labels(request):
@@ -474,7 +474,7 @@ def labels(request):
             data = json.loads(request.body)
         except ValueError, e:
             msg = str(e)
-            return HttpResponseBadRequest(msg, mimetype="text/plain")
+            return HttpResponseBadRequest(msg, content_type="text/plain")
 
         msg = "Number of json objects PUT /api/labels: %d (%s)" % (len(data), ip)
         logging.debug(msg)
@@ -531,7 +531,7 @@ def labels(request):
         txt = 'label' if len(data) == 1 else 'labels'
         context = 'Created %d/%d %s, %d updated' % (ncreated, len(data), txt, nupdated)
         status = 201 if ncreated else 200
-        return HttpResponse(context, status=status, mimetype="text/plain")
+        return HttpResponse(context, status=status, content_type="text/plain")
 
     if request.method == 'GET':
         labels = Label.objects.all()
@@ -586,10 +586,10 @@ def labels(request):
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
-                            mimetype="application/json")
+                            content_type="application/json")
 
     context = 'HTTP method not supported: %s' % request.method
-    return HttpResponse(context, status=405, mimetype="text/plain")
+    return HttpResponse(context, status=405, content_type="text/plain")
 
 def factory(request, id):
     """
@@ -635,7 +635,7 @@ def factory(request, id):
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
-                            mimetype="application/json")
+                            content_type="application/json")
 
     if request.method == 'PUT':
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
@@ -658,7 +658,7 @@ def factory(request, id):
                                                        defaults=defaults)
         except:
             content = "Unable to create resource using: %s" % data
-            return HttpResponseBadRequest(content, mimetype="text/plain")
+            return HttpResponseBadRequest(content, content_type="text/plain")
 
         status = 201 if created else 200
 
@@ -698,19 +698,19 @@ def factory(request, id):
                             sort_keys=True,
                             indent=2),
                             status=status,
-                            mimetype="application/json")
+                            content_type="application/json")
 
     if request.method == 'DELETE':
         if ip == '127.0.0.1':
             f = get_object_or_404(Factory, name=id)
             f.delete()
-            return HttpResponse(mimetype="text/plain")
+            return HttpResponse(content_type="text/plain")
         else: 
             context = "Remote deletion is forbidden"
-            return HttpResponseForbidden(context, mimetype="text/plain")
+            return HttpResponseForbidden(context, content_type="text/plain")
 
     context = 'HTTP method not supported: %s' % request.method
-    return HttpResponse(context, mimetype="text/plain")
+    return HttpResponse(context, content_type="text/plain")
 
 def factories(request):
     """
@@ -725,7 +725,7 @@ def factories(request):
 
     if request.method != 'GET':
         context = 'HTTP method not supported: %s' % request.method
-        return HttpResponse(context, mimetype="text/plain")
+        return HttpResponse(context, content_type="text/plain")
 
     dtactive = datetime.now(pytz.utc) - timedelta(days=10)
 
@@ -746,7 +746,7 @@ def factories(request):
                         cls=DjangoJSONEncoder,
                         sort_keys=True,
                         indent=2),
-                        mimetype="application/json")
+                        content_type="application/json")
 
 def getactivity(key):
     """
