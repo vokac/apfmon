@@ -1,6 +1,6 @@
 """
-Using the given timeouts, set flags and move jobs to final states.
-Retrieve condor logs to aid flagging faulty jobs
+Retrieve condor log of jobs in created state > timeout
+Move to fault/done state based on log content
 """
 
 from django.core.management.base import BaseCommand, CommandError, NoArgsCommand
@@ -47,13 +47,15 @@ class Command(NoArgsCommand):
     logger = logging.getLogger('apfmon.mon')
 
     def handle(self, *args, **options):
-            ctimeout = 30 # minutes
+            ctimeout = 20 # minutes
             start = time.time()
         
             # find job in created state older than ctimeout
             deltat = datetime.now(pytz.utc) - timedelta(minutes=ctimeout)
+            # older than now - ctimeout
             cjobs = Job.objects.filter(state='created', created__lt=deltat, flag=False)
             deltat = datetime.now(pytz.utc) - timedelta(minutes=60)
+            # younger than now - 60
             cjobs = cjobs.filter(created__gt=deltat).order_by('-created')
             cnt = cjobs.count()
             msg = 'Number in CREATED state > %d minutes: %d' % (ctimeout, cnt)
@@ -73,7 +75,7 @@ class Command(NoArgsCommand):
                                 
 
                 try:
-                    r = requests.get(url, timeout=2.0)
+                    r = requests.get(url, timeout=1.0)
                 except requests.Timeout:
                     msg = 'TIMEOUT: %s' % url
                     self.logger.debug(msg)
