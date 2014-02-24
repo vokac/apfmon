@@ -1,6 +1,9 @@
 """
 Retrieve condor log of jobs in created state > timeout
 Move to fault/done state based on log content
+
+This method is not scalable and slow to retrieve logs. To be replace by
+transient script located at factories.
 """
 
 from django.core.management.base import BaseCommand, CommandError, NoArgsCommand
@@ -47,24 +50,21 @@ class Command(NoArgsCommand):
     logger = logging.getLogger('apfmon.mon')
 
     def handle(self, *args, **options):
-            ctimeout = 20 # minutes
+            ctimeout = 120 # minutes
             start = time.time()
         
             # find job in created state older than ctimeout
             deltat = datetime.now(pytz.utc) - timedelta(minutes=ctimeout)
             # older than now - ctimeout
-            cjobs = Job.objects.filter(state='created', created__lt=deltat, flag=False)
-            deltat = datetime.now(pytz.utc) - timedelta(minutes=60)
-            # younger than now - 60
-            cjobs = cjobs.filter(created__gt=deltat).order_by('-created')
+            cjobs = Job.objects.filter(state='created', created__lt=deltat, flag=False).order_by('-created')
             cnt = cjobs.count()
             msg = 'Number in CREATED state > %d minutes: %d' % (ctimeout, cnt)
-            self.logger.info(msg)
+            self.stdout.write(msg)
             
             nerr = 0
             ndone = 0
             nmiss = 0
-            for j in cjobs[:1000]:
+            for j in cjobs:
                 url = '/'.join((j.label.fid.url,
                                 str(j.created.date()),
                                 j.label.name, j.cid+'.log'))
@@ -78,17 +78,17 @@ class Command(NoArgsCommand):
                     r = requests.get(url, timeout=1.0)
                 except requests.Timeout:
                     msg = 'TIMEOUT: %s' % url
-                    self.logger.debug(msg)
+#                    self.stdout.write(msg)
                     continue
                 except socket.timeout:
                     # this exception is a bug
                     # https://github.com/kennethreitz/requests/issues/1236
                     msg = 'TIMEOUT: %s' % url
-                    self.logger.debug(msg)
+#                    self.stdout.write(msg)
                     continue
                 except:
                     msg = 'EXCEPTION: %s' % url
-                    self.logger.debug(msg)
+                    self.stdout.write(msg)
                     
 
                 errmatch = _ALL.findall(r.text)
@@ -96,7 +96,7 @@ class Command(NoArgsCommand):
                 if errmatch:
                     nerr += 1
                     msg = 'ERROR: %s' % joburl
-                    self.logger.debug(msg)
+#                    self.stdout.write(msg)
 
                     msg = "Error seen (see stdlog) setting state %s -> fault" % j.state
                     element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
@@ -122,7 +122,7 @@ class Command(NoArgsCommand):
                 elif donematch:
                     ndone += 1
                     msg = 'DONE: %s' % joburl
-                    self.logger.debug(msg)
+#                    self.stdout.write(msg)
 
                     msg = "Job terminated without error (see stdlog) setting state %s -> done" % j.state
                     element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
@@ -134,7 +134,6 @@ class Command(NoArgsCommand):
                     for dns in donematch:
                         for dn in dns:
                             if not dn: continue
-                            msg = 'MSG: %s' % err
                             msg = dn[:140]
                             element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                             red.rpush(key, element)
@@ -145,12 +144,12 @@ class Command(NoArgsCommand):
                     red.expire(key,expire7days)
                 else:
                     msg = 'MISS: %s' % url
-                    self.logger.debug(msg)
+#                    self.stdout.write(msg)
                     nmiss += 1
         
             msg = 'error:%d done:%d miss:%d' % (nerr, ndone, nmiss)
-            self.logger.info(msg)
+            self.stdout.write(msg)
             msg = 'Number in CREATED state > %d minutes: %d' % (ctimeout, cnt)
-            self.logger.info(msg)
+            self.stdout.write(msg)
             elapsed = time.time() - start
             stats.gauge('apfmon.flagged', cnt)
