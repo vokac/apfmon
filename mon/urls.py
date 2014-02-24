@@ -14,12 +14,6 @@ urlpatterns = patterns('apfmon.mon.views',
     (r'^stats/?$', 'stats'),
 
 # non-rendered views
-    (r'^c/$', 'cr'),
-    (r'^h/$', 'helo'),
-    (r'^m/$', 'msg'),
-    (r'^ex/(?P<fid>\S*)/(?P<cid>\S*)/(?P<sc>\d*)$', 'ex'),
-    (r'^rn/(?P<fid>\S*)/(?P<cid>\S*)/$', 'rn'),
-    (r'^msg/$', 'action'),
     (r'^search/$', 'search'),
     (r'^query/(?P<q>.*)/$', 'query'),
 
