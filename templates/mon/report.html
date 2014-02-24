@@ -47,9 +47,8 @@ the following:
   <td><a href="{% url 'apfmon.mon.views.singlefactory' row.factory %}">{{ row.factory }}</a>
   <td class=num>{{ row.created }}
   <td class=num><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}?state=done">{{ row.done }}</a>
-  <td class=num><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}?state=fault">{{ row.fault }}</a>
+  <td title={{ row.rfault }} class=num><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}?state=fault">{{ row.fault }}</a>
   <td class=num>{{ row.per }}
-  <td class=num>{{ row.rfault }}
 {% endfor %}
 </table>
 </div>
