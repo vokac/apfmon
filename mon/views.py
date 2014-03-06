@@ -841,7 +841,7 @@ def site(request, sid):
     return render_to_response('mon/site.html', context)
 
 # UI
-#@cache_page(60 * 1)
+@cache_page(60 * 10)
 def report(request):
     """
     Render a report of suspicious queues
