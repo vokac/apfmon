@@ -321,6 +321,10 @@ def pandaq(request, qid, p=1):
     qid can now be batchqueue name or id
     """
 
+    if not qid:
+        msg = 'Bad request, BatchQueue missing.'
+        return HttpResponseBadRequest(msg, content_type="text/plain")
+
     try:
         q = BatchQueue.objects.get(name=qid)
     except BatchQueue.DoesNotExist:
