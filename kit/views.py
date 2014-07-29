@@ -24,7 +24,7 @@ def pandaqueues(request):
 
     qs = BatchQueue.objects.all()
 
-    response = HttpResponse(mimetype='text/plain')
+    response = HttpResponse(content_type='text/plain')
     writer = csv.writer(response)
     for q in qs:
         writer.writerow([q.name])
@@ -43,7 +43,7 @@ def pandasites(request):
         qs = BatchQueue.objects.filter(wmsqueue__site=site)
         queues += qs
 
-    response = HttpResponse(mimetype='text/plain')
+    response = HttpResponse(content_type='text/plain')
 
     writer = csv.writer(response)
     for q in queues:
@@ -77,7 +77,7 @@ def update(request):
     if not raw:
         content = "Bad request no data"
         logging.error(content)
-        return HttpResponseBadRequest(content, mimetype="text/plain")
+        return HttpResponseBadRequest(content, content_type="text/plain")
 
     try:
         jdict = json.loads(raw)
@@ -88,7 +88,7 @@ def update(request):
         msg = "Error decoding POST json data"
         logging.error(msg)
         content = "Bad request, failed to decode json"
-        return HttpResponseBadRequest(content, mimetype="text/plain")
+        return HttpResponseBadRequest(content, content_type="text/plain")
 
     for pq in jdict.keys():
         d = jdict[pq]
@@ -164,4 +164,4 @@ def update(request):
             logging.error(msg)
 
         content = 'updated %d' % len(jdict)
-    return HttpResponse(content, mimetype="text/plain")
+    return HttpResponse(content, content_type="text/plain")

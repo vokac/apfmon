@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError, NoArgsCommand
-from apfmon.mon.models import Job, Factory, Label
+from apfmon.mon.models import Job, Factory, Label, BatchQueue
 from django.conf import settings
 from django.core.cache import cache
 
@@ -78,8 +78,16 @@ class Command(BaseCommand):
 
         # remove stale labels
         ndays = 7
-        dt = datetime.now(pytz.utc) - timedelta(days=7)
+        dt = datetime.now(pytz.utc) - timedelta(days=ndays)
         ls = Label.objects.filter(last_modified__lt=dt)
         msg = 'Deleting %d stale labels, last_modified > %d days ago' % (ls.count(), ndays)
         self.logger.info(msg)
         ls.delete()
+
+        # remove stale batchqueues
+        ndays = 14
+        dt = datetime.now(pytz.utc) - timedelta(days=ndays)
+        bs = BatchQueue.objects.filter(last_modified__lt=dt)
+        msg = 'Deleting %d stale batchqueues, last_modified > %d days ago' % (bs.count(), ndays)
+        self.logger.info(msg)
+        bs.delete()

@@ -18,8 +18,8 @@ from django.shortcuts import redirect, render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.conf import settings
-from django.core.cache import cache
-#from django.views.decorators.cache import cache_page
+#from django.core.cache import cache
+from django.views.decorators.cache import cache_page
 from django.core.mail import mail_managers
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
@@ -383,19 +383,12 @@ def label(request, id=None):
     label = get_object_or_404(Label, name=name, fid__name=factory)
 
     if request.method == 'GET':
-        fields = ('id','name','fid__name','msg','created','last_modified','resource','localqueue')
+        fields = ('id','name','batchqueue__name','fid__name','msg','created','last_modified','resource')
 
-        lab = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
-        lab['factory'] = lab['fid__name']
-        del lab['fid__name']
-        truth = ['unsub', 'pend', 'stgin', 'running', 'stgout', 'held']
-        for t in truth:
-            lab[t] = '-'
+        label = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
+        data = serializelabel(request, label)
 
-        key = ':'.join(('ringl',lab['factory'],lab['name']))
-        lab['activity'] = getactivity(key)
-
-        return HttpResponse(json.dumps(lab,
+        return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,
                             sort_keys=True,
                             indent=2),
@@ -442,7 +435,43 @@ def label(request, id=None):
     context = "HTTP method not supported: %s" % request.method
     return HttpResponse(context, status=405, content_type="text/plain")
 
+def serializelabel(request, label):
+    """
+    Serialize a label object, return a label dict
+    """
 
+    jobs = Job.objects.filter(label=label['id'])
+    label['ncreated'] = jobs.filter(state='created').count()
+    label['nrunning'] = jobs.filter(state='running').count()
+    label['nexiting'] = jobs.filter(state='exiting').count()
+    label['ndone'] =    jobs.filter(state='done').count()
+    label['nfault'] =   jobs.filter(state='fault').count()
+
+    total = label['ndone'] + label['nfault']
+    if total:
+        mortality = int(100*label['nfault']/total)
+    else:
+        mortality = 0
+
+    label['factory'] = label['fid__name']
+    label['prq'] = label['batchqueue__name']
+    arg = ':'.join((label['factory'], label['name']))
+    loc = reverse('apfmon.api.views.label', args=[arg])
+    # note this produces a URL urlencode colon
+    # colon shouldn't be urlencode %3A so maybe a django bug?
+    label['url'] = request.build_absolute_uri(loc)
+    label['mortality'] = mortality
+    del label['id']
+    del label['batchqueue__name']
+    del label['fid__name']
+
+    key = ':'.join(('lring',label['factory'],label['name']))
+    label['activity'] = getactivity(key)
+
+    return label
+
+
+@cache_page(60 * 5)
 def labels(request):
     """
     Handle requests for the /labels resource 
@@ -537,18 +566,12 @@ def labels(request):
         labels = Label.objects.all()
 
         factory = request.GET.get('factory', None)
-        name = request.GET.get('name', None)
-        batchqueue = request.GET.get('batchqueue', None)
         offset = request.GET.get('offset', 0)
         limit = request.GET.get('limit', 50)
         order = request.GET.get('order','name')
         
         if factory:
             labels = labels.filter(fid__name=factory)
-        if name:
-            jobs = jobs.filter(name=name)
-        if batchqueue:
-            jobs = jobs.filter(batchqueue=batchqueue)
 
         labels.order_by(order)
         offset = max(0,int(offset))
@@ -560,27 +583,13 @@ def labels(request):
         else:
             labels = labels[start:end]
 
-        fields = ('id','name','batchqueue__name','fid__name','msg','last_modified','resource')
+        fields = ('id','name','batchqueue__name','fid__name','msg','created','last_modified','resource')
 
         data = list(labels.values(*fields))
 
-    
         for d in data:
-            # make an ordered jobcount list from the redis hash
-            
-            jobs = Job.objects.filter(label=d['id'])
-            d['ncreated'] = jobs.filter(state='created').count()
-            d['nrunning'] = jobs.filter(state='running').count()
-            d['nexiting'] = jobs.filter(state='exiting').count()
-            d['ndone'] =    jobs.filter(state='done').count()
-            d['nfault'] =   jobs.filter(state='fault').count()
-            d['factory'] = d['fid__name']
-            d['pandaq'] = d['batchqueue__name']
-            del d['batchqueue__name']
-            del d['fid__name']
+            d = serializelabel(request, d)
 
-            key = ':'.join(('lring',d['factory'],d['name']))
-            d['activity'] = getactivity(key)
             
         return HttpResponse(json.dumps(data,
                             cls=DjangoJSONEncoder,

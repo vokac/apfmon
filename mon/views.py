@@ -314,7 +314,7 @@ def factory(request, fid):
 
     return render_to_response('mon/factory.html', context)
 
-@cache_page(60 * 5)
+@cache_page(60 * 3)
 def pandaq(request, qid, p=1):
     """
     Rendered view of panda queue for all factories
@@ -847,13 +847,6 @@ def report(request):
     Render a report of suspicious queues
     """
 
-#PAL
-#    jobs = Job.objects.filter(state='fault')
-#    fields = ('label__id','label__name','label__fid__name','label__fid__id')
-#    bad = jobs.values(*fields).annotate(count=Count('id'))
-#    bad = bad.order_by('-count')[:30]
-    bad = []
-
     # redis, how bout using sorted sets with a score based on number of fault?
     dt = datetime.now(pytz.utc) - timedelta(minutes=120)
     labels = Label.objects.filter(last_modified__gt=dt)
@@ -906,7 +899,6 @@ def report(request):
 #        'sololist' : sololist,
 #        'orphans'  : orphans,
 #        'hotlabels'   : hot,
-        'badlabels'   : bad,
         'results'     : foo,
         'clouds' : CLOUDLIST,
         }

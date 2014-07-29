@@ -1,4 +1,4 @@
-#DEBUG = True
+DEBUG = False
 
 SERVER_EMAIL = 'atl@py-front.lancs.ac.uk'
 
@@ -25,11 +25,10 @@ DATABASES = {
 CACHES = {
     'default' : {
         'BACKEND'    : 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION'   : 'localhost:11211',
+        'LOCATION'   : 'py-stor.lancs.ac.uk:11211',
         'KEY_PREFIX' : 'prod',
     }
 }
-
 
 GRAPHITE = {
     'host': 'py-heimdallr',
@@ -42,3 +41,7 @@ REDIS = {
 }
 
 USE_X_FORWARDED_HOST = True
+
+RAVEN_CONFIG = {
+    'dsn': 'https://88a1199737b44ad69ba066601bdf5af1:06e55c48008a4cafbd073da5d882f430@app.getsentry.com/23977',
+}
