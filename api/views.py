@@ -17,6 +17,7 @@ from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import UnreadablePostError
 from django.conf import settings
 #from django.core.cache import cache
 from django.views.decorators.cache import cache_page
@@ -25,6 +26,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
 
+logger = logging.getLogger('apfmon.api')
 
 ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
@@ -66,7 +68,7 @@ def job(request, id):
         f = Factory.objects.get(name=factory)
     except Factory.DoesNotExist:
         msg = "Factory not found: %s" % factory
-        logging.warn(msg)
+        logger.warn(msg)
         return HttpResponseBadRequest(msg, content_type="text/plain")
 
     if request.method == 'GET':
@@ -96,8 +98,15 @@ def job(request, id):
         
 
     if request.method == 'POST':
-        newstate = request.POST.get('state', None)
-        rc = request.POST.get('rc', None)
+        try:
+            newstate = request.POST.get('state', None)
+            wrapper = request.POST.get('wrapper', None)
+            rc = request.POST.get('rc', None)
+        except UnreadablePostError:
+            msg = 'unreadable error'
+            logger.debug(msg)
+            return HttpResponseBadRequest(msg, content_type="text/plain")
+                
         joblog = ':'.join(('joblog',job.jid))
 
         if newstate == 'running':
@@ -108,7 +117,7 @@ def job(request, id):
                                         request.META['REMOTE_ADDR'],
                                         msg)
                 red.rpush(joblog, element)
-                red.expire(joblog, expire5days)
+                red.expire(joblog, expire2days)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
 
             job.state = 'running'
@@ -118,7 +127,7 @@ def job(request, id):
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(joblog, element)
-            red.expire(joblog, expire5days)
+            red.expire(joblog, expire2days)
             response = HttpResponse(content_type="text/plain")
             location = "/api/jobs/%s" % job.jid
             response['Location'] = location
@@ -134,7 +143,7 @@ def job(request, id):
                                         request.META['REMOTE_ADDR'],
                                         msg)
                 red.rpush(joblog, element)
-                red.expire(joblog, expire5days)
+                red.expire(joblog, expire2days)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
 
             job.state = 'exiting'
@@ -145,7 +154,7 @@ def job(request, id):
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(joblog, element)
-            red.expire(joblog, expire5days)
+            red.expire(joblog, expire2days)
             location = "/api/jobs/%s" % job.jid
             msg = request.build_absolute_uri(location)
             return HttpResponse(msg, content_type="text/plain")
@@ -153,7 +162,7 @@ def job(request, id):
         elif newstate == 'done':
             if f.ip != ip:
                 msg = "Factory IP does not match"
-                logging.warn(msg)
+                logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
             if job.state != 'exiting':
                 msg = "Invalid state transition: %s->%s" % (
@@ -167,7 +176,7 @@ def job(request, id):
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(joblog, element)
-            red.expire(joblog, expire5days)
+            red.expire(joblog, expire3hrs)
             location = "/api/jobs/%s" % job.jid
             msg = request.build_absolute_uri(location)
             return HttpResponse(msg, content_type="text/plain")
@@ -176,18 +185,18 @@ def job(request, id):
             if job.state == 'fault':
                 msg = "Invalid state transition: %s->%s" % (
                                                 job.state, newstate)
-                logging.warn(msg)
+                logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
             if f.ip != ip:
                 msg = "Factory IP does not match"
-                logging.warn(msg)
+                logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
             msg = "State change: %s->fault (transition)" % job.state
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
             red.rpush(joblog, element)
-            red.expire(joblog, expire5days)
+            red.expire(joblog, expire3hrs)
             job.state = 'fault'
             job.save()
             location = "/api/jobs/%s" % job.jid
@@ -230,17 +239,17 @@ def jobs(request):
     if 'CONTENT_LENGTH' in request.META.keys():
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
-        logging.debug(msg)
+        logger.debug(msg)
         ss.gauge('apfmon.length.apijobs', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
-        logging.debug(msg)
+        logger.debug(msg)
 
 
     if request.method == 'PUT':
 
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
-        logging.debug(msg)
+        logger.debug(msg)
 
         try:
             jobs = json.loads(request.body)
@@ -249,7 +258,7 @@ def jobs(request):
             return HttpResponseBadRequest(msg, content_type="text/plain")
 
         msg = "API number of jobs in JSON data: %d (%s)" % (len(jobs), ip)
-        logging.debug(msg)
+        logger.debug(msg)
 
         nfailed = 0
         ncreated = 0
@@ -258,18 +267,18 @@ def jobs(request):
             label = job['label']
             cid = job['cid']
             
-            f = Factory.objects.get(name=factory)
+            f = get_object_or_404(Factory, name=factory)
 
             try: 
                 lab = Label.objects.get(name=label, fid=f)
             except MultipleObjectsReturned,e:
                 msg = "Multiple objects - apfv2 issue?"
-                logging.warn(msg)
+                logger.warn(msg)
                 msg = "Multiple objects error"
                 return HttpResponseBadRequest(msg, content_type="text/plain")
             except Label.DoesNotExist:
                 msg = "Label not found: %s, job %s:%s" % (label, factory, cid)
-                logging.warn(msg)
+                logger.warn(msg)
                 nfailed += 1
                 continue
     
@@ -298,11 +307,11 @@ def jobs(request):
                 ncreated += 1
             except IntegrityError,e:
                 msg = "Duplicate key seen? Condor probably retrying a job"
-                logging.warn(msg)
+                logger.warn(msg)
                 msg = str(e)
-                logging.error(msg)
+                logger.error(msg)
 
-        f = Factory.objects.get(name=factory)
+        f = get_object_or_404(Factory, name=factory)
         f.last_ncreated = ncreated
         f.save()
         txt = 'job' if len(jobs) == 1 else 'jobs'
@@ -358,7 +367,7 @@ def label(request, id=None):
 
     POST:
     status : message from factory updating status of [queue]
-           : truncated to 140 chars
+           : truncated to 255 chars
 
     DELETE:
     Delete a Label, restricted to localhost
@@ -368,11 +377,11 @@ def label(request, id=None):
     if 'CONTENT_LENGTH' in request.META.keys():
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
-        logging.debug(msg)
+        logger.debug(msg)
         ss.gauge('apfmon.length.apilabel', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
-        logging.debug(msg)
+        logger.debug(msg)
 
     try:
         factory, name = id.split(':')
@@ -395,13 +404,19 @@ def label(request, id=None):
                             content_type="application/json")
 
     if request.method == 'POST':
-        status = request.POST.get('status', None)
+        try:
+            status = request.POST.get('status', None)
+        except UnreadablePostError:
+            msg = 'unreadable error'
+            logger.debug(msg)
+            return HttpResponseBadRequest(msg, content_type="text/plain")
+
         if not status:
             msg = "Invalid data: %s" % dict(request.POST)
             return HttpResponseBadRequest(msg, content_type="text/plain")
 
         # still hitting DB here, to be removed
-        label.msg = status[:140]
+        label.msg = status[:255]
         label.save()
         # have 1024 chars for fullmsg coming from sched plugins
         # but only write to redis
@@ -488,16 +503,16 @@ def labels(request):
     if 'CONTENT_LENGTH' in request.META.keys():
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
-        logging.debug(msg)
+        logger.debug(msg)
         ss.gauge('apfmon.length.apilabels', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
-        logging.debug(msg)
+        logger.debug(msg)
 
     if request.method == 'PUT':
 
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
-        logging.debug(msg)
+        logger.debug(msg)
 
         try:
             data = json.loads(request.body)
@@ -506,19 +521,19 @@ def labels(request):
             return HttpResponseBadRequest(msg, content_type="text/plain")
 
         msg = "Number of json objects PUT /api/labels: %d (%s)" % (len(data), ip)
-        logging.debug(msg)
+        logger.debug(msg)
 
         nupdated = 0
         ncreated = 0
         for d in data:
-            logging.debug(d)
+            logger.debug(d)
             
             try:
                 name = d['name']
                 factory = d['factory']
             except KeyError, e:
                 msg = "KeyError in label: %s" % str(e)
-                logging.warn(msg)
+                logger.warn(msg)
                 continue
 
             batchqueue = d.get('batchqueue', None)
@@ -529,19 +544,19 @@ def labels(request):
                 f = Factory.objects.get(name=factory)
             except Factory.DoesNotExist:
                 msg = "Factory not found: %s" % factory
-                logging.warn(msg)
+                logger.warn(msg)
                 continue
                 
             try: 
                 label, created = Label.objects.get_or_create(name=name, fid=f)
             except:
                 msg = "Exception get_or_create /api/labels: %s, fid: %s" % (name,f)
-                logging.error(msg)
+                logger.error(msg)
                 continue
                 
             if created:
                 msg = "Label auto-created: %s" % label.name
-                logging.warn(msg)
+                logger.warn(msg)
                 ncreated += 1
             else:
                 nupdated += 1
@@ -625,11 +640,11 @@ def factory(request, id):
     if 'CONTENT_LENGTH' in request.META.keys():
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
-        logging.debug(msg)
+        logger.debug(msg)
         ss.gauge('apfmon.length.apifactory', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
-        logging.debug(msg)
+        logger.debug(msg)
 
     dt = datetime.now(pytz.utc) - timedelta(days=10)
 
@@ -648,7 +663,7 @@ def factory(request, id):
 
     if request.method == 'PUT':
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
-        logging.debug(msg)
+        logger.debug(msg)
 
         data = json.loads(request.body)
 
