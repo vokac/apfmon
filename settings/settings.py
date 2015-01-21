@@ -111,23 +111,9 @@ INSTALLED_APPS = (
     'raven.contrib.django.raven_compat',
 )
 
-DEBUG_TOOLBAR_PANELS = (
-    'debug_toolbar.panels.version.VersionDebugPanel',
-    'debug_toolbar.panels.timer.TimerDebugPanel',
-    'debug_toolbar.panels.settings_vars.SettingsVarsDebugPanel',
-    'debug_toolbar.panels.headers.HeaderDebugPanel',
-    'debug_toolbar.panels.request_vars.RequestVarsDebugPanel',
-    'debug_toolbar.panels.template.TemplateDebugPanel',
-    'debug_toolbar.panels.sql.SQLDebugPanel',
-    'debug_toolbar.panels.signals.SignalDebugPanel',
-    'debug_toolbar.panels.logger.LoggingPanel',
-)
-
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error when DEBUG=False.
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+#LOGGING_CONFIG=None
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -156,7 +142,7 @@ LOGGING = {
             'formatter': 'simple'
         },
         'stderr': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -164,12 +150,20 @@ LOGGING = {
     'loggers': {
         'django.request': {
             'handlers': ['mail_admins'],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,
         },
-        'apfmon.mon': {
+#        'django.security.DisallowedHost': {
+#            'handlers': ['null'],
+#            'propagate': False,
+#        },
+        'apfmon.cron': {
             'handlers': ['console', 'mail_admins'],
             'level': 'DEBUG',
+        },
+        'apfmon.api': {
+            'handlers': ['console'],
+            'level': 'INFO',
         }
     }
 }

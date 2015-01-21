@@ -325,11 +325,7 @@ def pandaq(request, qid, p=1):
         msg = 'Bad request, BatchQueue missing.'
         return HttpResponseBadRequest(msg, content_type="text/plain")
 
-    try:
-        q = BatchQueue.objects.get(name=qid)
-    except BatchQueue.DoesNotExist:
-        id = qid.rstrip('/')
-        q = get_object_or_404(BatchQueue, id=id)
+    q = get_object_or_404(BatchQueue, name=qid)
 
     labels = Label.objects.filter(batchqueue=q)
     dt = datetime.now(pytz.utc) - timedelta(hours=1)

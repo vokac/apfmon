@@ -17,13 +17,13 @@
   <dt>WMS queue</dt>
   <dd>{{ pandaq.wmsqueue|default:"-" }}
   <dt>Site</dt>
-  <dd>{{ pandaq.wmsqueue.site|default:"-" }}
+  <dd><a href="http://atlas-agis.cern.ch/agis/atlassite/main/{{ pandaq.wmsqueue.site }}/">{{ pandaq.wmsqueue.site|default:"-" }}</a>
   <dt>State</dt>
   <dd class={{ pandaq.state }}>{{ pandaq.state }}
   <dt>Links</dt>
   <dd>
   <ul class="inline">
-    <li><a href="http://atlas-agis.cern.ch/agis/panda_queue/detail/{{ pandaq }}/full/">agis</a>
+    <li><a href="http://atlas-agis.cern.ch/agis/pandaqueue/detail/{{ pandaq }}/full/">agis</a>
     <li><a href="http://bigpanda.cern.ch/site/{{ pandaq }}">bigpandamon</a>
     <li><a href="http://dashb-atlas-ssb.cern.ch/dashboard/request.py/sitehistory?site={{ pandaq.wmsqueue.site }}#currentView=Shifter+view">ssb</a>
   </ul>
@@ -78,7 +78,7 @@
 {% empty %}
   <tr>
   <tr class=odd>
-    <td colspan=10 class=note>No Label found for this batch queue. No pilots? Check entry in AGIS.
+    <td colspan=10 class=note>No Label found for this batch queue. No pilots? Auto-configuration of CERN factories using AGIS settings is only run during CERN weekday daytime hours, once per hour. If the update cron has run but you still see no pilots then check AGIS settings or email atlas-project-adc-operations-pilot-factory@cern.ch for help.
 {% endfor %}
 
 </table>

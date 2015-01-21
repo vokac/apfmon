@@ -19,7 +19,7 @@
   <tr>
   <td>Batch queue
   {% if label.batchqueue.name %}
-    <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.name %}">{{ label.batchqueue }}</a>
+    <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.name %}">{{ label.batchqueue }}</a> (<span class={{ label.batchqueue.state }}>{{ label.batchqueue.state }}</span>)
   {% else %}
     <td class=muted>&lt;unknown&gt;
   {% endif %}

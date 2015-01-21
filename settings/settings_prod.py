@@ -5,6 +5,7 @@ SERVER_EMAIL = 'atl@py-front.lancs.ac.uk'
 ADMINS = (
 #    ('Peter Love', 'p.love@lancaster.ac.uk'),
     ('Peter Love', 'atl@py-front.lancs.ac.uk'),
+    ('Peter Love', 'love@hep.lancs.ac.uk'),
 )
 
 MANAGERS = ADMINS
