@@ -26,10 +26,11 @@ stats = statsd.StatsClient(settings.GRAPHITE['host'],
 class Command(BaseCommand):
     args = '<minutes>'
     help = 'Remove jobs from DB older than supplied time'
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('apfmon.cron')
     logger.setLevel(logging.debug)
 
     def handle(self, *args, **options):
+        self.logger.error('Start clean cron')
         t = int(args[0])
         dt = datetime.now(pytz.utc) - timedelta(minutes=t)
         djobs = Job.objects.filter(state='done', last_modified__lt=dt)
@@ -46,12 +47,12 @@ class Command(BaseCommand):
         red.delete(keylist)
 
         # remove jid from done:label set
-        for j in djobs:
+        for j in djobs[:5000]:
             key = ':'.join(('done',j.label.fid.name,j.label.name))
             red.srem(key, j)
             
         # remove jid from fault:label set
-        for j in fjobs:
+        for j in fjobs[:5000]:
             key = ':'.join(('fault',j.label.fid.name,j.label.name))
             red.srem(key, j)
 

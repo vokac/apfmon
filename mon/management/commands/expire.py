@@ -35,6 +35,7 @@ class Command(NoArgsCommand):
             rtimeout = 72
             etimeout = 30
             ftimeout = 24# 96
+            expire6hrs = 6*3600
             expire2days = 172800
             expire3days = 259200
             expire5days = 432000
@@ -78,7 +79,7 @@ class Command(NoArgsCommand):
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 key = ':'.join(('joblog',j.jid))
                 red.rpush(key, element)
-                red.expire(key, expire5days)
+                red.expire(key, expire3days)
                 j.flag = True
                 j.save()
         
@@ -91,7 +92,7 @@ class Command(NoArgsCommand):
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 key = ':'.join(('joblog',j.jid))
                 red.rpush(key, element)
-                red.expire(key, expire3days)
+                red.expire(key, expire6hrs)
                 # add jobid to the done set
                 key = ':'.join(('done',j.label.fid.name,j.label.name))
                 red.sadd(key,j.jid)
@@ -106,7 +107,7 @@ class Command(NoArgsCommand):
                 element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                 key = ':'.join(('joblog',j.jid))
                 red.rpush(key, element)
-                red.expire(key, expire3days)
+                red.expire(key, expire6hrs)
                 # add jobid to the fault set
                 key = ':'.join(('fault',j.label.fid.name,j.label.name))
                 red.sadd(key,j.jid)

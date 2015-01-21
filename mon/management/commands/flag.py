@@ -27,6 +27,7 @@ red = redis.StrictRedis(host=settings.REDIS['host'],
                         port=settings.REDIS['port'], db=0)
 stats = statsd.StatsClient(settings.GRAPHITE['host'],
                            settings.GRAPHITE['port'])
+expire6hrs = 6*3600
 expire2days = 172800
 expire5days = 432000
 expire7days = 604800
@@ -50,7 +51,7 @@ class Command(NoArgsCommand):
     logger = logging.getLogger('apfmon.mon')
 
     def handle(self, *args, **options):
-            ctimeout = 120 # minutes
+            ctimeout = 330 # minutes
             start = time.time()
         
             # find job in created state older than ctimeout
@@ -75,16 +76,16 @@ class Command(NoArgsCommand):
                                 
 
                 try:
-                    r = requests.get(url, timeout=1.0)
+                    r = requests.get(url, timeout=1.5)
                 except requests.Timeout:
                     msg = 'TIMEOUT: %s' % url
-#                    self.stdout.write(msg)
+                    self.stdout.write(msg)
                     continue
                 except socket.timeout:
                     # this exception is a bug
                     # https://github.com/kennethreitz/requests/issues/1236
                     msg = 'TIMEOUT: %s' % url
-#                    self.stdout.write(msg)
+                    self.stdout.write(msg)
                     continue
                 except:
                     msg = 'EXCEPTION: %s' % url
@@ -102,7 +103,7 @@ class Command(NoArgsCommand):
                     element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                     key = ':'.join(('joblog',j.jid))
                     red.rpush(key, element)
-                    red.expire(key, expire5days)
+                    red.expire(key, expire6hrs)
 #                    j.flag = True
                     j.state = 'fault'
                     j.save()
@@ -128,7 +129,7 @@ class Command(NoArgsCommand):
                     element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
                     key = ':'.join(('joblog',j.jid))
                     red.rpush(key, element)
-                    red.expire(key, expire5days)
+                    red.expire(key, expire6hrs)
                     j.state = 'done'
                     j.save()
                     for dns in donematch:
