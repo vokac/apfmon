@@ -11,7 +11,7 @@ urlpatterns = patterns('apfmon.mon.views',
     (r'^q/(?P<qid>\S*)/?$', 'pandaq'),
     (r'^debug/?$', 'debug'),
     (r'^test/?$', 'test'),
-# WTF    (r'^stats/?$', 'stats'),
+    (r'^stats/?$', 'stats'),  #to be removed
 
 # non-rendered views
     (r'^search/$', 'search'),
