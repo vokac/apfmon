@@ -86,7 +86,7 @@ TEMPLATE_DIRS = (
     '/home/atl/apfmon/templates',
 )
 
-INTERNAL_IPS = ('0.0.0.0','148.88.188.127')
+INTERNAL_IPS = ('0.0.0.0','148.88.188.127','46.208.246.32')
 
 # Python dotted path to the WSGI application used by Django's runserver.
 WSGI_APPLICATION = 'apfmon.wsgi.application'
@@ -184,6 +184,12 @@ REDIS = {
 }
 
 APFMONURL = 'http://localhost/api/'
+
+SHELL_PLUS_PRE_IMPORTS = (
+    ('datetime', ('datetime', 'timedelta')),
+    ('pytz'),
+    ('django.shortcuts', 'get_object_or_404'),
+)
 
 try:
     from settings_local import *
