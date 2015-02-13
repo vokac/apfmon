@@ -48,6 +48,8 @@ GGUSREGEX = re.compile('(.*ggus[^0-9]*)([0-9]+)', re.IGNORECASE)
 ELOGURL = 'https://atlas-logbook.cern.ch/elog/ATLAS+Computer+Operations+Logbook/%s'
 GGUSURL = 'https://ggus.eu/ws/ticket_info.php?ticket=%s'
 SAVANNAHURL = 'https://savannah.cern.ch/support/?%s'
+NSUBMITTED = re.compile('ready=(\d+),.*ret=(\d+)$')
+PENDING = re.compile('.*;MaxPending:in=(\d+),pend=(\d+),max=(\d+),ret=(\d+)$')
 CLOUDLIST = []
 for item in CLOUDS:
     CLOUDLIST.append(item[0])
@@ -70,6 +72,46 @@ interval = 300
 # 3. RUNNING <- signal from pilot-wrapper
 # 4. EXITING <- signal from pilot-wrapper
 # 5. DONE <- signal from cronjob script (mon-expire.py) jobstate=4
+
+def humanmsg(rawmsg):
+    """
+    Translate the factory schedconfig message into something understandable by sysadmins
+    """
+    nret = 0
+    nready = 0
+    nmatch = NSUBMITTED.match(rawmsg)
+    if nmatch:
+        nready = int(nmatch.group(1))
+        nret = int(nmatch.group(2))
+
+    inpending = 0
+    npending = 0
+    maxpending = 0
+    pending = PENDING.match(rawmsg)
+    if pending:
+        inpending = int(pending.group(1))
+        npending = int(pending.group(2))
+        maxpending = int(pending.group(3))
+        nret = int(pending.group(4))
+
+    if nret == 0:
+        if nready == 0:
+            reason = '0 pilots submitted, no work available'
+        else:
+            if inpending  > 0:
+                if npending == maxpending:
+                    reason = '0 pilots submitted, %d pilots already pending' % npending
+
+            else: 
+                reason = '0 pilots submitted, check raw messages'
+
+        return reason
+        
+    if nret == 1:
+        reason = '%d pilot submitted' % nret
+    else:
+        reason = '%d pilots submitted' % nret
+    return reason
 
 def jobs1(request, lid, state, p=1):
     """
@@ -174,139 +216,12 @@ def factory(request, fid):
     dtdead = datetime.now(pytz.utc) - timedelta(days=10)
 
     f = get_object_or_404(Factory, id=id)
-    pandaqs = BatchQueue.objects.all()
-    labels = Label.objects.filter(fid=f, last_modified__gt=dtdead)
-    jobs = Job.objects.all()
-    dt = datetime.now(pytz.utc) - timedelta(hours=1)
-    dtlab = datetime.now(pytz.utc) - timedelta(weeks=3)
-
-    lifetime = 300
-    rows = []
-    for lab in labels:
-        if lab.last_modified < dtlab:
-            # todo: mark label inactive lab.save()
-            continue
-        ncreated = 0
-        nsubmitted = 0
-        nrunning = 0
-        nexiting = 0
-        ndone = 0
-        nfault = 0
-
-        key = "lcr%d" % lab.id
-        val = cache.get(key)
-        if val is None:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = jobs.filter(label=lab, state='created').count()
-            added = cache.add(key, val, lifetime)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-            else:
-                msg = "Failed to add DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-        ncreated = val
-
-        key = "lrn%d" % lab.id
-        val = cache.get(key)
-        if val is None:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = jobs.filter(label=lab, state='running').count()
-            added = cache.add(key, val, lifetime)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-            else:
-                msg = "Failed to add DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-        nrunning = val
-
-        key = "lex%d" % lab.id
-        val = cache.get(key)
-        if val is None:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = jobs.filter(label=lab, state='exiting').count()
-            added = cache.add(key, val, lifetime)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-            else:
-                msg = "Failed to add DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-        nexiting = val
-
-        key = "ldn%d" % lab.id
-        val = cache.get(key)
-        if val is None:
-            msg = "MISS key: %s" % key
-            logging.debug(msg)
-            # key not known so set to current count
-            val = jobs.filter(label=lab, state='done').count()
-            added = cache.add(key, val, lifetime)
-            if added:
-                msg = "Added DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-            else:
-                msg = "Failed to add DB count for key %s : %d" % (key, val)
-                logging.warn(msg)
-        ndone = val
-
-        # this via redis
-        key = ':'.join(('fault', lab.fid.name, lab.name))
-        nfault = red.scard(key)
-
-
-        statcr = 'pass'
-        if ncreated >= 500:
-            statcr = 'warn'
-
-        statdone = 'pass'
-        if ndone <= 0:
-            statdone = 'warn'
-
-        statfault = 'pass'
-        if nfault >= 50:
-            statfault = 'hot'
-
-        dtwarn = datetime.now(pytz.utc) - timedelta(minutes=60)
-        dterror = datetime.now(pytz.utc) - timedelta(minutes=120)
-
-        # this 'active' string map to a html classes
-        active = 'text-error'
-        if lab.last_modified > dterror:
-            active = 'text-warning'
-        if lab.last_modified > dtwarn:
-            active = ''
-
-        row = {
-            'label' : lab,
-            'pandaq' : lab.batchqueue,
-            'ncreated' : ncreated,
-            'nrunning' : nrunning,
-            'nexiting' : nexiting,
-            'ndone' : ndone,
-            'nfault' : nfault,
-            'statcr' : statcr,
-            'statdone' : statdone,
-            'statfault' : statfault,
-            'active' : active,
-            }
-
-        rows.append(row)
-
+    labels = Label.objects.filter(fid=f, last_modified__gt=dtdead).values('name','last_modified')
 
     key = ':'.join(('ringf',f.name))
 
     context = {
-            'rows'     : rows,
-            'jobs'     : jobs,
-            'pandaqs'  : pandaqs,
+            'labels'     : labels,
             'factory'  : f,
             'activity' : getactivity(key),
             'clouds' : CLOUDLIST,
@@ -314,7 +229,7 @@ def factory(request, fid):
 
     return render_to_response('mon/factory.html', context)
 
-@cache_page(60 * 3)
+#@cache_page(60 * 3)
 def pandaq(request, qid, p=1):
     """
     Rendered view of panda queue for all factories
@@ -387,6 +302,7 @@ def pandaq(request, qid, p=1):
             active = 'pass'
 
         row['activity'] = active
+        row['reason'] = humanmsg(lab.msg)
 
         rows.append(row)
 
@@ -498,56 +414,6 @@ def stats(request):
         }
 
     return HttpResponse(json.dumps(rows, sort_keys=True, indent=2), mimetype="application/json")
-
-# UI
-@cache_page(60 * 1)
-def test(request):
-    """
-    Rendered view of front page which shows a table of activity
-    for each factories
-    """
-    jobs = Job.objects.all()
-    dtfail = datetime.now(pytz.utc) - timedelta(days=10)
-    dterror = datetime.now(pytz.utc) - timedelta(hours=1)
-    dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
-
-    factories = Factory.objects.all().order_by('name')
-
-    rows = []
-    activities = []
-    for f in factories:
-        if f.last_modified < dtfail: continue
-
-        # this 'active' string map to a html classes
-        active = 'text-error'
-        if f.last_modified > dterror:
-            active = 'text-warning'
-        if f.last_modified > dtwarn:
-            active = ''
-
-        nqueue = Label.objects.filter(fid=f, last_modified__gt=dterror).count()
-
-        key = ':'.join(('ringf',f.name))
-        activities.append(getactivity(key))
-
-        row = {
-            'factory'  : f,
-            'active'   : active,
-            'nqueue'   : nqueue,
-            }
-
-        rows.append(row)
-
-    status = red.get('apfmon:status')
-
-    context = {
-            'rows' : rows,
-            'acts'   : activities,
-            'clouds' : CLOUDLIST,
-            'status' : status,
-            }
-
-    return render_to_response('mon/index.html', context)
 
 # UI
 def cloud(request, name):
@@ -1052,22 +918,23 @@ def label(request, lid, state=None):
                'msg'      : txt,
              }
 
-        # now for >= 2.3 factories the message content changed
-        # so munge the new msg content
-
-        # eg. new msg 'ready=1,offset=0,pend=0,ret=1;Scale=1,factor=0.25,ret=1;MaxPCycle:in=1,max=100,out=1;MinPerCycle=1,min=0,ret=1;MaxPending:in=1,pend=0,max=25,ret=1'
-
-        statuslist = txt.split(';')
-        if statuslist:
-            # new message content
-            msg['msg'] = statuslist[-1]
+#        statuslist = txt.split(';')
+#        if statuslist:
+#            endchunk = statuslist[-1]
+#            msg['msg'] = endchunk
 
         msgs.append(msg)
 
     if msgs:
-        lastmsg = msgs[0]['msg']
+        lastmsg = msgs[0]
     else:
-        lastmsg = lab.msg
+        lastmsg = {'received' : lab.last_modified,
+                   'client'   : '',
+                   'msg'      : lab.msg,
+                 }
+
+    reason = humanmsg(lastmsg['msg'])
+
 
     context = {
             'label'    : lab,
@@ -1082,6 +949,7 @@ def label(request, lid, state=None):
             'counts'   : counts,
             'clouds'   : CLOUDLIST,
             'state'    : state,
+            'reason'   : reason,
             }
 
     return render_to_response('mon/label.html', context)
@@ -1127,6 +995,53 @@ def debug(request):
                 }
 
     return render_to_response('mon/debug.html', context)
+
+def testindex(request):
+    """
+    Rendered view of front page which shows a table of activity
+    for each factories
+    """
+    dtfail = datetime.now(pytz.utc) - timedelta(days=10)
+    dterror = datetime.now(pytz.utc) - timedelta(hours=1)
+    dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
+
+    factories = Factory.objects.all().order_by('name')
+
+    rows = []
+    activities = []
+    for f in factories:
+        if f.last_modified < dtfail: continue
+
+        # this 'active' string map to a html classes
+        active = 'text-error'
+        if f.last_modified > dterror:
+            active = 'text-warning'
+        if f.last_modified > dtwarn:
+            active = ''
+
+        key = ':'.join(('ringf',f.name))
+        buckets = getactivity(key)
+        activities.append(buckets)
+        lastbucket = buckets[-1]
+
+        row = {
+            'factory'    : f,
+            'active'     : active,
+            'lastbucket' : lastbucket,
+            }
+
+        rows.append(row)
+
+    status = red.get('apfmon:status')
+
+    context = {
+            'rows' : rows,
+            'acts'   : activities,
+            'clouds' : CLOUDLIST,
+            'status' : status,
+            }
+
+    return render_to_response('mon/index.html', context)
 
 
 @cache_page(60 * 1)
