@@ -49,9 +49,13 @@
     <abbr rel="tooltip" data-original-title="Number of jobs created over the last 2 hrs (5 minute buckets)">Activity</abbr>
   <td id=spark>
   <tr>
-  <td>Last message
+  <td>
+    <abbr rel="tooltip" data-original-title="Latest decision for this queue">Comment</abbr>
+  <td> {{ reason }}  ({{ lastmsg.received|timesince_human }})
+  <tr>
+  <td>Raw message
   {% if lastmsg %}
-    <td class={{ status }}>{{ lastmsg }} <a data-toggle="collapse" data-target="#more">&raquo;</a>
+    <td class="muted {{ status }}">{{ lastmsg.msg|truncatechars:40 }} <a data-toggle="collapse" data-target="#more">&raquo;</a>
   {% else %}
     <td>-
   {% endif %}

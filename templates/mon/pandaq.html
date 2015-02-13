@@ -44,7 +44,7 @@
 <th title="Count of DONE jobs without payload">miss
 <th title="Count of jobs in FAULT state">fault
 <th>when
-<th class=left>Message
+<th class=left>latest message
 </tr>
 {% for row in rows %}
 
@@ -66,7 +66,7 @@
   {% ifequal row.activity 'stale' %}
     <td class="left note">-
   {% else %}
-    <td class="left note">{{ row.label.msg }}
+    <td class="left" title="{{ row.label.msg }}">{{ row.reason }}
   {% endifequal %}
 </tr>
 {% comment %}
