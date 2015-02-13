@@ -25,6 +25,7 @@ from django.core.mail import mail_managers
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
+from django.db import IntegrityError
 
 logger = logging.getLogger('apfmon.api')
 
@@ -476,7 +477,7 @@ def serializelabel(request, label):
     # colon shouldn't be urlencode %3A so maybe a django bug?
     label['url'] = request.build_absolute_uri(loc)
     label['mortality'] = mortality
-    del label['id']
+#    label[''] = label['id']
     del label['batchqueue__name']
     del label['fid__name']
 
