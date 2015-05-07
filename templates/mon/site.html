@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<h2>Site view - <a href="http://panda.cern.ch/server/pandamon/query?mode=site&site={{ site }}">{{ site }}</a> panda queues from all factories</h2>
+<h2>Site view - <a href="http://bigpanda.cern.ch/site/{{ site }}">{{ site }}</a> panda queues from all factories</h2>
 
 <table class="table table-compact table-striped">
 <tr>
@@ -18,7 +18,11 @@
   <td class=colhdr nowrap><a href="{% url 'apfmon.mon.views.singlefactory' row.label.fid.name %}">{{ row.label.fid }}</a>
   <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}">{{ row.label }}</a>
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
-  <td class=note>{{ row.label.msg }}
+  {% ifequal row.activity 'stale' %}
+    <td class="left note">-
+  {% else %}
+    <td class="left" title="{{ row.label.msg }}">{{ row.reason }}
+  {% endifequal %}
 </tr>
 {% endfor %}
 
