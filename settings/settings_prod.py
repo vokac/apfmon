@@ -3,14 +3,12 @@ DEBUG = False
 SERVER_EMAIL = 'atl@py-front.lancs.ac.uk'
 
 ADMINS = (
-#    ('Peter Love', 'p.love@lancaster.ac.uk'),
-    ('Peter Love', 'atl@py-front.lancs.ac.uk'),
     ('Peter Love', 'love@hep.lancs.ac.uk'),
 )
 
 MANAGERS = ADMINS
 
-ALLOWED_HOSTS = [ 'apfmon.lancs.ac.uk', 'py-front.lancs.ac.uk' ]
+ALLOWED_HOSTS = [ 'apfmon.lancs.ac.uk', 'py-front.lancs.ac.uk', '148.88.67.83']
 
 DATABASES = {
     'default': {
@@ -42,7 +40,3 @@ REDIS = {
 }
 
 USE_X_FORWARDED_HOST = True
-
-RAVEN_CONFIG = {
-    'dsn': 'https://88a1199737b44ad69ba066601bdf5af1:06e55c48008a4cafbd073da5d882f430@app.getsentry.com/23977',
-}
