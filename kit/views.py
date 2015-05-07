@@ -133,7 +133,11 @@ def update(request):
 
         # update key values
         try:
-            if batchqueue.wmsqueue_id == None:
+            if wmsqueue.site_id != site.id:
+                wmsqueue.site = site
+                wmsqueue.save()
+
+            if batchqueue.wmsqueue_id != wmsqueue.id:
                 batchqueue.wmsqueue = wmsqueue
                 batchqueue.save()
 
