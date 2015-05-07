@@ -25,6 +25,7 @@ from django.db.models import Count
 from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
+from django.http import HttpResponseServerError
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.conf import settings
@@ -695,6 +696,7 @@ def site(request, sid):
                 }
 
         row['label'] = label
+        row['reason'] = humanmsg(label.msg)
         rows.append(row)
 
     context = {
@@ -1091,3 +1093,12 @@ def index(request):
             }
 
     return render_to_response('mon/index.html', context)
+
+def test500(request):
+    """
+    Return a server error http response 500
+    """
+    msg = 'HttpResponse (not 500)'
+    return HttpResponse(msg, content_type="text/plain")
+#    msg = 'HttpResponseServerError (500)'
+#    return HttpResponseServerError(msg, content_type="text/plain")
