@@ -41,6 +41,7 @@ patterns = [
              '(Globus error.*)',
              '(globus_ftp_client:.*error.*)',
              '(Job was aborted by the user.*)', 
+             '(Failed to parsed RSL.*)',
             ]
 _ALL = re.compile('|'.join(p for p in patterns))
 _DONE= re.compile('(Job terminated.*)')
