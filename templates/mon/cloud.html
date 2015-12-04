@@ -46,7 +46,7 @@
     <td style=background:white>
     <td class="{{ row.class }}" title="{{ row.pandaq.type }}">
       <a href="{% url 'apfmon.mon.views.pandaq' row.pandaq.name %}">{{ row.pandaq }}</a>
-      (<a href="http://panda.cern.ch/server/pandamon/query?tp=queue&id={{ row.pandaq.name }}">p</a>)
+      (<a href="http://bigpanda.cern.ch/site/{{ row.pandaq.name }}">p</a>)
     <td class="{{ row.class }}">{{ row.pandaq.state }}
 {% comment %}
     <td class=note>{{ row.pandaq.last_modified|timesince_human }}

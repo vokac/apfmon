@@ -62,7 +62,7 @@
   <td>{{ job.flag }}
 {% for pid in pids %}
   <tr>
-  <td>PandaId<td> <a href="http://panda.cern.ch:25980/server/pandamon/query?job={{ pid }}">{{ pid }}</a>
+  <td>PandaId<td> <a href="http://bigpanda.cern.ch/job?pandaid={{ pid }}">{{ pid }}</a>
 {% endfor %}
 </table>
 </div>
