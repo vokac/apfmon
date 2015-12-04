@@ -77,7 +77,8 @@ class Command(NoArgsCommand):
                                 
 
                 try:
-                    r = requests.get(url, timeout=1.5)
+                    r = requests.get(url, timeout=1.5, verify=False)
+                    print url
                 except requests.Timeout:
                     msg = 'TIMEOUT: %s' % url
                     self.stdout.write(msg)
@@ -91,7 +92,7 @@ class Command(NoArgsCommand):
                 except:
                     msg = 'EXCEPTION: %s' % url
                     self.stdout.write(msg)
-                    
+                    continue
 
                 errmatch = _ALL.findall(r.text)
                 donematch = _DONE.findall(r.text)
@@ -134,11 +135,10 @@ class Command(NoArgsCommand):
                     j.state = 'done'
                     j.save()
                     for dns in donematch:
-                        for dn in dns:
-                            if not dn: continue
-                            msg = dn[:140]
-                            element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
-                            red.rpush(key, element)
+                        if not dns: continue
+                        msg = dns[:140]
+                        element = "%f %s %s" % (time.time(), '127.0.0.1', msg)
+                        red.rpush(key, element)
 
                     # add jobid to the done set
                     key = ':'.join(('done',j.label.fid.name,j.label.name))
