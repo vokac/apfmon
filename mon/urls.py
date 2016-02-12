@@ -20,5 +20,5 @@ urlpatterns = patterns('apfmon.mon.views',
 
 # human ui, note these are basically a catchall pattern
     (r'(?P<fname>[\w-]*)/(?P<item>\S*[^/])$', 'singleitem'),
-    (r'(?P<fname>[\w-]*)$', 'singlefactory'),
+    (r'(?P<fname>[-\w.]*)$', 'singlefactory'),
 )
