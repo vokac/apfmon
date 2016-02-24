@@ -102,7 +102,7 @@ def job(request, id):
         try:
             newstate = request.POST.get('state', None)
             wrapper = request.POST.get('wrapper', None)
-            rc = request.POST.get('rc', None)
+            postrc = request.POST.get('rc', None)
         except UnreadablePostError:
             msg = 'unreadable error'
             logger.debug(msg)
@@ -137,6 +137,12 @@ def job(request, id):
             return response
 
         elif newstate == 'exiting':
+            try:
+                rc = int(postrc)
+            except ValueError:
+                msg = 'APFMON API ERROR: parameter \'rc\' needs to be an integer, not \'%s\'' % postrc
+                logger.error(msg)
+                return HttpResponseBadRequest(msg, content_type="text/plain")
             if job.state != 'running':
                 msg = "Invalid state transition: %s->%s" % (
                                                 job.state, newstate)
@@ -148,7 +154,7 @@ def job(request, id):
                 return HttpResponseBadRequest(msg, content_type="text/plain")
 
             job.state = 'exiting'
-            if rc: job.result = rc
+            job.result = int(rc)
             job.save()
             msg = "State change: running->exiting (pilot return code: %s)" % rc
             element = "%f %s %s" % (time.time(),
