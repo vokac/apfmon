@@ -709,7 +709,7 @@ def site(request, sid):
     return render_to_response('mon/site.html', context)
 
 # UI
-@cache_page(60 * 10)
+#@cache_page(60 * 10)
 def report(request):
     """
     Render a report of suspicious queues
@@ -759,7 +759,7 @@ def report(request):
         }
         results.append(result)
 
-        foo = sorted(results, key=itemgetter('per', 'created'), reverse=True)
+    foo = sorted(results, key=itemgetter('per', 'created'), reverse=True)
     
 
     context = {
@@ -771,7 +771,10 @@ def report(request):
         'clouds' : CLOUDLIST,
         }
 
-    return render_to_response('mon/report.html', context)
+    if request.META.get('HTTP_ACCEPT','') == 'application/json':
+        return HttpResponse(json.dumps(foo, sort_keys=True, indent=2), mimetype="application/json")
+    else:
+        return render_to_response('mon/report.html', context)
 
 # UI
 def singletest(request, fname, item):
@@ -1102,3 +1105,4 @@ def test500(request):
     return HttpResponse(msg, content_type="text/plain")
 #    msg = 'HttpResponseServerError (500)'
 #    return HttpResponseServerError(msg, content_type="text/plain")
+
