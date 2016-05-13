@@ -723,7 +723,7 @@ def report(request):
     for label in labels:
         jobs = Job.objects.filter(label=label)
         created = jobs.filter(state='created', created__gt=dt).count()
-#        if created < 100: continue
+        if created < 100: continue
         fault = jobs.filter(state='fault').count()
         if fault <= 100: continue
         done = jobs.filter(state='done').count()
