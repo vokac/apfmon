@@ -1,5 +1,4 @@
 {% extends "mon/base.html" %}
-{% load url from future %}
 {% load timesince_human %}
 
 {% block content %}
@@ -10,7 +9,7 @@
 <p>
 <ul class=unstyled>
 {% for f in factive %}
-  <li><a href="{% url 'apfmon.mon.views.singlefactory' f.name %}">{{ f }}</a>
+  <li><a href="{% url 'singlefactory' f.name %}">{{ f }}</a>
 {% endfor %}
 </ul>
 </p>
@@ -20,7 +19,7 @@
 <p>
 <ul class=unstyled>
 {% for f in finactive %}
-  <li><a href="{% url 'apfmon.mon.views.singlefactory' f.name %}">{{ f }}</a>
+  <li><a href="{% url 'singlefactory' f.name %}">{{ f }}</a>
 {% endfor %}
 </ul>
 {% endif %}
@@ -37,7 +36,7 @@
 <th title="Schedconfig comment">comment</tr>
 {% for site in sites %}
   <tr>
-    <td class=colhdr><a href="{% url 'apfmon.mon.views.site' site.name %}">{{ site }}</a>
+    <td class=colhdr><a href="{% url 'site' site.name %}">{{ site }}</a>
   </tr>
 
   {% for row in rows %}
@@ -45,7 +44,7 @@
   <tr class="{{ row.class }} {% cycle odd,even %}">
     <td style=background:white>
     <td class="{{ row.class }}" title="{{ row.pandaq.type }}">
-      <a href="{% url 'apfmon.mon.views.pandaq' row.pandaq.name %}">{{ row.pandaq }}</a>
+      <a href="{% url 'pandaq' row.pandaq.name %}">{{ row.pandaq }}</a>
       (<a href="http://bigpanda.cern.ch/site/{{ row.pandaq.name }}">p</a>)
     <td class="{{ row.class }}">{{ row.pandaq.state }}
 {% comment %}

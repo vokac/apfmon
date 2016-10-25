@@ -1,5 +1,4 @@
 {% extends "mon/base.html" %}
-{% load url from future %}
 {% load timesince_human %}
 
 {% block content %}
@@ -27,8 +26,8 @@
 <table class="table table-compact table-striped"> 
 <tr>
 <th title="factory name">Factory
-<th title="Jobs created over last 2hrs, 5 minute buckets">activity
-<th class=num title="Jobs created in last 5 minutes">recently
+<th title="Activity over last 2hrs, 5 minute buckets">activity
+<th class=num title="Activity in last 5 minutes">recently
 <th class=num title="age of last modification">when
 <th class=num title="factory version">version
 </tr>

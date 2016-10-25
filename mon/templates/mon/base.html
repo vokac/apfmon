@@ -1,5 +1,4 @@
 {% load humanize %}
-{% load url from future %}
 {% load timesince_human %}
 {% load staticfiles %}
 <!DOCTYPE html">
@@ -33,7 +32,7 @@
 <div class="container">
   <ul class="nav nav-pills">
     <li>
-      <a href="{% url 'apfmon.mon.views.index' %}">Home</a> 
+      <a href="{% url 'index' %}">HOME</a> 
     </li>
     <li class="dropdown">
       <a class="dropdown-toggle" data-toggle="dropdown" href="#">
@@ -42,15 +41,15 @@
             </a>
       <ul class="dropdown-menu">
         {% for cloud in clouds %}
-          <li><a href="{% url 'apfmon.mon.views.cloud' cloud %}">{{ cloud|lower }}</a>
+          <li><a href="{% url 'cloud' cloud %}">{{ cloud|lower }}</a>
         {% endfor %}
       </ul>
     </li>
     <li>
-      <a href="{% url 'apfmon.mon.views.report' %}">Reports</a>
+      <a href="{% url 'report' %}">Reports</a>
     </li>
     <li>
-       <a href="{% url 'apfmon.mon.views.help' %}">Help</a>
+       <a href="{% url 'help' %}">Help</a>
     </li>
   </ul>
 
