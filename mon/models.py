@@ -1,5 +1,5 @@
 from django.db import models
-from apfmon.kit.models import BatchQueue
+from kit.models import BatchQueue
 
 # Pilotjob STATE
 # 
@@ -70,7 +70,7 @@ class Factory(models.Model):
     Represent a factory instance
     """
     name = models.CharField(max_length=64, blank=True, db_index=True)
-    ip = models.IPAddressField(blank=True)
+    ip = models.GenericIPAddressField(blank=True, null=True)
     email = models.EmailField(blank=True)
     url = models.URLField(blank=True, default=DEFAULTURL)
     version = models.CharField(max_length=64, blank=True)

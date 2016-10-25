@@ -1,10 +1,9 @@
-from django.conf.urls import patterns
-#from django.views.generic import list_detail
-#from django.views.generic.date_based import archive_index
+from django.conf.urls import url
 
-urlpatterns = patterns('apfmon.kit.views',
+from . import views
 
-# non-rendered views
-    (r'^q/$', 'pandaqueues'),
-    (r'^update/$', 'update'),
-)
+urlpatterns = [
+    url(r'^q/$', views.pandaqueues, name='pandaqueues'),
+#    url(r'^update/$', 'update'),
+]
+

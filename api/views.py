@@ -1,17 +1,16 @@
-from apfmon.mon.models import Factory
-from apfmon.mon.models import Job
-from apfmon.mon.models import Label
+from mon.models import Factory
+from mon.models import Job
+from mon.models import Label
 
-from apfmon.kit.models import Site
-from apfmon.kit.models import BatchQueue
-from apfmon.kit.models import WMSQueue
+from kit.models import Site
+from kit.models import BatchQueue
+from kit.models import WMSQueue
 
 import json
 import logging
 import math
 import pytz
 import redis
-import statsd
 import time
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
@@ -29,7 +28,6 @@ from django.db import IntegrityError
 
 logger = logging.getLogger('apfmon.api')
 
-ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire2days = 172800
 expire5days = 432000

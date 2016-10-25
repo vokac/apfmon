@@ -1,12 +1,12 @@
-from apfmon.mon.models import Factory
-from apfmon.mon.models import Job
-from apfmon.mon.models import Label
-from apfmon.mon.models import STATES
+from mon.models import Factory
+from mon.models import Job
+from mon.models import Label
+from mon.models import STATES
 
-from apfmon.kit.models import Site
-from apfmon.kit.models import BatchQueue
-from apfmon.kit.models import WMSQueue
-from apfmon.kit.models import CLOUDS
+from kit.models import Site
+from kit.models import BatchQueue
+from kit.models import WMSQueue
+from kit.models import CLOUDS
 
 import csv
 import logging
@@ -14,7 +14,6 @@ import math
 import pytz
 import re
 import redis
-import statsd
 import string
 import sys
 import time
@@ -29,7 +28,6 @@ from django.http import HttpResponseServerError
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.conf import settings
-from django.core.context_processors import csrf
 from django.core.mail import mail_managers
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
 from django.core.serializers.json import DjangoJSONEncoder
@@ -59,7 +57,6 @@ for item in STATES:
     STATELIST.append(item[0])
 
 
-ss = statsd.StatsClient(settings.GRAPHITE['host'], settings.GRAPHITE['port'])
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire2days = 172800
 expire5days = 432000

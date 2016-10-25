@@ -10,4 +10,4 @@ urlpatterns = [
     url(r'^api/', include('api.urls')),
 #    url(r'^mon/', include('mon.urls')),
     url(r'^', include('mon.urls')),
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]

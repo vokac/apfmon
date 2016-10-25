@@ -1,8 +1,8 @@
 from django.contrib import admin
 
-from apfmon.mon.models import Factory
-from apfmon.mon.models import Job
-from apfmon.mon.models import Label
+from mon.models import Factory
+from mon.models import Job
+from mon.models import Label
 
 class JobAdmin(admin.ModelAdmin):
     list_display = (

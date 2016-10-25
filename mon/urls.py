@@ -1,24 +1,25 @@
-from django.conf.urls import patterns
+from django.conf.urls import url
 
-urlpatterns = patterns('apfmon.mon.views',
-    (r'^$', 'index'),
+from . import views
+
+urlpatterns = [
 # rendered views
-    (r'^cloud/(?P<name>[a-zA-Z]+)/?$', 'cloud'),
-    (r'^report/?$', 'report'),
-    (r'^site/(?P<sid>\S*)$', 'site'),
-    (r'^help/?$', 'help'),
-    (r'^q/(?P<qid>\d*)/page/(?P<p>\d*)$', 'pandaq'),
-    (r'^q/(?P<qid>\S*)/?$', 'pandaq'),
-    (r'^debug/?$', 'debug'),
-    (r'^testindex/?$', 'testindex'),
-    (r'^stats/?$', 'stats'),  #to be removed
-    (r'^test500/?$', 'test500'),
+    url(r'^$', views.index, name='index'),
+    url(r'^cloud/(?P<name>[a-zA-Z]+)/?$', views.cloud, name='cloud'),
+    url(r'^report/?$', views.report, name='report'),
+    url(r'^site/(?P<sid>\S*)$', views.site, name='site'),
+    url(r'^help/?$', views.help, name='help'),
+    url(r'^q/(?P<qid>\d*)/page/(?P<p>\d*)$', views.pandaq, name='pandaq'),
+    url(r'^q/(?P<qid>\S*)/?$', views.pandaq, name='pandaq'),
+    url(r'^debug/?$', views.debug, name='debug'),
+    url(r'^testindex/?$', views.testindex, name='testindex'),
+    url(r'^test500/?$', views.test500, name='test500'),
 
 # non-rendered views
-    (r'^search/$', 'search'),
-    (r'^query/(?P<q>.*)/$', 'query'),
+    url(r'^search/$', views.search, name='search'),
+    url(r'^query/(?P<q>.*)/$', views.query, name='query'),
 
 # human ui, note these are basically a catchall pattern
-    (r'(?P<fname>[\w-]*)/(?P<item>\S*[^/])$', 'singleitem'),
-    (r'(?P<fname>[-\w.]*)$', 'singlefactory'),
-)
+    url(r'(?P<fname>[\w-]*)/(?P<item>\S*[^/])$', views.singleitem, name='singleitem'),
+    url(r'(?P<fname>[-\w.]*)$', views.singlefactory, name='singlefactory'),
+]
