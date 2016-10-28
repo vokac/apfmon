@@ -11,3 +11,4 @@ settings/settings_local.py
 *_settings.py
 *.db
 static/
+mon/static/img/

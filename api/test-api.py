@@ -8,10 +8,9 @@ import requests
 import unittest
 from django.conf import settings
 
-
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
-    return settings.APFMONURL + '/'.join(suffix)
+    return '/'.join(('http://py-prod.lancs.ac.uk/api',) + suffix)
 
 class APFmonTestCase(unittest.TestCase):
 
@@ -153,7 +152,7 @@ class APFmonTestCase(unittest.TestCase):
         for job in self.jobs:
             jid = ':'.join((job['factory'],job['cid']))
             url = apfmon('jobs',jid)
-            payload = {'state' : 'exiting'}
+            payload = {'state' : 'exiting', 'rc' : '99'}
             r = requests.post(url, data=payload)
             self.assertEqual(r.status_code, 400)
 

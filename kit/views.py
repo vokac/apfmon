@@ -11,6 +11,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.db.models import Count
 from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
 
 try:
     import json as json
@@ -51,6 +52,7 @@ def pandasites(request):
 
     return response
 
+@csrf_exempt
 def update(request):
     """
     Handle a POST contains json data from AGIS
@@ -82,7 +84,7 @@ def update(request):
     try:
         jdict = json.loads(raw)
         msg = "AGIS JSON entry count: %d" % len(jdict)
-        logging.error(msg)
+        logging.info(msg)
     except:
         raise
         msg = "Error decoding POST json data"

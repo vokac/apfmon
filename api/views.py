@@ -25,6 +25,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
+from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger('apfmon.api')
 
@@ -36,6 +37,7 @@ expire3hrs = 3*3600
 span = 7200
 interval = 300
 
+@csrf_exempt
 def job(request, id):
     """
     Handle requests from /jobs/{jid} resource
@@ -223,6 +225,7 @@ def job(request, id):
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, content_type="text/plain")
 
+@csrf_exempt
 def jobs(request):
     """
     Handle requests from /jobs resource.
@@ -245,7 +248,6 @@ def jobs(request):
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
         logger.debug(msg)
-        ss.gauge('apfmon.length.apijobs', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
         logger.debug(msg)
@@ -363,6 +365,7 @@ def jobs(request):
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, status=405, content_type="text/plain")
 
+@csrf_exempt
 def label(request, id=None):
     """
     Handle requests for the /labels/{id} resource 
@@ -383,7 +386,6 @@ def label(request, id=None):
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
         logger.debug(msg)
-        ss.gauge('apfmon.length.apilabel', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
         logger.debug(msg)
@@ -476,7 +478,7 @@ def serializelabel(request, label):
     label['factory'] = label['fid__name']
     label['prq'] = label['batchqueue__name']
     arg = ':'.join((label['factory'], label['name']))
-    loc = reverse('apfmon.api.views.label', args=[arg])
+    loc = reverse('label', args=[arg])
     # note this produces a URL urlencode colon
     # colon shouldn't be urlencode %3A so maybe a django bug?
     label['url'] = request.build_absolute_uri(loc)
@@ -492,6 +494,7 @@ def serializelabel(request, label):
 
 
 @cache_page(60 * 5)
+@csrf_exempt
 def labels(request):
     """
     Handle requests for the /labels resource 
@@ -509,7 +512,6 @@ def labels(request):
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
         logger.debug(msg)
-        ss.gauge('apfmon.length.apilabels', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
         logger.debug(msg)
@@ -620,6 +622,7 @@ def labels(request):
     context = 'HTTP method not supported: %s' % request.method
     return HttpResponse(context, status=405, content_type="text/plain")
 
+@csrf_exempt
 def factory(request, id):
     """
     Handle requests to /factories/{id} resource.
@@ -646,7 +649,6 @@ def factory(request, id):
         length = request.META['CONTENT_LENGTH']
         msg = "APIv2 content length: %s" % length
         logger.debug(msg)
-        ss.gauge('apfmon.length.apifactory', length)
     else:
         msg = 'No CONTENT_LENGTH in request'
         logger.debug(msg)
