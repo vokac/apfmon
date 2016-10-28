@@ -42,11 +42,11 @@ the following:
 {% for row in results %}
 
 <tr>
-  <td nowrap><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}">{{ row.name }}</a>
-  <td><a href="{% url 'apfmon.mon.views.singlefactory' row.factory %}">{{ row.factory }}</a>
+  <td nowrap><a href="{% url 'singleitem' row.factory row.name %}">{{ row.name }}</a>
+  <td><a href="{% url 'singlefactory' row.factory %}">{{ row.factory }}</a>
   <td class=num>{{ row.created }}
-  <td class=num><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}?state=done">{{ row.done }}</a>
-  <td title={{ row.rfault }} class=num><a href="{% url 'apfmon.mon.views.singleitem' row.factory row.name %}?state=fault">{{ row.fault }}</a>
+  <td class=num><a href="{% url 'singleitem' row.factory row.name %}?state=done">{{ row.done }}</a>
+  <td title={{ row.rfault }} class=num><a href="{% url 'singleitem' row.factory row.name %}?state=fault">{{ row.fault }}</a>
   <td class=num>{{ row.per }}
 {% endfor %}
 </table>

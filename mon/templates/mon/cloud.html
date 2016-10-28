@@ -41,7 +41,7 @@
 
   {% for row in rows %}
   {% ifequal row.site.name site.name %}
-  <tr class="{{ row.class }} {% cycle odd,even %}">
+  <tr class="{{ row.class }} {% cycle 'odd' 'even' %}">
     <td style=background:white>
     <td class="{{ row.class }}" title="{{ row.pandaq.type }}">
       <a href="{% url 'pandaq' row.pandaq.name %}">{{ row.pandaq }}</a>

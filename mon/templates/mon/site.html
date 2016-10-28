@@ -15,8 +15,8 @@
 {% for row in rows %}
 
 <tr class="{% cycle odd,even %}">
-  <td class=colhdr nowrap><a href="{% url 'apfmon.mon.views.singlefactory' row.label.fid.name %}">{{ row.label.fid }}</a>
-  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}">{{ row.label }}</a>
+  <td class=colhdr nowrap><a href="{% url 'singlefactory' row.label.fid.name %}">{{ row.label.fid }}</a>
+  <td><a href="{% url 'singleitem' row.label.fid.name row.label.name %}">{{ row.label }}</a>
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
   {% ifequal row.activity 'stale' %}
     <td class="left note">-

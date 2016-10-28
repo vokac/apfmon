@@ -104,11 +104,11 @@
 <tr>
   <td colspan=6 class=right>
     {% if page.has_previous %}
-      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.previous_page_number %}">&lt; Newer</a>
+      <a href="{% url 'pandaq' pandaq.id page.previous_page_number %}">&lt; Newer</a>
     {% endif %}
     {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
     {% if page.has_next %}
-      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.next_page_number %}">Older &gt;</a>
+      <a href="{% url 'pandaq' pandaq.id page.next_page_number %}">Older &gt;</a>
     {% endif %}
   </td>
 </tr>

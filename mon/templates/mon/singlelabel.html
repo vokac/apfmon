@@ -16,14 +16,14 @@ This is a template for the new UI, getting data via API
   <tbody>
   <tr>
   <td>Label
-  <td>{{ label }} (<a href="{% url 'apfmon.api.views.label' lid %}">json</a>)
+  <td>{{ label }} (<a href="{% url 'label' lid %}">json</a>)
   <tr>
   <td>Factory
-  <td><a href="{% url 'apfmon.mon.views.factory' label.fid.id %}">{{ label.fid }}</a>
+  <td><a href="{% url 'factory' label.fid.id %}">{{ label.fid }}</a>
   <tr>
   <td>Batch queue
   {% if label.batchqueue.name %}
-    <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a>
+    <td><a href="{% url 'pandaq' label.batchqueue.id %}">{{ label.batchqueue }}</a>
   {% else %}
     <td class=muted>&lt;unknown&gt;
   {% endif %}
@@ -41,11 +41,11 @@ This is a template for the new UI, getting data via API
   <td>Counts
   <td>
   <ul class="inline">
-    <li>created:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'CREATED' %}">{{ counts.created }}</a>
-    <li>running:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'RUNNING' %}">{{ counts.running }}</a>
-    <li>exiting:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'EXITING' %}">{{ counts.exiting }}</a>
-    <li>done:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'DONE' %}">{{ counts.done }}</a>
-    <li>fault:<a href="{% url 'apfmon.mon.views.jobs1' label.id 'FAULT' %}">{{ counts.fault }}</a>
+    <li>created:<a href="{% url 'jobs1' label.id 'CREATED' %}">{{ counts.created }}</a>
+    <li>running:<a href="{% url 'jobs1' label.id 'RUNNING' %}">{{ counts.running }}</a>
+    <li>exiting:<a href="{% url 'jobs1' label.id 'EXITING' %}">{{ counts.exiting }}</a>
+    <li>done:<a href="{% url 'jobs1' label.id 'DONE' %}">{{ counts.done }}</a>
+    <li>fault:<a href="{% url 'jobs1' label.id 'FAULT' %}">{{ counts.fault }}</a>
   </ul>
   <tr>
   <td>
@@ -81,7 +81,7 @@ This is a template for the new UI, getting data via API
 </tr>
 {% for j in page.object_list %}
 <tr class="{% cycle odd,even %}">
-  <td><a href={% url 'apfmon.mon.views.job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
+  <td><a href={% url 'job1' j.label.fid.id j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% if j.result == 20 %}
     <td>miss
@@ -99,11 +99,11 @@ This is a template for the new UI, getting data via API
 <tr>
   <td colspan=6 class=right>
     {% if page.has_previous %}
-      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.previous_page_number %}">&lt; Newer</a>
+      <a href="{% url 'pandaq' pandaq.id page.previous_page_number %}">&lt; Newer</a>
     {% endif %}
     {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
     {% if page.has_next %}
-      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.next_page_number %}">Older &gt;</a>
+      <a href="{% url 'pandaq' pandaq.id page.next_page_number %}">Older &gt;</a>
     {% endif %}
   </td>
 </tr>

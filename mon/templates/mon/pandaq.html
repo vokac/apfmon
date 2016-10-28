@@ -48,18 +48,18 @@
 {% for row in rows %}
 
 <tr>
-  <td class=colhdr title="{{ row.label.msg }}"><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}">{{ row.label }}</a>
-  <td><a href="{% url 'apfmon.mon.views.singlefactory' row.label.fid.name %}">{{ row.label.fid }}</a>
-  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=created">
+  <td class=colhdr title="{{ row.label.msg }}"><a href="{% url 'singleitem' row.label.fid.name row.label.name %}">{{ row.label }}</a>
+  <td><a href="{% url 'singlefactory' row.label.fid.name %}">{{ row.label.fid }}</a>
+  <td><a href="{% url 'singleitem' row.label.fid.name row.label.name %}?state=created">
     {{ row.jobcount.created }} </a>
-  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=running">
+  <td><a href="{% url 'singleitem' row.label.fid.name row.label.name %}?state=running">
     {{ row.jobcount.running }} </a>
-  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=exiting">
+  <td><a href="{% url 'singleitem' row.label.fid.name row.label.name %}?state=exiting">
     {{ row.jobcount.exiting }} </a>
-  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=done">
+  <td><a href="{% url 'singleitem' row.label.fid.name row.label.name %}?state=done">
     {{ row.jobcount.done }}</a>
   <td>{{ row.jobcount.miss }}
-  <td><a href="{% url 'apfmon.mon.views.singleitem' row.label.fid.name row.label.name %}?state=fault">
+  <td><a href="{% url 'singleitem' row.label.fid.name row.label.name %}?state=fault">
     {{ row.jobcount.fault }} </a>
   <td class={{ row.activity }}>{{ row.label.last_modified|timesince_human }}
   {% ifequal row.activity 'stale' %}
@@ -69,7 +69,7 @@
   {% endifequal %}
 </tr>
 {% comment %}
-<tr class={% cycle odd,even %}>
+<tr class={% cycle "odd" "even" %}>
   <td >
   <td colspan=8>{{ row.label.msg }}
 </tr>
@@ -98,9 +98,9 @@
   <th title="When job was last modified">last modified
 </tr>
 {% for j in page.object_list %}
-<tr class="{% cycle odd,even %}">
+<tr class="{% cycle "odd" "even" %}">
   <td class=colhdr>{{ j.label.fid }}
-  <td><a href={% url 'apfmon.mon.views.singleitem' j.label.fid.name j.cid %}>{{ j.cid }}</a>
+  <td><a href={% url 'singleitem' j.label.fid.name j.cid %}>{{ j.cid }}</a>
   <td class={{ j.state.name|lower }}>{{ j.state }}
   {% if j.result == 20 %}
     <td>miss
@@ -118,11 +118,11 @@
 <tr>
   <td colspan=6 class=right>
     {% if page.has_previous %}
-      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.previous_page_number %}">&lt; Newer</a>
+      <a href="{% url 'pandaq' pandaq.name page.previous_page_number %}">&lt; Newer</a>
     {% endif %}
     {{ page.start_index }} - {{ page.end_index }} of {{ pages.count }}
     {% if page.has_next %}
-      <a href="{% url 'apfmon.mon.views.pandaq' pandaq.id page.next_page_number %}">Older &gt;</a>
+      <a href="{% url 'pandaq' pandaq.name page.next_page_number %}">Older &gt;</a>
     {% endif %}
   </td>
 </tr>

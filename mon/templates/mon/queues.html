@@ -11,7 +11,7 @@
 
 <ul class="nav nav-pills">
 {% for cloud in clouds %}
-  <li><a href="{% url apfmon.mon.views.cloud cloud.name %}">{{ cloud.name }}</a><a href="#{{ cloud.name }}">{{ cloud.npq }}</a>
+  <li><a href="{% url 'cloud' cloud.name %}">{{ cloud.name }}</a><a href="#{{ cloud.name }}">{{ cloud.npq }}</a>
 {% endfor %}
 </ul>
 
@@ -32,16 +32,16 @@
     <th id={{ cloud.name }} class="colhdr">{{ cloud.name }}
   {% endifchanged %}
     <tr id={{ cloud.name }} class="{% cycle odd,even %}">
-    <td class=colhdr><a href="{% url apfmon.mon.views.pandaq row.pandaq.id %}">{{ row.pandaq }}</a>
+    <td class=colhdr><a href="{% url 'pandaq' row.pandaq.id %}">{{ row.pandaq }}</a>
     <td>{{ row.pandaq.pandasite.site.cloud }}
     <td class={{ row.class }}>{{ row.pandaq.state }}
     <td>{{ row.nactive }}
     <td>{{ row.ndone }}
     <td>{{ row.nfault }}
   {% comment %}
-    <td class={{ row.statdone }}><a href="{% url apfmon.mon.views.jobs 0 row.pandaq.id 'DONE' %}">{{ row.ndone }}</a>
-    <td class={{ row.statactive }}><a href="{% url apfmon.mon.views.jobs row.pandaq.id 'ACTIVE' %}">{{ row.nactive }}</a>
-    <td class={{ row.statfault }}><a href="{% url apfmon.mon.views.jobs 0 row.pandaq.id 'FAULT' %}">{{ row.nfault }}</a>
+    <td class={{ row.statdone }}><a href="{% url 'jobs' 0 row.pandaq.id 'DONE' %}">{{ row.ndone }}</a>
+    <td class={{ row.statactive }}><a href="{% url 'jobs' row.pandaq.id 'ACTIVE' %}">{{ row.nactive }}</a>
+    <td class={{ row.statfault }}><a href="{% url 'jobs' 0 row.pandaq.id 'FAULT' %}">{{ row.nfault }}</a>
   {% endcomment %}
   {% endifequal %}
 {% endfor %}

@@ -5,7 +5,7 @@
 
 <div class="row">
   <div class="span6">
-    <form class="well form-search" action="{% url 'apfmon.mon.views.search' %}" method="GET" name="search">
+    <form class="well form-search" action="{% url 'search' %}" method="GET" name="search">
       <input type="text" class="input-large search-query" placeholder="Site or queue name" name="q" value="{{ query|escape }}">
       <button type="submit" class="btn">Search</button>
     </form>
@@ -25,19 +25,19 @@
 <th title="Factory label name">label
 </tr>
 {% for label in labels %}
-<tr class="{% cycle odd,even %}">
-  <td class="colhdr"><a href="{% url 'apfmon.mon.views.singlefactory' label.fid.name %}">{{ label.fid }}</a>
+<tr class="{% cycle 'odd' 'even' %}">
+  <td class="colhdr"><a href="{% url 'singlefactory' label.fid.name %}">{{ label.fid }}</a>
   {% if label.batchqueue.wmsqueue.site.name %}
-    <td><a href="{% url 'apfmon.mon.views.site' label.batchqueue.wmsqueue.site.name %}">{{ label.batchqueue.wmsqueue.site }}</a>
+    <td><a href="{% url 'site' label.batchqueue.wmsqueue.site.name %}">{{ label.batchqueue.wmsqueue.site }}</a>
   {% else %}
     <td class=muted>&lt;unknown&gt;
   {% endif %}
   {% if label.batchqueue.name %}
-    <td><a href="{% url 'apfmon.mon.views.pandaq' label.batchqueue.name %}">{{ label.batchqueue }}</a>
+    <td><a href="{% url 'pandaq' label.batchqueue.name %}">{{ label.batchqueue }}</a>
   {% else %}
     <td class=muted>&lt;unknown&gt;
   {% endif %}
-  <td><a href="{% url 'apfmon.mon.views.singleitem' label.fid.name label.name %}">{{ label }}</a>
+  <td><a href="{% url 'singleitem' label.fid.name label.name %}">{{ label }}</a>
 </tr>
 {% endfor %}
 
