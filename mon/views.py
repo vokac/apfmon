@@ -619,7 +619,7 @@ def search(request):
     # see Simple generic views in django docs
 
     # smart_text to ensure unicode
-    url = reverse('apfmon.mon.views.query', args=(smart_text(query),))
+    url = reverse('query', args=(smart_text(query),))
     logging.debug(url)
     return HttpResponseRedirect(url)
 
