@@ -25,12 +25,12 @@ from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
 from django.http import HttpResponseServerError
+from django.http import JsonResponse
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
 from django.conf import settings
 from django.core.mail import mail_managers
 from django.core.paginator import Paginator, InvalidPage, EmptyPage
-from django.core.serializers.json import DjangoJSONEncoder
 from django.core.urlresolvers import reverse
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils.encoding import smart_text
@@ -769,7 +769,7 @@ def report(request):
         }
 
     if request.META.get('HTTP_ACCEPT','') == 'application/json':
-        return HttpResponse(json.dumps(foo, sort_keys=True, indent=2), mimetype="application/json")
+        return JsonResponse(foo, safe=False)
     else:
         return render_to_response('mon/report.html', context)
 
@@ -952,6 +952,7 @@ def label(request, lid, state=None):
             'clouds'   : CLOUDLIST,
             'state'    : state,
             'reason'   : reason,
+            'errors'   : 0,
             }
 
     return render_to_response('mon/label.html', context)
