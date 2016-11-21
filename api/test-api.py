@@ -10,7 +10,7 @@ from django.conf import settings
 
 def apfmon(*suffix):
     """Returns url for APFMON resource."""
-    return '/'.join(('http://py-prod.lancs.ac.uk/api',) + suffix)
+    return '/'.join(('http://apfmon.lancs.ac.uk:8000/api',) + suffix)
 
 class APFmonTestCase(unittest.TestCase):
 
