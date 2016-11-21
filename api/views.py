@@ -30,10 +30,11 @@ from django.views.decorators.csrf import csrf_exempt
 logger = logging.getLogger('apfmon.api')
 
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
+expire90mins = 90*60
+expire3hrs = 3*3600
 expire2days = 172800
 expire5days = 432000
 expire7days = 604800
-expire3hrs = 3*3600
 span = 7200
 interval = 300
 
@@ -168,7 +169,7 @@ def job(request, id):
 
         elif newstate == 'done':
             if f.ip != ip:
-                msg = "Factory IP does not match"
+                msg = "Factory IP does not match %s : %s (%s/%s)" % (f.ip, ip, job.state, newstate)
                 logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
             if job.state != 'exiting':
@@ -195,7 +196,7 @@ def job(request, id):
                 logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
             if f.ip != ip:
-                msg = "Factory IP does not match"
+                msg = "Factory IP does not match %s : %s (%s/%s)" % (f.ip, ip, job.state, newstate)
                 logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
             msg = "State change: %s->fault (transition)" % job.state
@@ -412,33 +413,42 @@ def label(request, id=None):
 
     if request.method == 'POST':
         try:
-            status = request.POST.get('status', None)
-        except UnreadablePostError:
-            msg = 'unreadable error'
+            data = json.loads(request.body.decode('utf-8'))
+        except ValueError as e:
+            msg = str(e)
             logger.debug(msg)
             return HttpResponseBadRequest(msg, content_type="text/plain")
 
-        if not status:
-            msg = "Invalid data: %s" % dict(request.POST)
-            return HttpResponseBadRequest(msg, content_type="text/plain")
+        status = data.get('status', None)
+        errors = data.get('errors', None)
+        if status:
+            # still hitting DB here, to be removed
+            label.msg = status[:255]
+            label.save()
+            # have 1024 chars for fullmsg coming from sched plugins
+            # but only write to redis
+            fullmsg = status[:1024]
+            content = "%f %s %s" % (time.time(),
+                                    request.META['REMOTE_ADDR'],
+                                    fullmsg)
 
-        # still hitting DB here, to be removed
-        label.msg = status[:255]
-        label.save()
-        # have 1024 chars for fullmsg coming from sched plugins
-        # but only write to redis
-        fullmsg = status[:1024]
-        content = "%f %s %s" % (time.time(),
-                                request.META['REMOTE_ADDR'],
-                                fullmsg)
+            key = ':'.join(('status',label.fid.name,label.name))
+            pipe = red.pipeline()
+            pipe.rpush(key, content)
+            pipe.expire(key, expire5days)
+            pipe.ltrim(key,-5,-1)
+            pipe.execute()
 
-        key = ':'.join(('status',label.fid.name,label.name))
-        pipe = red.pipeline()
-        pipe.rpush(key, content)
-        pipe.expire(key, expire5days)
-        pipe.ltrim(key,-5,-1)
-        pipe.execute()
-
+        # update redis hash of error messages
+        if errors:
+            errlist = errors.split()
+            errhash = dict(zip(errlist[0::2], errlist[1::2]))
+        
+            key = ':'.join(('error',label.fid.name,label.name))
+            pipe = red.pipeline()
+            pipe.hmset(key, errhash)
+            pipe.expire(key, expire90mins)
+            pipe.execute()
 
         response = HttpResponse(content_type="text/plain")
         location = "/api/labels/%s" % ':'.join((factory,name))
