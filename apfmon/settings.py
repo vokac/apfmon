@@ -122,7 +122,7 @@ LOGGING = {
         },
         'apfmon': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         }
     },
 }
