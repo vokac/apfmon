@@ -195,10 +195,6 @@ def job(request, id):
                                                 job.state, newstate)
                 logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
-            if f.ip != ip:
-                msg = "Factory IP does not match %s : %s (%s/%s)" % (f.ip, ip, job.state, newstate)
-                logger.warn(msg)
-                return HttpResponseBadRequest(msg, content_type="text/plain")
             msg = "State change: %s->fault (transition)" % job.state
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
@@ -413,7 +409,7 @@ def label(request, id=None):
 
     if request.method == 'POST':
         try:
-            data = json.loads(request.body.decode('utf-8'))
+            data = request.POST
         except ValueError as e:
             msg = str(e)
             logger.debug(msg)
