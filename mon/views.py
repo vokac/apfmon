@@ -1000,10 +1000,6 @@ def debug(request):
     return render_to_response('mon/debug.html', context)
 
 def testindex(request):
-    """
-    Rendered view of front page which shows a table of activity
-    for each factories
-    """
     dtfail = datetime.now(pytz.utc) - timedelta(days=10)
     dterror = datetime.now(pytz.utc) - timedelta(hours=1)
     dtwarn = datetime.now(pytz.utc) - timedelta(minutes=20)
@@ -1027,10 +1023,24 @@ def testindex(request):
         activities.append(buckets)
         lastbucket = buckets[-1]
 
+        key = ':'.join(('summary',f.name))
+        summary = red.get(key)
+        if summary:
+            total = int(summary.split()[0])
+            humantotal = "{:.0f}k".format(total/1000,)
+        else:
+            total = '-'
+            humantotal = total
+            summary = ''
+  
+
         row = {
             'factory'    : f,
             'active'     : active,
             'lastbucket' : lastbucket,
+            'total'      : total,
+            'humantotal' : humantotal,
+            'summary'    : summary,
             }
 
         rows.append(row)
@@ -1044,7 +1054,7 @@ def testindex(request):
             'status' : status,
             }
 
-    return render_to_response('mon/index.html', context)
+    return render_to_response('mon/testindex.html', context)
 
 
 @cache_page(60 * 1)
@@ -1076,10 +1086,21 @@ def index(request):
         activities.append(buckets)
         lastbucket = buckets[-1]
 
+        key = ':'.join(('summary',f.name))
+        summary = red.get(key)
+        if summary:
+            total = summary.split()[0]
+        else:
+            total = '-'
+            summary = ''
+  
+
         row = {
             'factory'    : f,
             'active'     : active,
             'lastbucket' : lastbucket,
+            'total'      : total,
+            'summary'    : summary,
             }
 
         rows.append(row)

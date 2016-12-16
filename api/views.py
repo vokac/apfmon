@@ -11,6 +11,7 @@ import logging
 import math
 import pytz
 import redis
+import socket
 import time
 from datetime import timedelta, datetime
 from django.shortcuts import redirect, render_to_response, get_object_or_404
@@ -29,6 +30,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger('apfmon.api')
 
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 red = redis.StrictRedis(settings.REDIS['host'] , port=settings.REDIS['port'], db=0)
 expire90mins = 90*60
 expire3hrs = 3*3600
@@ -138,6 +140,7 @@ def job(request, id):
             return response
 
         elif newstate == 'exiting':
+            sock.sendto('exiting', (settings.SUBTLE['host'], settings.SUBTLE['port']))
             try:
                 rc = int(postrc)
             except ValueError:
@@ -179,7 +182,7 @@ def job(request, id):
 
             job.state = 'done'
             job.save()
-            msg = "State change: exiting->done  (transition)"
+            msg = "State change: exiting->done  (transition.sh)"
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
@@ -195,7 +198,7 @@ def job(request, id):
                                                 job.state, newstate)
                 logger.warn(msg)
                 return HttpResponseBadRequest(msg, content_type="text/plain")
-            msg = "State change: %s->fault (transition)" % job.state
+            msg = "State change: %s->fault (transition.sh)" % job.state
             element = "%f %s %s" % (time.time(),
                                     request.META['REMOTE_ADDR'],
                                     msg)
@@ -372,7 +375,8 @@ def label(request, id=None):
 
     POST:
     status : message from factory updating status of [queue]
-           : truncated to 255 chars
+    error  : error message seen by grok-err.sh 
+    count  : error count of associated 'error' message
 
     DELETE:
     Delete a Label, restricted to localhost
@@ -408,6 +412,8 @@ def label(request, id=None):
                             content_type="application/json")
 
     if request.method == 'POST':
+        sock.sendto('POST', (settings.SUBTLE['host'], settings.SUBTLE['port']))
+
         try:
             data = request.POST
         except ValueError as e:
@@ -416,7 +422,6 @@ def label(request, id=None):
             return HttpResponseBadRequest(msg, content_type="text/plain")
 
         status = data.get('status', None)
-        errors = data.get('errors', None)
         if status:
             # still hitting DB here, to be removed
             label.msg = status[:255]
@@ -435,14 +440,12 @@ def label(request, id=None):
             pipe.ltrim(key,-5,-1)
             pipe.execute()
 
-        # update redis hash of error messages
-        if errors:
-            errlist = errors.split()
-            errhash = dict(zip(errlist[0::2], errlist[1::2]))
-        
+        error = data.get('error', None)
+        count = data.get('count', None)
+        if error and count:
             key = ':'.join(('error',label.fid.name,label.name))
             pipe = red.pipeline()
-            pipe.hmset(key, errhash)
+            pipe.hset(key, error, count)
             pipe.expire(key, expire90mins)
             pipe.execute()
 
@@ -636,6 +639,9 @@ def factory(request, id):
     GET:
     Return a factory and list of labels associated with the factory.
 
+    POST:
+    Post the latest condor statistics
+
     PUT:
     Create or update factory arrtributes, intended to be called upon
     factory start-up. Accepts one or more of the following parameters:
@@ -673,6 +679,27 @@ def factory(request, id):
                             sort_keys=True,
                             indent=2),
                             content_type="application/json")
+
+    if request.method == 'POST':
+        print 'POST', id
+        f = get_object_or_404(Factory, name=id)
+        try:
+            data = request.POST
+        except ValueError as e:
+            msg = str(e)
+            logger.debug(msg)
+            return HttpResponseBadRequest(msg, content_type="text/plain")
+
+        status = data.get('status', None)
+        if status:
+            fullmsg = status[:1024]
+            key = ':'.join(('summary',f.name))
+            red.setex(key, 300, fullmsg)
+
+        response = HttpResponse(content_type="text/plain")
+        location = "/api/factories/%s" % f.name
+        response['Location'] = location
+        return response
 
     if request.method == 'PUT':
         msg = "RAW REQUEST: %s %s %s" % (request.method, ip, request.body)
