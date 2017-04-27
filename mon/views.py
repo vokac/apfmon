@@ -25,6 +25,7 @@ from django.db.models import Q
 from django.http import HttpResponse, Http404, HttpResponseBadRequest
 from django.http import HttpResponseRedirect
 from django.http import HttpResponseServerError
+from django.http import HttpResponseNotFound
 from django.http import JsonResponse
 from django.core.cache import cache
 from django.views.decorators.cache import cache_page
@@ -125,7 +126,9 @@ def jobs1(request, lid, state, p=1):
     try:
         page = pages.page(p)
     except (EmptyPage, InvalidPage):
-        page = pages.page(pages.num_pages)
+        msg = "Page does not exist"
+        logging.warn(msg)
+        return HttpResponseNotFound(msg, content_type="text/plain")
 
     context = {
                 'label' : lab,
@@ -227,7 +230,7 @@ def factory(request, fid):
 
     return render_to_response('mon/factory.html', context)
 
-#@cache_page(60 * 3)
+@cache_page(60 * 3)
 def pandaq(request, qid, p=1):
     """
     Rendered view of panda queue for all factories
@@ -307,12 +310,19 @@ def pandaq(request, qid, p=1):
     pages = Paginator(Job.objects.filter(label__batchqueue=q).order_by('-last_modified'), 100)
     jobs = Job.objects.filter(label__batchqueue=q).order_by('-last_modified')[:100]
 
+    try:
+        page = pages.page(p)
+    except (EmptyPage, InvalidPage):
+        msg = "Page does not exist"
+        logging.warn(msg)
+        return HttpResponseNotFound(msg, content_type="text/plain")
+        
     context = {
             'pandaq' : q,
             'rows' : rows,
             'jobs' : jobs,
             'pages' : pages,
-            'page' : pages.page(p),
+            'page' : page,
             'clouds' : CLOUDLIST,
             }
 
@@ -937,6 +947,8 @@ def label(request, lid, state=None):
 
     reason = humanmsg(lastmsg['msg'])
 
+    key = ':'.join(('error',lab.fid.name,lab.name))
+    errors = red.hgetall(key)
 
     context = {
             'label'    : lab,
@@ -952,7 +964,7 @@ def label(request, lid, state=None):
             'clouds'   : CLOUDLIST,
             'state'    : state,
             'reason'   : reason,
-            'errors'   : 0,
+            'errors'   : errors,
             }
 
     return render_to_response('mon/label.html', context)
