@@ -73,12 +73,15 @@
     <li><a href="http://bigpanda.cern.ch/logger/?category=panda.mon.jedi&type=prod_brokerage|analy_brokerage&site={{ label.batchqueue }}&hours=2">brokering</a>
   <tr>
   <td>
-    <abbr rel="tooltip" data-original-title="Last 2hr error summary">Errors</abbr>
-  {% if errors %}
-    <td>0
-  {% else %}
+  <abbr rel="tooltip" data-original-title="Last 2hr error summary">Errors</abbr>
+  <td>
+  <ul class="unstyled"
+  {% for err, count in errors.items %}
+    <li>{{ err }} {{ count }}
+  {% empty %}
     <td>-
-  {% endif %}
+  {% endfor %}
+  </ul>
   <tbody>
 </table>
 </div>
