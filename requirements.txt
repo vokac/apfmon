@@ -1,9 +1,14 @@
 Django==1.10.2
 django-debug-toolbar==1.6
+django-extensions==1.7.4
+humanize==0.5.1
 MySQL-python==1.2.5
 python-memcached==1.58
 pytz==2016.7
 redis==2.10.5
+requests==2.11.1
+simplejson==3.10.0
 six==1.10.0
 sqlparse==0.2.1
 uWSGI==2.0.14
+uwsgitop==0.9
