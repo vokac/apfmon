@@ -716,7 +716,7 @@ def site(request, sid):
     return render_to_response('mon/site.html', context)
 
 # UI
-#@cache_page(60 * 10)
+@cache_page(60 * 10)
 def report(request):
     """
     Render a report of suspicious queues
@@ -730,9 +730,9 @@ def report(request):
     for label in labels:
         jobs = Job.objects.filter(label=label)
         created = jobs.filter(state='created', created__gt=dt).count()
-        if created < 100: continue
+        if created < 10: continue
         fault = jobs.filter(state='fault').count()
-        if fault <= 100: continue
+        if fault <= 10: continue
         done = jobs.filter(state='done').count()
         total = done+fault
         if total:
@@ -740,7 +740,7 @@ def report(request):
         else:
             per = 0
 
-        if per < 90: continue
+        if per < 50: continue
 
         # redis tallies
         key = ':'.join(('fault', label.fid.name, label.name))
