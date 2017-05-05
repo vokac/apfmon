@@ -88,8 +88,9 @@ class Label(models.Model):
     """
     name = models.CharField(max_length=64, blank=True, db_index=True)
     created = models.DateTimeField(auto_now_add=True, editable=False)
-    fid = models.ForeignKey(Factory)
-    batchqueue = models.ForeignKey(BatchQueue, blank=True, null=True)   # aka pandaqueue
+    fid = models.ForeignKey(Factory, on_delete=models.CASCADE)
+    # aka pandaqueue
+    batchqueue = models.ForeignKey(BatchQueue, blank=True, null=True, on_delete=models.CASCADE)
     msg = models.CharField(max_length=255, blank=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False)
     resource = models.CharField(max_length=128, blank=True)
@@ -107,7 +108,7 @@ class Job(models.Model):
     """
     jid = models.CharField(max_length=80, blank=False, unique=True)
     cid = models.CharField(max_length=16, unique=False, blank=False)
-    label = models.ForeignKey(Label)
+    label = models.ForeignKey(Label, on_delete=models.CASCADE)
     state = models.CharField(max_length=16, choices=STATES, default='created')
     created = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
     last_modified = models.DateTimeField(auto_now=True, editable=False, db_index=True)

@@ -45,7 +45,7 @@ class WMSQueue(models.Model):
     Represents a Panda Site (siteid) 
     """
     name = models.CharField(max_length=64)
-    site = models.ForeignKey(Site, blank=True, null=True)
+    site = models.ForeignKey(Site, blank=True, null=True, on_delete=models.CASCADE)
     def __unicode__(self):
         return self.name
     class Meta:
@@ -56,7 +56,7 @@ class BatchQueue(models.Model):
     Represents a Panda queue (nickname)
     """
     name = models.CharField(max_length=64, unique=True)
-    wmsqueue = models.ForeignKey(WMSQueue, blank=True, null=True)
+    wmsqueue = models.ForeignKey(WMSQueue, blank=True, null=True, on_delete=models.CASCADE)
     state = models.CharField(max_length=16, blank=True, default='unknown')
     comment = models.CharField(max_length=140, blank=True, default='')
     type = models.CharField(max_length=32, choices=QTYPE, blank=True, null=True)
