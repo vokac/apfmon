@@ -400,7 +400,8 @@ def label(request, id=None):
     label = get_object_or_404(Label, name=name, fid__name=factory)
 
     if request.method == 'GET':
-        fields = ('id','name','batchqueue__name','fid__name','msg','created','last_modified','resource')
+        fields = ('id','name','batchqueue__name', 'batchqueue__wmsqueue__site__name', 
+                  'fid__name','msg','created','last_modified','resource')
 
         label = Label.objects.filter(name=name, fid__name=factory).values(*fields)[0]
         data = serializelabel(request, label)
@@ -488,11 +489,10 @@ def serializelabel(request, label):
     label['prq'] = label['batchqueue__name']
     arg = ':'.join((label['factory'], label['name']))
     loc = reverse('label', args=[arg])
-    # note this produces a URL urlencode colon
-    # colon shouldn't be urlencode %3A so maybe a django bug?
     label['url'] = request.build_absolute_uri(loc)
     label['mortality'] = mortality
-#    label[''] = label['id']
+    label['site'] = label['batchqueue__wmsqueue__site__name']
+    del label['batchqueue__wmsqueue__site__name']
     del label['batchqueue__name']
     del label['fid__name']
 
@@ -614,7 +614,7 @@ def labels(request):
         else:
             labels = labels[start:end]
 
-        fields = ('id','name','batchqueue__name','fid__name','msg','created','last_modified','resource')
+        fields = ('id','name','batchqueue__name','fid__name','msg','created','last_modified','resource','batchqueue__wmsqueue__site__name')
 
         data = list(labels.values(*fields))
 
