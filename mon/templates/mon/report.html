@@ -32,7 +32,8 @@ the following:
 <div class=span8>
 <table class="table table-compact">
 <tr>
-<th title="Label name, unique to each factory">Label
+<th title="Label name, unique to each factory">Site
+<th title="Compute resource endpoint">Resource
 <th title="Factory name">factory
 <th class=num title="Number of jobs in created state">created
 <th class=num title="Number of jobs in done state">done
@@ -42,7 +43,8 @@ the following:
 {% for row in results %}
 
 <tr>
-  <td nowrap><a href="{% url 'singleitem' row.factory row.name %}">{{ row.name }}</a>
+  <td nowrap><a href="{% url 'site' row.site %}">{{ row.site }}</a>
+  <td nowrap>{{ row.resource }}
   <td><a href="{% url 'singlefactory' row.factory %}">{{ row.factory }}</a>
   <td class=num>{{ row.created }}
   <td class=num><a href="{% url 'singleitem' row.factory row.name %}?state=done">{{ row.done }}</a>

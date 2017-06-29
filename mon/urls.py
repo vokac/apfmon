@@ -21,5 +21,6 @@ urlpatterns = [
 
 # human ui, note these are basically a catchall pattern
     url(r'(?P<fname>[\w-]*)/(?P<item>\S*[^/])$', views.singleitem, name='singleitem'),
-    url(r'(?P<fname>[-\w.]*)$', views.singlefactory, name='singlefactory'),
+    url(r'(?P<fname>[-\w.]*)$', views.factory, name='singlefactory'),
+#    url(r'(?P<fname>[-\w.]*)$', views.singlefactory, name='singlefactory'),
 ]

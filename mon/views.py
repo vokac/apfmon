@@ -203,29 +203,29 @@ def job1(request, fid, cid):
     return render_to_response('mon/job.html', context)
 
 @cache_page(60 * 1)
-def factory(request, fid):
+def factory(request, fname):
     """
     Rendered view of Factory instance. Lists all factory labels with
     a count of jobs in each state.
     """
 
-    try:
-        id = int(fid)
-    except ValueError:
-        raise Http404
+#    try:
+#        id = int(fid)
+#    except ValueError:
+#        raise Http404
 
     dtdead = datetime.now(pytz.utc) - timedelta(days=10)
 
-    f = get_object_or_404(Factory, id=id)
-    labels = Label.objects.filter(fid=f, last_modified__gt=dtdead).values('name','last_modified')
+    f = get_object_or_404(Factory, name=fname)
+    labels = Label.objects.filter(fid__name=fname, last_modified__gt=dtdead).values('name','last_modified')
 
     key = ':'.join(('ringf',f.name))
 
     context = {
-            'labels'     : labels,
+            'labels'   : labels,
             'factory'  : f,
             'activity' : getactivity(key),
-            'clouds' : CLOUDLIST,
+            'clouds'   : CLOUDLIST,
             }
 
     return render_to_response('mon/factory.html', context)
@@ -742,6 +742,10 @@ def report(request):
 
         if per < 50: continue
 
+        # skip labels without a batchqueue
+        if not label.batchqueue:
+            continue
+
         # redis tallies
         key = ':'.join(('fault', label.fid.name, label.name))
         rfault = red.scard(key)
@@ -755,6 +759,8 @@ def report(request):
         result = {
             'id'      : label.id,
             'name'    : label.name,
+            'site'    : label.batchqueue.wmsqueue.site.name,
+            'resource' : label.resource,
             'factory' : label.fid.name,
             'fid'     : label.fid.id,
             'total'   : total,
