@@ -107,7 +107,7 @@ def job(request, id):
             wrapper = request.POST.get('wrapper', None)
             postrc = request.POST.get('rc', None)
         except UnreadablePostError:
-            msg = 'unreadable error'
+            msg = 'job POST unreadable error'
             logger.debug(msg)
             return HttpResponseBadRequest(msg, content_type="text/plain")
                 
@@ -140,7 +140,6 @@ def job(request, id):
             return response
 
         elif newstate == 'exiting':
-            sock.sendto('exiting', (settings.SUBTLE['host'], settings.SUBTLE['port']))
             try:
                 rc = int(postrc)
             except ValueError:
@@ -413,7 +412,9 @@ def label(request, id=None):
                             content_type="application/json")
 
     if request.method == 'POST':
-        sock.sendto('POST', (settings.SUBTLE['host'], settings.SUBTLE['port']))
+        msg = '{} {}'.format(request.method, request.path)
+        logger.debug(msg)
+        sock.sendto(msg, (settings.SUBTLE['host'], settings.SUBTLE['port']))
 
         try:
             data = request.POST
@@ -681,7 +682,6 @@ def factory(request, id):
                             content_type="application/json")
 
     if request.method == 'POST':
-        print 'POST', id
         f = get_object_or_404(Factory, name=id)
         try:
             data = request.POST
