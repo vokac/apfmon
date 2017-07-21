@@ -161,10 +161,8 @@ def update(request):
                 batchqueue.type = d['type']
                 batchqueue.save()
     
-            if batchqueue.control != d['status_control']:
-                batchqueue.control = d['status_control']
-                batchqueue.save()
         except Exception, e:
+            raise
             msg = "Exception caught: %s" % e
             print msg
             logging.error(msg)
