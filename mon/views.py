@@ -721,18 +721,28 @@ def report(request):
     """
     Render a report of suspicious queues
     """
+    interval = min(int(request.GET.get('interval', '0')), 7*86400)
+    min_created = int(request.GET.get('min_created', '10'))
+    min_fault = int(request.GET.get('min_fault', '10'))
+    min_percent = int(request.GET.get('min_percent', '50'))
 
     # redis, how bout using sorted sets with a score based on number of fault?
     dt = datetime.now(pytz.utc) - timedelta(minutes=120)
+    if interval > 0:
+        dt = datetime.now(pytz.utc) - timedelta(seconds=interval)
     labels = Label.objects.filter(last_modified__gt=dt)
     results = []
     foo = []
     for label in labels:
+        # skip labels without a batchqueue
+        if not label.batchqueue:
+            continue
+
         jobs = Job.objects.filter(label=label)
         created = jobs.filter(state='created', created__gt=dt).count()
-        if created < 10: continue
+        if created < min_created: continue
         fault = jobs.filter(state='fault').count()
-        if fault <= 10: continue
+        if fault <= min_fault: continue
         done = jobs.filter(state='done').count()
         total = done+fault
         if total:
@@ -740,11 +750,7 @@ def report(request):
         else:
             per = 0
 
-        if per < 50: continue
-
-        # skip labels without a batchqueue
-        if not label.batchqueue:
-            continue
+        if per < min_percent: continue
 
         # redis tallies
         key = ':'.join(('fault', label.fid.name, label.name))
